@@ -7,3 +7,4 @@
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+.last_synced_sha
