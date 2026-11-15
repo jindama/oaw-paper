@@ -1,0 +1,488 @@
+\appendix
+
+TODO: Clean up appendix, currently it's a parking spot for deprecated prose
+\section{The OAW factorization from first principles}
+\label{app:oaw}
+
+This appendix derives the coarse spaces and the multiresolution basis by
+duality, the recursive construction, and the direct use of the
+factorization, complementing the definitions of
+Section~\ref{sec:background}.
+
+\subsection{Coarse spaces and duality}
+\label{app:oaw:duality}
+
+% The coarse spaces
+Each level of measurements induces a coarse space of trial functions.
+Fix~$k$ and let
+\[
+  \mathcal{N}^{(k)} := \bigcap_{j=1}^{n_k} \ker \mu^{(k)}_j
+  \;\subset\; \mathcal{V}^{(q)}
+\]
+be the common kernel of the level-$k$ functionals, the subspace of trial
+functions invisible to the level-$k$ measurements.  We identify the dual space of
+$\mathcal{V}^{(k)*}$ with a subspace of
+$\mathcal{V}^{(q)}$  using the orthogonal complement in the energy product induced by $a$,
+\[
+  \mathcal{V}^{(k)} := \bigl(\mathcal{N}^{(k)}\bigr)^{\perp_a}
+  = \bigl\{ v \in \mathcal{V}^{(q)} : a(v,w) = 0
+    \text{ for all } w \in \mathcal{N}^{(k)} \bigr\},
+\]
+Since the functionals are linearly independent, this space has dimension~$n_k$. The
+nesting~\eqref{eq:measurement_nesting} implies decreasing kernels, $\mathcal{N}^{(k)} \supseteq \mathcal{N}^{(k+1)}$, so the
+coarse spaces are nested: $\mathcal{V}^{(k)} \subset \mathcal{V}^{(k+1)}$
+for $1 \leq k < q$.
+
+The level-$k$ \emph{detail space} is defined as
+\[
+  \mathcal{W}^{(k)} := \mathcal{V}^{(k+1)} \cap \mathcal{N}^{(k)} .
+\]
+It is $a$-orthogonal to $\mathcal{V}^{(k)}$ by construction, and every
+$y \in \mathcal{V}^{(k+1)}$ splits under $\mathcal{V}^{(q)} =
+\mathcal{V}^{(k)} \oplus_a \mathcal{N}^{(k)}$ as $y = v + w$ with $v \in
+\mathcal{V}^{(k)}$ and $w = y - v \in \mathcal{W}^{(k)}$, so
+\begin{equation}
+  \mathcal{V}^{(k+1)} = \mathcal{V}^{(k)} \oplus_a \mathcal{W}^{(k)},
+  \qquad
+  \mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}
+  \oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)} .
+\end{equation}
+
+% The bases
+The level-$k$ OAW basis is the basis of $\mathcal{V}^{(k)}$ dual to its
+measurements:
+\begin{equation}\label{eq:dual_basis}
+  \psi^{(k)}_i \in \mathcal{V}^{(k)},
+  \qquad \mu^{(k)}_j\bigl(\psi^{(k)}_i\bigr) = \delta_{ij},
+  \qquad 1 \leq i, j \leq n_k .
+\end{equation}
+It exists and is unique: a function in $\mathcal{V}^{(k)}$ annihilated by
+every level-$k$ measurement lies in $\mathcal{V}^{(k)} \cap
+\mathcal{N}^{(k)} = \{0\}$, so the measurement map $v \mapsto
+(\mu^{(k)}_j(v))_j$ is injective on $\mathcal{V}^{(k)}$, and is bijective
+since the dimensions agree.
+
+The function $\psi^{(k)}_i$ is also the minimum-energy trial function with
+its measurements: over the affine constraint set
+\begin{equation}
+  \mathcal{A}^{(k)}_i
+  := \{v \in \mathcal{V}^{(q)} : \mu^{(k)}_j(v) = \delta_{ij},\;
+       1 \leq j \leq n_k\}
+\end{equation}
+it satisfies
+\begin{equation}
+    \psi^{(k)}_i = \operatorname{argmin}_{f \in \mathcal{A}^{(k)}_i} \lVert f\rVert_a \, ,
+\end{equation}
+since every $f \in \mathcal{A}^{(k)}_i$ differs from $\psi^{(k)}_i$ by an
+element of $\mathcal{N}^{(k)}$, so that $\lVert f \rVert_a^2 = \lVert
+\psi^{(k)}_i \rVert_a^2 + \lVert f - \psi^{(k)}_i \rVert_a^2$.
+
+\begin{comment}
+Membership in $\mathcal{V}^{(k)} = (\mathcal{N}^{(k)})^{\perp_a}$ states
+that the functional $a(\psi^{(k)}_i, \cdot) \in (\mathcal{V}^{(q)})^*$
+annihilates~$\mathcal{N}^{(k)}$.  The functionals annihilating
+$\mathcal{N}^{(k)}$ form a space of dimension $n_k$ containing
+$\mathcal{V}^{(k)*}$, so the two coincide, and there are coefficients
+$\lambda^{(k)}_{i\ell}$ with
+\begin{equation}\label{eq:gamblet_basis}
+a(\psi^{(k)}_i, v)= \sum_{\ell=1}^{n_k}\lambda^{(k)}_{i\ell}\,\mu^{(k)}_\ell(v)
+\quad \forall v \in \mathcal{V}^{(q)},
+\qquad
+\mu^{(k)}_j(\psi^{(k)}_i) = \delta_{ij}.
+\end{equation}
+In the minimization problem
+~\eqref{eq:psi_k_def}, the $\lambda^{(k)}_{i\ell}$ are the Lagrange
+multipliers associated with the measurement constraints.
+\end{comment}
+
+The detail space $\mathcal{W}^{(k)}$ has dimension $d_k = n_{k+1} - n_k$
+by~\eqref{eq:scale_decomposition}. The functions $\chi^{(k)}_i$, $1 \leq i \leq d_k$
+\begin{equation}
+  \chi^{(k)}_j = \sum_{\ell=1}^{n_{k+1}} D^{(k)}_{j\ell}\,\psi^{(k+1)}_\ell,
+  \qquad 1 \leq j \leq d_k,
+\end{equation}
+form a basis for $\mathcal{W}^{(k)}$. To see this, we need only recall that the $\psi^{(k+1)}_{\ell}$ are linearly independent, that $D^{(k)}$ has full row rank, and count dimensions.
+
+\begin{theorem}[Exponential energy decay
+{\cite[Thm.~15.41, (15.127)]{Owhadi_Scovel_2019}}]\label{thm:energy_decay}
+  Let $B_r(x^{(k)}_i)$ denote the ball of radius $r h_k$ about the
+  node~$x^{(k)}_i$ of $\psi^{(k)}_i$.  Then
+  \begin{equation}\label{eq:energy_decay}
+    \|\psi^{(k)}_i\|_{a,\, B_r(x^{(k)}_i)^c}^2
+    \;\leq\;
+    e^{1 - r/\ell}\,\|\psi^{(k)}_i\|_a^2 ,
+  \end{equation}
+  where the decay length~$\ell$, measured in level-$k$ mesh widths, is
+  independent of $N$, of the level, and of the discretization; the physical
+  decay length is $\ell h_k$.
+\end{theorem}
+
+\subsection{The exact recursion}
+\label{sec:background:oaw}
+
+Problem~\eqref{eq:gamblet_basis} is posed in~$\mathcal{V}^{(q)}$: computed
+directly, the basis at level~$k$ requires $n_k$ solves in a space of
+dimension~$n_q$, which gives a total cost superlinear in~$n_q$, the
+precomputation cost of LOD
+methods~\cite{hauck2022multiresolutionlocalizedorthogonaldecomposition}.
+We now show how the nesting of the coarse spaces circumvents this cost:
+each level-$k$ basis function is a linear combination of the level-$(k+1)$
+basis functions, so the problems characterizing the basis functions at
+level~$k$ may be posed in the coordinates of the adjacent level~$k+1$,
+rather than the full trial space.  Explicitly, define the
+\emph{refinement matrix} $R^{(k)} \in \mathbb{R}^{n_k \times n_{k+1}}$ by
+\begin{equation}\label{eq:prolongation}
+  \psi^{(k)}_i = \sum_{\ell=1}^{n_{k+1}} R^{(k)}_{i\ell}\,\psi^{(k+1)}_\ell,
+  \qquad 1 \leq i \leq n_k .
+\end{equation}
+Evidently, it suffices to compute the coefficients $R^{(k)}_{i\ell}$, or,
+equivalently, the rows of~$R^{(k)}$; we now characterize these rows in
+terms of quantities available at level~$k+1$.  Applying $\mu^{(k)}_j$
+to~\eqref{eq:prolongation} and using~\eqref{eq:nesting_maps} with the
+level-$(k+1)$ biorthogonality~\eqref{eq:dual_basis} gives the
+\emph{measurement constraint}
+\begin{equation}\label{eq:measurement_constraint}
+  C^{(k)}\,R^{(k)\top} = I_{n_k} ,
+\end{equation}
+so $R^{(k)\top}$ is a right inverse of $C^{(k)}$.  Since each $\psi^{(k)}_i$
+minimizes energy subject to that constraint~\eqref{eq:psi_k_def}, the $i$-th
+row of~$R^{(k)}$ solves
+\begin{equation}\label{eq:R_minimization}
+  R^{(k)\top} e_i
+  = \operatorname*{argmin}_{r \in \mathbb{R}^{n_{k+1}}} r^\top A^{(k+1)} r
+  \quad \text{subject to} \quad C^{(k)}\,r = e_i ,
+\end{equation}
+where $A^{(k+1)}_{ij} = a(\psi^{(k+1)}_i, \psi^{(k+1)}_j)$.  Thus $R^{(k)\top}$
+is the $A^{(k+1)}$-optimal right inverse of~$C^{(k)}$.
+
+The KKT conditions for~\eqref{eq:R_minimization} read
+\begin{equation}\label{eq:kkt}
+  A^{(k+1)}\,r + C^{(k)\top}\lambda = 0,
+  \qquad C^{(k)}\,r = e_i .
+\end{equation}
+Any feasible $r$ may be written $r = C^{(k)\dagger\top} e_i + D^{(k)\top} z$
+with $C^{(k)\dagger\top}$ a right inverse of $C^{(k)}$ and the second term in
+$\ker C^{(k)} = \operatorname{range}(D^{(k)\top})$.  Substituting and
+left-multiplying by~$D^{(k)}$ eliminates $C^{(k)\top}\lambda$, leaving
+\begin{equation}\label{eq:z_solve}
+  B^{(k+1)}\,z_i = -D^{(k)}\,A^{(k+1)}\,C^{(k)\dagger\top} e_i ,
+  \qquad
+  B^{(k+1)} := D^{(k)}\,A^{(k+1)}\,D^{(k)\top},
+\end{equation}
+where $B^{(k+1)}$ is the restriction of $A^{(k+1)}$ to $\ker C^{(k)}$, and is
+the same matrix as the $(k+1)$-th diagonal block of~\eqref{eq:block_diagonal}.
+Collecting the solutions $z_i$ as the rows of~$Z^{(k)}$,
+\begin{equation}\label{eq:R_assembly}
+  R^{(k)} = C^{(k)\dagger} + Z^{(k)}\,D^{(k)} ,
+\end{equation}
+and the coarsened stiffness
+\begin{equation}\label{eq:coarsened_stiffness}
+  A^{(k)} = R^{(k)}\,A^{(k+1)}\,R^{(k)\top}
+\end{equation}
+is the input for level $k-1$.  The recursion runs from $A^{(q)} = K$ down to
+$A^{(1)}$.  Note that $R^{(k)}$, and therefore $A^{(k)}$, is independent of
+the choice of $C^{(k)\dagger}$ (Lemma~\ref{lem:cdagger_independence}).
+
+The full recursive construction is given in
+Algorithm~\ref{alg:exact_build}.  The matrices
+$\Psi^{(k)} \in \mathbb{R}^{n_k \times n_q}$ and $X^{(k)} \in
+\mathbb{R}^{d_k \times n_q}$ hold the coefficients of the level-$k$ basis
+functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ in the fine-mesh basis, and
+satisfy $\Psi^{(k)} = R^{(k)}\Psi^{(k+1)}$ and $X^{(k)} =
+D^{(k)}\Psi^{(k+1)}$.  They are the blocks of the change of basis
+of~\eqref{eq:combined_basis}: since $n_1 + d_1 + \cdots + d_{q-1} = n_q$,
+\begin{equation}\label{eq:Psi_blocks}
+  \Phi^\top =
+  \begin{bmatrix}
+    \Psi^{(1)} \\ X^{(1)} \\ \vdots \\ X^{(q-1)}
+  \end{bmatrix}.
+\end{equation}
+
+\begin{algorithm}[t]
+\caption{Exact OAW construction}
+\label{alg:exact_build}
+\textbf{Input:} $A^{(q)} = K$, $\Psi^{(q)} = I$; nesting maps
+$\{C^{(k)}\}_{k=1}^{q-1}$; detail maps $\{D^{(k)}\}_{k=1}^{q-1}$\\[4pt]
+\textbf{for} $k = q-1, q-2, \ldots, 1$ \textbf{do}
+\begin{enumerate}
+  \item[1.] Compute $C^{(k)\dagger}$ with $C^{(k)}\,C^{(k)\dagger\top} = I_{n_k}$.
+  \item[2.] Form $B^{(k+1)} \gets D^{(k)}\,A^{(k+1)}\,D^{(k)\top}$.
+  \item[3.] \textbf{for} $i = 1, \ldots, n_k$ \textbf{do} solve
+    $B^{(k+1)}\, z_i = -D^{(k)}\,A^{(k+1)}\,C^{(k)\dagger\top} e_i$.
+  \item[4.] Assemble $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)}\,D^{(k)}$.
+  \item[5.] Coarsen $A^{(k)} \gets R^{(k)}\,A^{(k+1)}\,R^{(k)\top}$.
+  \item[6.] Accumulate $X^{(k)} \gets D^{(k)}\,\Psi^{(k+1)}$ and
+    $\Psi^{(k)} \gets R^{(k)}\,\Psi^{(k+1)}$.
+\end{enumerate}
+\textbf{end for.}  \textbf{Output:} $\{\Psi^{(k)}\}$, $\{X^{(k)}\}$,
+$\{B^{(k)}\}$, $\{A^{(k)}\}$.
+\end{algorithm}
+
+\subsection{The direct approximate inverse}
+\label{sec:background:apply}
+
+Replacing the exact factors in~\eqref{eq:exact_inverse_formula} by the
+localized ones gives an approximate direct solver: the approximate solution
+of $Ku = g$ is
+\begin{equation}\label{eq:localized_inverse}
+  \hat{u}_\rho \;:=\;
+  \Phi_\rho \operatorname{diag}\bigl( B^{(k)\,-1}_\rho \bigr)\,
+  \Phi_\rho^\top\, g ,
+\end{equation}
+computed by a projection, one independent block solve per level, and a
+recombination.  The procedure, in terms of the stored factors of
+Algorithm~\ref{alg:recursive_build}, is given as
+Algorithm~\ref{alg:direct_solve}.  Once the factors are built, each
+right-hand side costs one projection, $q$ block solves, and one
+recombination, in total $\mathcal{O}(N\rho^{d})$ operations, proportional
+to the number of stored entries of the factors~\cite{owhadi2017}.
+% TODO: verify the O(N rho^d) apply accounting against owhadi2017 (stored
+% block factors vs iterative block solves); the full accounting is
+% Section 4's.
+
+The localized factors and the accumulated blocks $\Psi^{(1)}$,
+$\{X^{(k)}\}$ are produced by Algorithm~\ref{alg:recursive_build},
+the standard form of the literature (cf.~\cite{budni2019}).
+
+\begin{algorithm}[t]
+\caption{Localized OAW construction (cf.~\cite{budni2019})}
+\label{alg:recursive_build}
+\textbf{Input:} $A^{(q)} = K$, $\Psi^{(q)} = I$; nesting maps
+$\{C^{(k)}\}_{k=1}^{q-1}$; detail maps $\{D^{(k)}\}_{k=1}^{q-1}$; radius
+$\rho$\\[4pt]
+\textbf{for} $k = q-1, q-2, \ldots, 1$ \textbf{do}
+\begin{enumerate}
+  \item[1.] Compute a sparse $C^{(k)\dagger}$ with
+    $C^{(k)}\,C^{(k)\dagger\top} = I_{n_k}$.
+  \item[2.] Form $B^{(k+1)} \gets D^{(k)}\,A^{(k+1)}\,D^{(k)\top}$.
+  \item[3.] \textbf{for} $i = 1, \ldots, n_k$ \textbf{do}
+  \begin{enumerate}
+    \item[(a)] Identify the patch $\mathcal{P}_i$ of detail indices whose
+      detail functions are supported in~$S^{(k)}_i$.
+    \item[(b)] Solve $[B^{(k+1)}]_{\mathcal{P}_i}\, z_i =
+      -[D^{(k)}\,A^{(k+1)}\,C^{(k)\dagger\top} e_i]_{\mathcal{P}_i}$.
+  \end{enumerate}
+  \item[4.] Assemble $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)}\,D^{(k)}$;
+    threshold small entries.
+  \item[5.] Coarsen $A^{(k)} \gets R^{(k)}\,A^{(k+1)}\,R^{(k)\top}$;
+    threshold small entries.
+  \item[6.] Accumulate $X^{(k)} \gets D^{(k)}\,\Psi^{(k+1)}$ and
+    $\Psi^{(k)} \gets R^{(k)}\,\Psi^{(k+1)}$.
+\end{enumerate}
+\textbf{end for.}  \textbf{Output:} $\{\Psi^{(k)}\}$, $\{X^{(k)}\}$,
+$\{B^{(k)}\}$, $\{A^{(k)}\}$.
+\end{algorithm}
+
+\begin{algorithm}[t]
+\caption{Direct solve with the localized factorization}
+\label{alg:direct_solve}
+\textbf{Input:} right-hand side $g$; factors $\Psi^{(1)}$,
+$\{X^{(k)}\}_{k=1}^{q-1}$, $A^{(1)}$, $\{B^{(k)}\}_{k=2}^{q}$ from
+Algorithm~\ref{alg:recursive_build}\\[4pt]
+\begin{enumerate}
+  \item[1.] Project: $w^{(1)} \gets \Psi^{(1)} g$ and
+    $w^{(k+1)} \gets X^{(k)} g$ for $1 \leq k \leq q-1$.
+  \item[2.] Solve $A^{(1)} c^{(1)} = w^{(1)}$ and
+    $B^{(k+1)}\, c^{(k+1)} = w^{(k+1)}$ for $1 \leq k \leq q-1$.
+  \item[3.] Recombine: $\hat{u}_\rho \gets \Psi^{(1)\top} c^{(1)}
+    + \sum_{k=1}^{q-1} X^{(k)\top} c^{(k+1)}$.
+\end{enumerate}
+\textbf{Output:} $\hat{u}_\rho$.
+\end{algorithm}
+
+
+\section{Deferred proofs and technical remarks}
+\label{app:proofs}
+
+\begin{lemma}[Independence of the right inverse]\label{lem:cdagger_independence}
+The matrix $R^{(k)}$ assembled in~\eqref{eq:R_assembly} from the solutions
+of~\eqref{eq:z_solve}, and with it the coarsened
+stiffness~\eqref{eq:coarsened_stiffness}, is the same for every
+$C^{(k)\dagger}$ with $C^{(k)} C^{(k)\dagger\top} = I_{n_k}$.
+\end{lemma}
+
+\begin{proof}
+Within this proof fix the level and drop its superscripts, writing $C$,
+$D$, $A$, $B = DAD^\top$; $A$ is SPD and $D$ has
+full row rank, so $B$ is SPD.  Let $C_1^{\dagger}$
+and $C_2^{\dagger}$ satisfy $C C_1^{\dagger\top} = C C_2^{\dagger\top} = I$,
+and fix a row index~$i$.  The two candidate rows are
+\[
+  r^{(j)} = C_j^{\dagger\top} e_i + D^\top z^{(j)},
+  \qquad
+  B z^{(j)} = -D A\, C_j^{\dagger\top} e_i,
+  \qquad j = 1, 2 .
+\]
+The difference of the baselines is annihilated by $C$ and therefore lies in
+$\ker C = \operatorname{range}(D^\top)$:
+\[
+  \bigl(C_1^{\dagger\top} - C_2^{\dagger\top}\bigr) e_i = D^\top w
+  \quad \text{for some } w .
+\]
+Subtracting the two linear systems and substituting,
+\[
+  B\bigl(z^{(1)} - z^{(2)}\bigr)
+  = -D A \bigl(C_1^{\dagger\top} - C_2^{\dagger\top}\bigr) e_i
+  = -D A D^\top w = -B w ,
+\]
+so $z^{(1)} - z^{(2)} = -w$ by invertibility of $B$, and
+\[
+  r^{(1)} - r^{(2)}
+  = D^\top w + D^\top\bigl(z^{(1)} - z^{(2)}\bigr) = 0 .
+\]
+The rows coincide, so the assembled matrices coincide, and with them
+$A^{(k)} = R^{(k)} A^{(k+1)} R^{(k)\top}$.
+\end{proof}
+
+
+\begin{lemma}[Linear independence of the localized family]\label{lem:localized_independence}
+The functions $\varphi_{\rho,i}$, $1 \leq i \leq n_q$, of
+Section~\ref{sec:background} are linearly independent.
+\end{lemma}
+
+\begin{proof}
+Let $\sum_i c_i \varphi_{\rho,i} = 0$ and group the coefficients by
+level, $c = (c^{(1)}, t^{(1)}, \ldots, t^{(q-1)})$, with $c^{(1)}$ the
+coefficients of the $\psi^{(1)}_{\rho,i}$ and $t^{(k)}$ those of the
+$\chi^{(k)}_{\rho,m}$.  For $j \geq k$, the
+nesting~\eqref{eq:nesting_maps} and the own-level
+data~\eqref{eq:own_level_data} give
+$\mu^{(k)}_i(\chi^{(j)}_{\rho,m})
+ = (C^{(k)} \cdots C^{(j)} D^{(j)\top})_{im} = 0$
+by~\eqref{eq:kernel_D}.  Applying the level-1 functionals to the
+vanishing combination therefore yields $c^{(1)} = 0$.  Assume
+$c^{(1)} = 0$ and $t^{(1)} = \cdots = t^{(k-1)} = 0$.  Applying the
+level-$(k{+}1)$ functionals annihilates every term of level $j > k$ and
+evaluates the level-$k$ term through
+$\mu^{(k+1)}_i(\chi^{(k)}_{\rho,m}) = D^{(k)}_{mi}$, so
+$D^{(k)\top} t^{(k)} = 0$ and $t^{(k)} = 0$ by the rank condition
+in~\eqref{eq:kernel_D}.  Induction over the levels gives $c = 0$.
+\end{proof}
+
+\begin{lemma}[Radius floor]\label{lem:radius_floor}
+Fix $\beta_0 \in (0,1)$ and let $\beta$ be as in~\eqref{eq:beta}.  Then
+$\beta \leq \beta_0$ whenever
+\begin{equation}\label{eq:explicit_floor}
+  \rho \;\geq\; 2\ell\ln q
+    \;+\; 4\ell\ln\!\bigl(C_\beta C_d/(\beta_0 H)\bigr),
+  \qquad C_d := (2d\ell/e)^{d/2}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Taking logarithms in~\eqref{eq:beta}, the condition
+$\beta \leq \beta_0$ reads
+$\rho \geq d\ell\ln\rho + 2\ell\ln\sqrt{q}
+ + 2\ell\ln\bigl(C_\beta/(\beta_0 H)\bigr)$.  Absorbing the polynomial
+prefactor into a halved exponential rate
+gives~\eqref{eq:explicit_floor}; the sharp rate leaves a
+self-referential condition, which Lemma~\ref{lem:fixed_point}, applied
+with $a = d\ell$, resolves to the same growth class.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\textup{\ref{lem:threshold}}]
+By $q \leq C_q \ln N$, the right-hand side
+of~\eqref{eq:explicit_floor} at $\beta_0 = \tfrac12$ is at most
+$2\ell\ln\ln N + C\ell$ with
+$C = 2\ln C_q + 4\ln\!\bigl(2 C_\beta C_d/H\bigr)$, so
+$\rho \geq \rho_{\mathrm{iter}}(N)$ implies $\beta \leq \tfrac12$ by
+Lemma~\ref{lem:radius_floor}.  The two factors
+of~\eqref{eq:kappa_bound} are then at most $(3/2)^4$ and $4$, so
+$\kappa(\widetilde{K}_\rho^{-1}K) \leq 20.25$, and the prefactor
+of~\eqref{eq:cg_iter_bound} is at most
+$\tfrac12 (\tfrac32)^2 \cdot 2 = 2.25$.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\textup{\ref{cor:iteration_count}}]
+For an SPD system with condition number~$\kappa$, conjugate gradients
+satisfies
+$\|e_k\|_K / \|e_0\|_K \leq
+ 2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^k$
+\cite[\S6.11.3]{saad2003iterative}.  Setting the right-hand side
+to~$\varepsilon$, solving for~$k$, and
+substituting~\eqref{eq:kappa_bound} gives~\eqref{eq:cg_iter_bound}.
+Each iteration consists of one multiplication by~$K$, at
+$\mathcal{O}(N)$ operations, and one application
+of~\eqref{eq:preconditioner}, at $\mathcal{O}(N\rho^d)$ operations by
+the cost statement of Section~\ref{sec:background}, which gives the
+solve cost.
+\end{proof}
+
+\begin{remark}[Recursive localization]\label{rem:recursive_localization}
+  The bound~\eqref{eq:localization_error} applies to a single
+  localized problem~\eqref{eq:localized_basis}.  The functions produced by
+  Algorithm~\ref{alg:recursive_build} are a further approximation: each
+  level's local problems take as inputs the localized functions of the
+  level below rather than the exact ones.  The bounds of
+  Theorem~\ref{thm:energy_decay} and~\eqref{eq:localization_error} have not
+  been established for the recursively built functions at a fixed radius;
+  the estimates of~\cite[\S16.4]{Owhadi_Scovel_2019} assume radii
+  $r_k \gtrsim k + \ln(1/\varepsilon)$.  We assume throughout that these bounds
+  hold for the recursively constructed localized basis, with constants
+  adjusted by a factor independent of $k$ and~$N$, and we do not
+  distinguish the adjusted constants notationally.
+\end{remark}
+% TODO: establish the constant-radius recursive localization bound at the
+% generality of Condition 2.1.  Reconstruction notes for the intended proof
+% (from [OS2019, Lemma 16.30] and its proof, 2026-07):
+%
+%   (1) Lemma 16.30 gives eps_k <= alpha eps_{k+1}
+%       + alpha e^{-r_k/alpha} beta^{k+1}, with
+%       eps_k := (sum_i ||psi_i^{(k)} - psi_i^{(k),loc}||^2)^{1/2}
+%       (16.113) the AGGREGATED ABSOLUTE level error.  Its hypotheses
+%       (Cond. 14.15, 16.2, 16.22) constrain the hierarchy and operator only
+%       -- no constraint on the radii.
+%
+%   (2) Provenance of the constants: beta^{k+1} = C H^{-(k+1)} kappa^{(k+1)/2}
+%       is the aggregate size of the EXACT level-(k+1) basis (norm scale times
+%       sqrt(cardinality), via (16.139)-(16.140)) -- a normalization artifact
+%       of the absolute metric, not amplification.  alpha ~
+%       sqrt(2)||R^{(k,k+1)}||_2 plus an exponentially small tail-norm term,
+%       via quasi-optimality: (16.124)-(16.125) show psi^{(k),loc} minimizes
+%       the distance to psi^{(k)} over the localized span, and the truncated
+%       interpolant (16.126) is a feasible competitor.
+%
+%   (3) Normalizing d_k := eps_k / beta^{k+1} gives
+%       d_k <= (alpha/beta) d_{k+1} + alpha e^{-r_k/alpha}.  Contraction
+%       (alpha < beta) is plausible since beta ~ H^{-1} sqrt(kappa) >= 5 while
+%       ||R||_2 is an O(1) stability constant.  STILL TO PULL: the explicit
+%       bound on ||R^{(k,k+1)}||_2 (near Lemma 16.25) and Lemmas 16.27/16.28
+%       (tail norm, sets the exponential rate).
+%
+%   (4) Even with contraction, 16.30 cannot be cited for this assumption: it
+%       bounds the aggregate, while the decorrelation lemma consumes
+%       PER-FUNCTION relative bounds, and aggregate-to-per-function costs up
+%       to sqrt(n_k) -- the exact sqrt(N)-type loss the decorrelation lemma
+%       exists to avoid.
+%
+%   (5) Intended proof: the 16.30 argument is per-index until the summation at
+%       (16.131)-(16.132).  Keep the per-function skeleton (quasi-optimality +
+%       truncated-interpolant competitor + R/R-tail split), replace the
+%       aggregation step by the decorrelation lemma applied to the
+%       level-(k+1) errors, and induct over levels.  Unverified bookkeeping:
+%       the norm ratio ||psi^{(k+1)}||/||psi^{(k)}|| ~ H^{-1} per level
+%       against the exponential decay of the rows of R^{(k,k+1)}; the
+%       contraction condition will add one radius threshold (expected N-free,
+%       at worst ~ ln q).
+
+
+% BP: remaining appendix-A material lands with the appendix pass
+%     (rem:inexact; proof of cor:frozen_precond; lem:fixed_point)
+
+\section{Stability conditions for general measurement hierarchies}
+\label{app:stability}
+
+We assume throughout that the hierarchy satisfies the stability condition
+\cite[Cond.~14.14]{Owhadi_Scovel_2019} relative to the operator, that the
+kernel maps satisfy $C_\mu^{-1} I \preceq D^{(k)} D^{(k)\top} \preceq C_\mu I$
+for some $C_\mu \geq 1$, and that the cellularity and metric conditions
+\cite[Cond.~16.2, 16.22]{Owhadi_Scovel_2019} hold.  The resulting constants
+depend on $\|\mathcal{L}\|$, $\|\mathcal{L}^{-1}\|$, on $\Omega$, $d$ and
+$s$, and on the mesh regularity.  In the general $W^{s,2}$ setting the rate
+constant is $H = h^{s}$ with $h$ the geometric coarsening ratio; at $s = 1$
+the two coincide, and we write $H$ for both.
+% BP: stability conditions; the constraint rule per measurement family
+
+\section{Experimental setup}
+\label{app:setup}
+% BP: experimental setup
