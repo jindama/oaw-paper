@@ -53,12 +53,13 @@ accuracy guarantees with $L^\infty$ coefficients make it an attractive
 method for solving multiscale problems. However, the method's use as a direct solver has confined it to moderate problem sizes. We prove that the factorization may
 instead serve as a preconditioner for the conjugate gradient method and quantify the rate of convergence. For a
 problem with $N$ degrees of freedom and error tolerance $\varepsilon$, this
-reduces the setup cost from $\mathcal{O}(N\ln^{2d+1}(N/\varepsilon))$ to
-$\mathcal{O}(N(\ln\ln N)^{2d})$ (independent of $\varepsilon$) and the solution cost
-from $\mathcal{O}(N\ln^{d+1}(N/\varepsilon))$ to
-$\mathcal{O}(N(\ln\ln N)^{d}\ln(1/\varepsilon))$. We further control the memory demands of
+reduces the setup cost, up to constant factors independent of $N$ and
+$\varepsilon$, from $N\ln^{2d+1}(N/\varepsilon)$ to
+$N(\ln\ln N)^{2d}$, independent of $\varepsilon$, and the solution cost
+from $N\ln^{d+1}(N/\varepsilon)$ to
+$N(\ln\ln N)^{d}\ln(1/\varepsilon)$. We further control the memory demands of
 the algorithm by solving subproblems iteratively rather than with stored
-factorizations, storing the preconditioner in a compressed factored form, and exploiting available problem symmetries, whereby the method thereby extends to large-scale systems. We demonstrate this on three-dimensional diffusion and elasticity problems with $N \gtrsim 10^{6}$ degrees of freedom on a single
+factorizations, storing the preconditioner in a compressed factored form, and exploiting available problem symmetries, whereby the method thereby extends to large-scale systems. We demonstrate this on three-dimensional diffusion and elasticity problems with more than $10^{6}$ degrees of freedom on a single
 GPU, and compare with standard algebraic multigrid solvers.
 \end{abstract}
 
@@ -138,7 +139,7 @@ As a result, obtaining good convergence on a given problem often requires extens
 %[TODO: mention the LOD or Peterseim as similar constructions, other direct multilevel methods, typically used for homogenization]
 %[TODO: a figure would be helpful here]
 
-The error in the solution obtained from this direct factorization is bounded by the choice of localization. More precisely, with localization radius $\rho$, the preprocessing cost scales as $\mathcal{O}(N\rho^{3d})$ in time, and the stored hierarchy grows as $\mathcal{O}(N\rho^{d})$ in memory~\cite{owhadi2017}. Ensuring a prescribed relative energy-norm error tolerance $\varepsilon$ requires $\rho \sim \ln(N/\varepsilon)$, resulting in $\mathcal{O}(N\ln^{3d}(N/\varepsilon))$ time and $\mathcal{O}(N\ln^{d}(N/\varepsilon))$ memory cost, and obtaining an approximate solution with the stored factorization has cost $\mathcal{O}(N\ln^{d+1}(N/\varepsilon))$. Improving the accuracy of the solution or perturbing the operator $a$ therefore requires repeating the comparatively expensive preprocessing with larger $\rho$. This is particularly limiting for implicit time-stepping problems; Owhadi and Zhang~\cite{owhadi_tpde} note that for heterogeneous time-steps, a change of step size repeats the full preprocessing cost, while Chen et al.~\cite{chen2021} observe the accumulation of approximation errors over time-steps if one does not incorporate post-hoc correction techniques. Existing realizations also assemble and store large global objects: the fine-scale stiffness matrix, the change of basis from nodal to OAW coordinates, and sparse-direct factorizations of the diagonal blocks, all of which strain working memory and storage constraints if one attempts to scale the algorithm naively. These costs have confined published implementations to moderate problem sizes, despite the nominally near-linear cost of the OAW factorization.
+The error in the solution obtained from this direct factorization is bounded by the choice of localization. More precisely, with localization radius $\rho$, the preprocessing time and the stored hierarchy grow as $N\rho^{3d}$ and $N\rho^{d}$, respectively, up to constants independent of $N$ and $\rho$~\cite{owhadi2017}. Ensuring a prescribed relative energy-norm error tolerance $\varepsilon$ requires $\rho$ proportional to $\ln(N/\varepsilon)$, resulting in time $N\ln^{3d}(N/\varepsilon)$ and memory $N\ln^{d}(N/\varepsilon)$, and obtaining an approximate solution with the stored factorization costs $N\ln^{d+1}(N/\varepsilon)$, up to the same constants. Improving the accuracy of the solution or perturbing the operator $a$ therefore requires repeating the comparatively expensive preprocessing with larger $\rho$. This is particularly limiting for implicit time-stepping problems; Owhadi and Zhang~\cite{owhadi_tpde} note that for heterogeneous time-steps, a change of step size repeats the full preprocessing cost, while Chen et al.~\cite{chen2021} observe the accumulation of approximation errors over time-steps if one does not incorporate post-hoc correction techniques. Existing realizations also assemble and store large global objects: the fine-scale stiffness matrix, the change of basis from nodal to OAW coordinates, and sparse-direct factorizations of the diagonal blocks, all of which strain working memory and storage constraints if one attempts to scale the algorithm naively. These costs have confined published implementations to moderate problem sizes, despite the nominally near-linear cost of the OAW factorization.
 
 % BP: related work beyond the OAW line (robust multigrid and domain
 %     decomposition for heterogeneous coefficients; hierarchical
@@ -152,7 +153,7 @@ implementation scaling to larger problems in three dimensions.  In this paper, w
 The main technical ingredient in this result is a bound on the pairwise energy interactions of the localization errors (Lemma~\ref{lem:error_interactions}), which
 reduces the naive estimate on $\kappa$ by a factor of $\sqrt{N}$. Due to exponential decay of the basis functions for the coarse spaces, the errors in the exponential tails of the basis functions are approximately orthogonal in the energy norm, and this, combined with their exponential smallness, tightens the bound. We also show that the same factorization may precondition a \emph{perturbed} operator, and quantify the resulting increase in the iteration count. In particular, a single hierarchy may be used across every step of a variable-time-step time-stepping scheme, addressing a limitation of~\cite{owhadi_tpde} and~\cite{chen2021}. 
 
-We also present a practical algorithm to reduce demands on working memory and storage, allowing the construction to be feasible in three dimensions for $N \gtrsim 10^6$. 
+We also present a practical algorithm to reduce demands on working memory and storage, allowing the construction to be feasible in three dimensions for more than $10^6$ degrees of freedom. 
 We first observe that the sparsity patterns of the matrices in the algorithm may be computed a-priori from the mesh geometry, allowing for the efficient allocation of memory 
 and reducing the number of matrix indices that need to be stored in memory. The storage demands of the coarsening operators may also be substantially reduced by exploiting local translation
 symmetries. Further savings may be achieved during preprocessing by solving local problems \emph{iteratively} in parallel batches and by using only the action $x \mapsto Kx$, rather than
@@ -176,7 +177,7 @@ Appendix~\ref{app:oaw}.
 \section{Background}
 \label{sec:background}
 
-We establish the notation required to state the main results and review some of the relevant work of~\cite{Owhadi_Scovel_2019}, to which we refer the reader for a complete treatment of OAW theory. 
+We establish the notation required to state the main results and review some of the relevant work of~\cite{Owhadi_Scovel_2019}, to which we refer the reader for a complete treatment of OAW theory. We write $a \lesssim b$ if $a \leq C\,b$ with a constant $C$ depending only on the operator, the mesh regularity, $d$ and $H$, and not on $N$, $\rho$ or the level $k$; $a \simeq b$ means $a \lesssim b \lesssim a$, and $c_\star$ denotes a generic constant of the same kind, whose value may differ between occurrences. The decay length $\ell$ is always displayed explicitly and is never absorbed into such constants. 
 %primitive objects
 \subsection{Exact Basis Construction}
 We retain the setting and notation of~\eqref{eq:general_problem} and ~\eqref{eq:linear_system}. Fix an integer $q > 1$ and let $\mathcal{V}^{(q)}
@@ -201,7 +202,7 @@ $d_k := n_{k+1} - n_k$, of the right kernel of~$C^{(k)}$:
 \end{equation}
 In this convention level~$q$ is the finest (trial-space) mesh, and we assume the coarser spaces are obtained via uniform coarsening with coarsening ratio $H \in (0,1)$; $h_{k-1} = \frac{h_{k}}{H}$. Throughout, the level-$k$ functionals $\mu^{(k)}_j$ are assumed to be in
 one-to-one correspondence with the degrees of freedom of a shape-regular FEM
-mesh of width $h_k \propto H^k$. Each functional is associated with a node~$x^{(k)}_j$ and supported on a union of $\mathcal{O}(1)$ cells about this node (this ensures sparsity of the linear systems).
+mesh of width $h_k \propto H^k$. Each functional is associated with a node~$x^{(k)}_j$ and supported on a union of $c_\star$ cells about this node (this ensures sparsity of the linear systems).
 This gives $n_k \propto  h_k^{-d}$, so each coarsening step reduces the
 dimension by the factor $H^{d}$ and $q \leq C_q(H,d) \ln N$. \footnote{We further assume throughout that the hierarchy satisfies the stability conditions of~\cite{Owhadi_Scovel_2019}, restated here in Appendix~\ref{app:stability}.  These have been verified for three families of
 measurement functionals: normalized cell indicators (Haar prewavelets),
@@ -316,7 +317,7 @@ and containing the support of $\mu^{(k)}_i$, such that the interior of $\operato
      \lVert f \rVert_a .
 \end{equation}
 Since the patch has radius $\rho h_k$ on a mesh
-of width~$h_k$, each patch contains $\mathcal{O}(\rho^d)$
+of width~$h_k$, each patch contains $\simeq \rho^d$
 level-$k$ degrees of freedom.
 
 The minimizer over the patch approximates the exact basis function with
@@ -378,11 +379,11 @@ inverse is then approximated as
   \widetilde{K}_{\rho}^{-1}
   \;=\; \Phi_{\rho}\,D_{\rho}^{-1}\,\Phi_{\rho}^{\top}.
 \end{equation}
-Constructing these factors requires $\mathcal{O}(N\rho^{\alpha d})$ time and
-working memory (where $\alpha \in (1, 3)$ depends on the method used to
+Constructing these factors requires time and working memory
+$\lesssim N\rho^{\alpha d}$ (where $\alpha \in (1, 3)$ depends on the method used to
 solve the localized optimizations \ref{eq:localized_basis}), storing the factors costs
-$\mathcal{O}(N\rho^d)$ space, and the matrix-vector product
-$x \mapsto \widetilde{K}_{\rho}^{-1}x$ costs $\mathcal{O}(N\rho^d)$
+space $\lesssim N\rho^d$, and the matrix-vector product
+$x \mapsto \widetilde{K}_{\rho}^{-1}x$ costs $\lesssim N\rho^d$
 arithmetic operations. Used as a direct solver, \eqref{eq:preconditioner} yields
 the approximate solution $\hat{u}_\rho := \widetilde{K}_{\rho}^{-1} g$,
 which satisfies $\|u - \hat{u}_\rho\|_K \leq \varepsilon \|u\|_K$, where
@@ -439,7 +440,7 @@ factor~$\varepsilon$.  Then
   \,\ln\!\left(\frac{2}{\varepsilon}\right),
 \end{equation}
 and the solve to tolerance~$\varepsilon$ costs
-$\mathcal{O}\bigl(N\rho^{d}\,k(\varepsilon)\bigr)$ arithmetic
+$\lesssim N\rho^{d}\,k(\varepsilon)$ arithmetic
 operations.
 \end{corollary}
 
@@ -454,19 +455,19 @@ If
 \end{equation}
 where $C$ depends only on $d$, $H$, and the constant $C_\beta$
 of~\eqref{eq:beta}, then $\beta \leq \tfrac12$,
-$\kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr) = \mathcal{O}(1)$, and
-$k(\varepsilon) = \mathcal{O}(\ln(1/\varepsilon))$ for every
+$\kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr) \lesssim 1$, and
+$k(\varepsilon) \lesssim \ln(1/\varepsilon)$ for every
 $\varepsilon \in (0,1)$.
 \end{corollary}
 
 Reaching tolerance~$\varepsilon$ with the direct approximate inverse
 requires $\rho \geq \rho_{\mathrm{dir}}(N,\varepsilon)$
-of~\eqref{eq:rho_dir}, hence preprocessing of cost
-$\mathcal{O}\bigl(N \ln^{\alpha d}(N/\varepsilon)\bigr)$ and storage
-$\mathcal{O}\bigl(N \ln^{d}(N/\varepsilon)\bigr)$. Using PCG and the localization radius~\eqref{eq:rho_iter}, preprocessing and storage costs fall to
-$\mathcal{O}\bigl(N (\ln\ln N)^{\alpha d}\bigr)$ and
-$\mathcal{O}\bigl(N (\ln\ln N)^{d}\bigr)$, and the tolerance enters
-through the factor $\ln(1/\varepsilon)$ of the iteration count, which is strictly cheaper asymptotically. The $\ln \ln N$ multiple of $\ell$ grows very slowly with $N$, and may be considered essentially $\mathcal{O}(1)$ for all practical values of $N$. 
+of~\eqref{eq:rho_dir}, hence preprocessing cost
+$\lesssim N \bigl(\ell\ln(N/\varepsilon)\bigr)^{\alpha d}$ and storage
+$\lesssim N \bigl(\ell\ln(N/\varepsilon)\bigr)^{d}$. Using PCG and the localization radius~\eqref{eq:rho_iter}, preprocessing and storage costs fall to
+$\lesssim N (\ell\ln\ln N)^{\alpha d}$ and
+$\lesssim N (\ell\ln\ln N)^{d}$, and the tolerance enters
+through the factor $\ln(1/\varepsilon)$ of the iteration count, which is strictly cheaper asymptotically. The $\ln \ln N$ multiple of $\ell$ grows slowly with $N$; for instance, $\ln\ln 10^{12} < 3.4$. 
 
 A matrix-vector product with~\eqref{eq:preconditioner} requires solving one system per diagonal block $B^{(k)}_\rho$.  For large~$N$, iterative
 methods for these systems are required in practice, so a bound on their
@@ -482,7 +483,7 @@ For every $\rho \geq 1$ and every $1 \leq k \leq q$,
 \end{corollary}
 
 \noindent The proof is given at the end of
-Section~\ref{sec:preconditioner}. This allows us to bound the number of iterations required to solve the systems $B^{(k)}_{\rho}z = w$, even if the localization radius $\rho$ is not large enough to ensure the $\mathcal{O}(1)$ bound in \cite{Owhadi_Scovel_2019}.
+Section~\ref{sec:preconditioner}. This allows us to bound the number of iterations required to solve the systems $B^{(k)}_{\rho}z = w$, even if the localization radius $\rho$ is not large enough to ensure the bound independent of $N$ in \cite{Owhadi_Scovel_2019}.
 
 \subsubsection{Discussion}\label{rem:consequences}
 The constants in the bounds above are not generally explicitly
@@ -496,19 +497,19 @@ possible outcomes of~$\beta$ are the following.
  & $\kappa\bigl(\widetilde{K}_\rho^{-1}K\bigr)$ & $k(\varepsilon)$ \\
 \midrule
 $\beta \leq \tfrac12$ \
-  & $\mathcal{O}(1)$
-  & $\mathcal{O}\bigl(\ln(1/\varepsilon)\bigr)$ \\
+  & $\lesssim 1$
+  & $\lesssim \ln(1/\varepsilon)$ \\
 $\beta \leq 1$
-  & $\mathcal{O}\bigl(\ln^2 N\bigr)$
-  & $\mathcal{O}\bigl(\ln N \,\ln(1/\varepsilon)\bigr)$ \\
+  & $\lesssim \ln^2 N$
+  & $\lesssim \ln N \,\ln(1/\varepsilon)$ \\
 $1 < \beta < H^{-1}$
-  & $\mathcal{O}\bigl(N^{c}\bigr)$
-  & $\mathcal{O}\bigl(N^{c/2}\,\ln(1/\varepsilon)\bigr)$ \\
+  & $\lesssim N^{c}$
+  & $\lesssim N^{c/2}\,\ln(1/\varepsilon)$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 Here $c := 2C_q\ln\beta = 2\ln\beta/(d\ln(1/H))$.  In the third row
-$0<c < 2/d$, so the bound remains below the $\mathcal{O}(N^{2/d})$ growth for an unpreconditioned system on a quasi-uniform
+$0<c < 2/d$, so the bound remains below the growth $\simeq N^{2/d}$ for an unpreconditioned system on a quasi-uniform
 mesh~\cite{ErnGuermond2004}. For $\beta \geq H^{-1}$ the bound exceeds
 this growth rate, but we note that the bound is not necessarily tight. Convergence of PCG is still guaranteed, by
 Theorem~\ref{prop:precond_conditioning}, though we can claim no nontrivial bound on the rate.
@@ -633,7 +634,7 @@ the coefficients define the \emph{nesting matrices},
   \psi^{(k)}_i \;=\; \sum_{j=1}^{n_{k+1}} R^{(k)}_{ij}\, \psi^{(k+1)}_j,
   \qquad 1 \leq i \leq n_k,
 \end{equation}
-analogous to the nesting~\eqref{eq:nesting_maps} of the measurements. Analogous statements hold for the detail functions, as well as their localized counterparts, and it suffices to compute only the rows of the $R^{(k)}_{\rho} \in \mathbb{R}^{n_{k} \times n_{k+1}}$; under localization, only $\mathcal{O}(\rho^d)$ of these entries are nonzero (Appendix~\ref{app:oaw}). 
+analogous to the nesting~\eqref{eq:nesting_maps} of the measurements. Analogous statements hold for the detail functions, as well as their localized counterparts, and it suffices to compute only the rows of the $R^{(k)}_{\rho} \in \mathbb{R}^{n_{k} \times n_{k+1}}$; under localization, only $\lesssim \rho^d$ of these entries are nonzero (Appendix~\ref{app:oaw}). 
 %Each level's patch problems take the previous
 %level's localized functions as inputs, so the computed basis is the
 %recursively localized basis.
@@ -664,19 +665,19 @@ to a blow-up in allocation for large $N$.  However, once $\rho$ and $H$
 are fixed, the sparsity pattern of each product is determined a priori,
 independently of the coefficients, and memory for every intermediate
 object may be allocated exactly.  Rows of $R^{(k)}_\rho$ lie in boxes
-of radius $\rho + \mathcal{O}(1)$ about their nodes, and the widths of
+of radius $\rho + c_\star$ about their nodes, and the widths of
 the coarsened operators and blocks are bounded uniformly in the level:
 
 \begin{proposition}[Stencil width]\label{prop:stencil_width}
 Measure distances at level~$k$ in level-$k$ mesh units.  At the finest
-level, the stencil width of $A^{(q)} = K$ is $\mathcal{O}(1)$, set by
+level, the stencil width of $A^{(q)} = K$ is $\lesssim 1$, set by
 the finite-element connectivity.  At every coarser level, the stencil
 width of $A^{(k)}$ and of the detail blocks $B^{(k)}_\rho$ is at most
-$2\rho/(1-H) + \mathcal{O}(1)$, uniformly in~$k$.
+$2\rho/(1-H) + c_\star$, uniformly in~$k$.
 \end{proposition}
 
 \noindent The width obeys the recursion
-$w_k \leq 2\rho + H\, w_{k+1} + \mathcal{O}(1)$: a coarsening step adds
+$w_k \leq 2\rho + H\, w_{k+1} + c_\star$: a coarsening step adds
 the two patch radii, and the finer level's width enters scaled by the
 mesh ratio.  The proof is given in Section~\ref{sec:construction}. On a uniform mesh, the position of any entry is computed by integer
 arithmetic from the node coordinates, so no index arrays need be
@@ -689,10 +690,10 @@ coordinates~$y$ occupies slot
   \prod_{a' > a} b_{a'} ,
 \end{equation}
 and the slot determines~$y$ by the corresponding mixed-radix
-decomposition, both in $\mathcal{O}(d)$ operations with no stored data.
+decomposition, both in at most $3d$ integer operations with no stored data.
 The explicit change-of-basis blocks $\Phi^{(k)}_{\rho}$, although
 nominally sparsified, hold
-$\mathcal{O}\bigl(\rho^d H^{-d(q-k)}\bigr)$ nonzero entries at level
+$\simeq \rho^d H^{-d(q-k)}$ nonzero entries at level
 $k$, prohibitive at coarse levels. Thus, only the nesting matrices $R^{(k)}_{\rho}$ are stored.  The $C^{(k)}$ and $D^{(k)}$ need not be stored either. For first-order elements, whose
 degrees of freedom coincide with the mesh nodes, $C^{(k)}$ selects the
 level-$(k{+}1)$ nodes at the coarse positions and $D^{(k)}$ selects the
@@ -708,7 +709,7 @@ and scatters at computed positions, without explicit storage of operator entries
 \label{sec:consequences:compression}
 A row of $R^{(k)}_\rho$, as computed by Algorithm~\ref{alg:impl_build},
 is a function of the coefficient field on the max-norm ball of radius
-$C_H\,\rho h_k + \mathcal{O}(h_k)$ about its node, where
+$C_H\,\rho h_k + c_\star h_k$ about its node, where
 $C_H := (1+H)/(1-H)^2$ (Lemma~\ref{lem:dependency}).  For
 $t \in \mathbb{R}^d$, we say the field is \emph{$t$-invariant} on a region $U$
 when its value at $x + t$ equals its value at $x$ for every $x \in U$;
@@ -720,7 +721,7 @@ see the same field are assigned the same patch system:
 \begin{theorem}[Row equality]\label{thm:row_equality}
 Let $t \in h_k\mathbb{Z}^d$, let the patches of~$i$ and of~$T_t i$ not
 meet $\partial\Omega$, and let the coefficient field be $t$-invariant
-on the max-norm ball of radius $C_H\,\rho h_k + \mathcal{O}(h_k)$
+on the max-norm ball of radius $C_H\,\rho h_k + c_\star h_k$
 about~$x^{(k)}_i$.  Then
 \begin{equation}\label{eq:row_equality}
   R^{(k)}_{\rho,\,T_t i,\,T_t j} \;=\; R^{(k)}_{\rho,\,i,\,j}
@@ -729,13 +730,13 @@ about~$x^{(k)}_i$.  Then
 and likewise for the corresponding rows of the blocks.
 \end{theorem}
 
-For example, on a coefficient field of period $p$ with $p \mid h_k$, two interior
-nodes whose coordinates agree modulo~$p$ satisfy the hypotheses, so the
-interior rows of $R^{(k)}_\rho$ take at most
-$(p/h_k)^d = \mathcal{O}(1)$ distinct values, and the nodes whose
-dependency balls meet $\partial\Omega$ number
-$\mathcal{O}\bigl(\rho\, n_k^{(d-1)/d}\bigr)$ and form the remaining
-classes.  The classes are identified from the coefficient field by
+For example, on a coefficient field of period $p$, with $p$ an integer
+multiple of $h_k$, two interior nodes whose coordinates agree modulo~$p$
+satisfy the hypotheses, so the interior rows of $R^{(k)}_\rho$ take at most
+$(p/h_k)^d$ distinct values, a fraction
+$\lesssim (p/\operatorname{diam}\Omega)^d$ of the $n_k$ rows, and the nodes
+whose dependency balls meet $\partial\Omega$ number
+$\lesssim \rho\, n_k^{(d-1)/d}$ and form the remaining classes.  The classes are identified from the coefficient field by
 coordinate arithmetic, and one representative of each need be solved.  This makes for a substantial reduction in complexity
 for a wide class of problems of practical interest.
 
@@ -769,7 +770,7 @@ The product $x \mapsto Mx$ is evaluated from the tuple,
 and the transpose product is the same sum with the roles of row and
 column exchanged.  On a level with $n$ nodes, stencil radius~$r$, and
 $n_c$ row classes, one product costs $n(2r+1)^d$ multiply--adds, with
-$\mathcal{O}(d)$ integer operations per entry for the slots; the values
+at most $3d$ integer operations per entry for the slots; the values
 read are the $(2r+1)^d$ entries of each representative row touched, at
 most $n_c(2r+1)^d$; and the stored data is the $n_c(2r+1)^d$ values of
 the table together with a constant number of descriptors (the grid
@@ -779,9 +780,9 @@ and $n$ row pointers; the stencil matrix stores no indices and no
 pointers, and reduces the stored values by the factor $n/n_c$.  The
 coarsened operators and blocks are symmetric and are stored as one
 triangle, halving their value tables.  For the
-factors $R^{(k)}_\rho$ the radius is $r = \rho + \mathcal{O}(1)$; for
+factors $R^{(k)}_\rho$ the radius is $r = \rho + c_\star$; for
 the coarsened operators and blocks it is
-$r \leq 2\rho/(1-H) + \mathcal{O}(1)$.  Reading or writing an entry is
+$r \leq 2\rho/(1-H) + c_\star$.  Reading or writing an entry is
 one evaluation of~\eqref{eq:stencil_entry}: a patch system is gathered
 by reading its entries, the coarsening product writes into a
 preallocated stencil matrix, and thresholding sets values to zero
@@ -799,7 +800,7 @@ the full matrix, so Corollary~\ref{thm:localized_block_conditioning}
 applies to the patch systems: a solve to relative tolerance~$\tau$
 takes at most $\tfrac12\,(1+\beta)\, C_B H^{-1} \ln(2/\tau)$ CG
 iterations, uniformly in the level and the radius, and
-$\mathcal{O}(1)$ under the condition of Corollary~\ref{lem:threshold}.
+$\lesssim \ln(2/\tau)$ under the condition of Corollary~\ref{lem:threshold}.
 When two patches satisfy the hypotheses of
 Theorem~\ref{thm:row_equality}, their systems coincide up to the
 translation; one representative per class is solved (step~3) and its
@@ -820,7 +821,7 @@ $|A_{ij}| \leq \theta \sqrt{A_{ii} A_{jj}}$, with $\theta$ typically on the orde
 systems are solved iteratively to relative tolerance~$\tau$. Thresholding is an additive symmetric
 perturbation~$\Delta$ with
 $|x^\top \Delta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$
-for $s = \mathcal{O}(\rho^d)$ nonzeros per row, hence
+for $s \lesssim \rho^d$ nonzeros per row, hence
 $\|\Delta\|_2 \leq \theta s\, \lambda_{\max}(A)$.  By Weyl's theorem each eigenvalue moves by at most $\|\Delta\|_2$, so whenever
 $\varepsilon := \theta s\, \kappa\bigl(B^{(k)}_\rho\bigr) < 1$, the thresholded blocks remain positive definite and the bounds of
 Section~\ref{sec:main_bounds} hold with constants multiplied by
@@ -863,13 +864,12 @@ The counts above give the total complexity of the algorithm:
 In the setting of this section, with batch size~$m$, inner
 tolerance~$\tau$, and the identity class map,
 Algorithm~\ref{alg:impl_build} performs
-$\mathcal{O}\bigl((1+\beta)\,N\rho^{2d}\bigr)$ operations, within
-working memory $\mathcal{O}(m\rho^{2d})$ for the patch systems and
-$\mathcal{O}(N H^{d}\rho^{d})$ for the transient coarsened operators. The output holds
-$\mathcal{O}(N\rho^{d})$ values, and one application of
+$\lesssim (1+\beta)\ln(2/\tau)\,N\rho^{2d}$ operations, within
+working memory $\lesssim m\rho^{2d}$ for the patch systems and
+$\lesssim N H^{d}\rho^{d}$ for the transient coarsened operators. The output holds
+$\lesssim N\rho^{d}$ values, and one application of
 Algorithm~\ref{alg:impl_apply} performs
-$\mathcal{O}\bigl((1+\beta)\,N\rho^{d}\bigr)$ operations.  The
-constants depend on $d$, $H$, $C_B$, and $\ln(1/\tau)$.
+$\lesssim (1+\beta)\ln(2/\tau)\,N\rho^{d}$ operations.
 \end{proposition}
 
 %Dense factorization of the patch systems costs $\mathcal{O}(\rho^{3d})$
@@ -1019,7 +1019,7 @@ mesh-regularity constant, and not on $N$, $\rho$, or the level index~$k$.
 
 \begin{proof}
 The patch of a localized function at level~$k$ is contained in a ball of
-radius $\rho$ about a point within $\mathcal{O}(1)$ of its node
+radius $\rho$ about a point within distance $c_\star$ of its node
 (Section~\ref{sec:background}); absorbing this offset into the
 constants, we treat the patch of $\varphi_{\rho,i}$ as contained in
 $B(x_i, \rho)$.
@@ -1064,16 +1064,16 @@ Since $M$ is symmetric, its spectral
 norm is bounded by the maximal row sum, which we split by distance.  By
 shape regularity and the correspondence of functionals with degrees of
 freedom (Section~\ref{sec:background:oaw}), a node has
-$\mathcal{O}(\rho^d)$ same-level neighbours within distance $2\rho$ and
-$\mathcal{O}(r^{d-1})$ at distance approximately~$r$.  Near pairs,
+$\lesssim \rho^d$ same-level neighbours within distance $2\rho$ and
+$\lesssim r^{d-1}$ at distance approximately~$r$.  Near pairs,
 $r \leq 2\rho$: each term is bounded by $2\sqrt{e}\,C^2\,e^{-\rho/\ell}$,
-contributing $\mathcal{O}(\rho^d\,e^{-\rho/\ell})$.  Far pairs,
+contributing $\lesssim \rho^d\,e^{-\rho/\ell}$.  Far pairs,
 $r > 2\rho$: the tail sum is bounded by
 \[
   2\sqrt{e}\,C^2\,e^{-\rho/(2\ell)}
-  \sum_{r > 2\rho} \mathcal{O}(r^{d-1})\,e^{-r/(4\ell)}
-  \;=\;
-  \mathcal{O}\bigl(\rho^{d-1}\,e^{-\rho/\ell}\bigr),
+  \sum_{r > 2\rho} c_\star\, r^{d-1}\,e^{-r/(4\ell)}
+  \;\lesssim\;
+  \ell\,\rho^{d-1}\,e^{-\rho/\ell},
 \]
 which is of lower order.  Hence
 $\|M\| \leq C_{\mathrm{o}}\,\rho^d\,e^{-\rho/\ell}$.
@@ -1310,39 +1310,39 @@ $\sigma(i) = x^{(k)}_i/H$, and $D^{(k)}$ selects the remaining nodes.
 Row~$i$ of $R^{(k)}_\rho$ consists of the patch solution, supported in
 $S^{(k)}_i$, and the row of the right inverse $C^{(k)\dagger}$, a
 selection row (Subsection~\ref{sec:consequences:patterns}), so it is supported within
-distance $\rho + \mathcal{O}(1)$ of node~$i$ at level~$k$.  An entry
+distance $\rho + c_\star$ of node~$i$ at level~$k$.  An entry
 $A^{(k)}_{ij} = (R^{(k)}_\rho A^{(k+1)} R^{(k)\top}_\rho)_{ij}$ requires
 a level-$(k{+}1)$ entry coupling the two patches, so it vanishes unless
-$\operatorname{dist}(i,j) \leq 2\rho + w_{k+1} H + \mathcal{O}(1)$,
+$\operatorname{dist}(i,j) \leq 2\rho + w_{k+1} H + c_\star$,
 where $w_{k+1}$ is the level-$(k{+}1)$ stencil width and the factor~$H$
 converts level-$(k{+}1)$ units to level-$k$ units.  The recursion
-$w_k \leq 2\rho + H\,w_{k+1} + \mathcal{O}(1)$ with
-$w_q = \mathcal{O}(1)$ has the fixed point $2\rho/(1-H) + \mathcal{O}(1)$,
+$w_k \leq 2\rho + H\,w_{k+1} + c_\star$ with
+$w_q \lesssim 1$ has the fixed point $2\rho/(1-H) + c_\star$,
 approached geometrically.  The argument for
 $B^{(k)}_\rho = D^{(k-1)}A^{(k)}D^{(k-1)\top}$ is the same, the detail
-maps having support width $\mathcal{O}(1)$.
+maps having support width $\lesssim 1$.
 \end{proof}
 
 \begin{lemma}[Dependency region]\label{lem:dependency}
 Row~$i$ of $R^{(k)}_\rho$ and the corresponding rows of $B^{(k+1)}_\rho$,
 as computed by Algorithm~\ref{alg:impl_build}, are functions of the
 coefficient field on the max-norm ball of radius
-$C_H\, \rho h_k + \mathcal{O}(h_k)$ about $x^{(k)}_i$, where
+$C_H\, \rho h_k + c_\star h_k$ about $x^{(k)}_i$, where
 $C_H := (1+H)/(1-H)^2$.
 \end{lemma}
 
 \begin{proof}
 The patch system of row~$i$ reads entries of $A^{(k+1)}$ and
-$B^{(k+1)}_\rho$ at nodes within $\rho h_k + \mathcal{O}(h_{k+1})$ of
+$B^{(k+1)}_\rho$ at nodes within $\rho h_k + c_\star h_{k+1}$ of
 $x^{(k)}_i$.  An entry of $A^{(m)}$ or $B^{(m)}_\rho$ reads the rows of
 $R^{(m)}_\rho$ at its two index nodes, which lie within the stencil
-width $2\rho h_m/(1-H) + \mathcal{O}(h_m)$ of each other
+width $2\rho h_m/(1-H) + c_\star h_m$ of each other
 (Proposition~\ref{prop:stencil_width}), and entries of $A^{(m+1)}$
 within the row supports; at the finest level the entries are quadrature
 evaluations of the field over single cells.  Thresholding removes
 entries and cannot enlarge the region read.  Summing the reaches over
 the levels gives a geometric series with ratio~$H$ and total
-$C_H\,\rho h_k + \mathcal{O}(h_k)$.
+$C_H\,\rho h_k + c_\star h_k$.
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\textup{\ref{thm:row_equality}}]
@@ -1381,25 +1381,25 @@ At $m = k$, the claim for row~$i$ is~\eqref{eq:row_equality}.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:cost}}]
-Each stored row holds $\mathcal{O}(\rho^d)$ values and the level sizes
-decay geometrically, so the stored values total $\mathcal{O}(N\rho^d)$.
+Each stored row holds $\lesssim \rho^d$ values and the level sizes
+decay geometrically, so the stored values total $\lesssim N\rho^d$.
 At level~$k$ the build solves $n_k$ patch systems: each holds
-$\mathcal{O}(\rho^{2d})$ entries, one CG iteration costs that many
+$\lesssim \rho^{2d}$ entries, one CG iteration costs that many
 operations, and the iteration count is at most
 $\tfrac12 (1+\beta) C_B H^{-1} \ln(2/\tau)$
 (Corollary~\ref{thm:localized_block_conditioning} with the submatrix
 argument of Subsection~\ref{sec:consequences:build}).  The coarsening product
-computes row~$i$ of $A^{(k)}$ in $\mathcal{O}(\rho^{2d})$ operations:
+computes row~$i$ of $A^{(k)}$ in $\lesssim \rho^{2d}$ operations:
 the intermediate $R^{(k)}_{\rho,i,\cdot} A^{(k+1)}$ combines
-$\mathcal{O}(\rho^d)$ rows of width $\mathcal{O}(\rho^d)$, and each of
-the $\mathcal{O}(\rho^d)$ output entries is one product with a factor
+$\lesssim \rho^d$ rows of width $\lesssim \rho^d$, and each of
+the $\lesssim \rho^d$ output entries is one product with a factor
 row.  Summing $n_k(1+\beta)\rho^{2d}$ over the levels, with
-$n_k \approx N H^{d(q-k)}$, gives the build count; the batch holds $m$
-systems of $\mathcal{O}(\rho^{2d})$ entries, and one transient
-coarsened operator of $\mathcal{O}(N H^d \rho^d)$ values exists at a
-time.  One application is two factor products at $\mathcal{O}(N\rho^d)$
+$n_k \simeq N H^{d(q-k)}$, gives the build count; the batch holds $m$
+systems of $\lesssim \rho^{2d}$ entries, and one transient
+coarsened operator of $\lesssim N H^d \rho^d$ values exists at a
+time.  One application is two factor products at $\lesssim N\rho^d$
 operations and block CG with the same iteration bound on
-$\mathcal{O}(N\rho^d)$ total nonzeros.
+$\lesssim N\rho^d$ total nonzeros.
 \end{proof}
 
 \iffalse % disabled by the author in main_curr (2026-10-16 state); carried over
@@ -1461,22 +1461,21 @@ product $R^\top A R$ costs $(2\rho+1)^{2d}$ per output row: in the dominant
 product $R^\top(AR)$, each of the $(2\rho+1)^d$ nonzeros per row of~$R$ meets
 $(2\rho+1)^d$ entries per row of~$AR$.
 
-Each patch problem (Algorithm~\ref{alg:recursive_build}, step~3(b)) is a
+Each patch problem (Algorithm~\ref{alg:impl_build}, step~3) is a
 system in a principal submatrix of a detail block $B^{(k)}_\rho$ with
 $(2\rho+1)^d$ degrees of freedom.
 Corollary~\ref{thm:localized_block_conditioning} bounds
-$\kappa(B^{(k)}_\rho)$ uniformly in $k$ and~$N$, and Cauchy
-interlacing transfers the bound to principal submatrices, so the inner CG
-solve converges in $\mathcal{O}(1)$ iterations to any fixed relative
-tolerance, with a constant depending on $H$, $d$, and, through~$C$, on the
-operator.
+$\kappa(B^{(k)}_\rho)$ by $(1+\beta)^2 C_B^2 H^{-2}$ uniformly in $k$, and
+Cauchy interlacing transfers the bound to principal submatrices, so the
+inner CG solve reaches relative tolerance~$\tau$ in
+$\lesssim (1+\beta)\ln(2/\tau)$ iterations.
 
 One inner iteration costs the number of nonzeros of the patch matrix:
-$\mathcal{O}(\rho^d)$ at the finest level, where the stencil width is
-$\mathcal{O}(1)$, and $\mathcal{O}(\rho^{2d})$ at coarser levels, where it is
-$\mathcal{O}(\rho)$ (Proposition~\ref{prop:stencil_width}).  Weighted by the
+$\lesssim \rho^d$ at the finest level, where the stencil width is
+$\lesssim 1$, and $\lesssim \rho^{2d}$ at coarser levels, where it is
+$\lesssim \rho$ (Proposition~\ref{prop:stencil_width}).  Weighted by the
 geometrically decaying level sizes, the patch solves contribute
-$\mathcal{O}\bigl((2\rho+1)^{2d}\bigr)$ per degree of freedom, absorbed into
+$\lesssim (2\rho+1)^{2d}$ per degree of freedom, absorbed into
 $c_{\mathrm{bld}}$.
 
 Per solve, the outer iteration count exceeds its $\rho \to \infty$ value by
@@ -1484,7 +1483,7 @@ at most $\iota(\rho, N)$, by~\eqref{eq:iters_of_N}.  Each outer
 iteration costs $(2\rho+1)^d$ for the $B^{(k)}_\rho$ applications.
 \end{proof}
 
-The build is dominated by the $\mathcal{O}(\rho^{2d})$ triple product, while
+The build is dominated by the triple product, of cost $\lesssim \rho^{2d}$ per degree of freedom, while
 the total solve cost is
 $\tfrac{1}{2}\,c_{\mathrm{apl}}\,(2\rho+1)^{d}\,\ln(2/\varepsilon)\,
 \iota(\rho, N)$ per degree of freedom and solve, by
@@ -1500,22 +1499,22 @@ scale at which $\beta$ approaches one
 (Figure~\ref{fig:cost_vs_rho_stacked_bar}); by
 Remark~\ref{rem:consequences} this threshold moves with the contrast while
 the form of the trade does not.  The corresponding memory model is
-$\mathcal{O}(N\rho^d)$ for the stored factors and blocks, an
-$\mathcal{O}(\rho^d)$ working set per patch during the build, and
-$\mathcal{O}(N)$ vectors for the iteration;
+$\lesssim N\rho^d$ for the stored factors and blocks, a working set
+$\lesssim \rho^d$ per patch during the build, and
+$\lesssim N$ for the vectors of the iteration;
 Section~\ref{sec:implementation} describes an implementation attaining these
 scalings.
 
 \begin{corollary}[Complexity at the radius $\rho_{\mathrm{iter}}(N)$]\label{cor:complexity}
 Take $\rho = \rho_{\mathrm{iter}}(N)$, so that
-$\rho = \mathcal{O}(\ell\ln\ln N)$ by~\eqref{eq:rho_iter_growth}.  Then the
-build costs $\mathcal{O}\bigl(N\,(\ell\ln\ln N)^{2d}\bigr)$ operations, the
-stored hierarchy occupies $\mathcal{O}\bigl(N\,(\ell\ln\ln N)^{d}\bigr)$
+$\rho \lesssim \ell\ln\ln N$ by~\eqref{eq:rho_iter_growth}.  Then the
+build costs $\lesssim N\,(\ell\ln\ln N)^{2d}$ operations, the
+stored hierarchy occupies $\lesssim N\,(\ell\ln\ln N)^{d}$
 memory, and a solve to energy-norm tolerance~$\varepsilon$ costs
-$\mathcal{O}\bigl(N\ln(2/\varepsilon)\,(\ell\ln\ln N)^{d}\bigr)$ operations.
+$\lesssim N\ln(2/\varepsilon)\,(\ell\ln\ln N)^{d}$ operations.
 At a tolerance tracking the discretization error, $\varepsilon = N^{-s}$ with
 $s$ fixed, the solve costs
-$\mathcal{O}\bigl(N\ln N\,(\ell\ln\ln N)^{d}\bigr)$.
+$\lesssim s\,N\ln N\,(\ell\ln\ln N)^{d}$.
 \end{corollary}
 
 \begin{proof}
@@ -1528,11 +1527,11 @@ iteration count by a fixed multiple of $\ln(2/\varepsilon)$.
 
 For comparison, at the tolerance tracking the discretization error the direct
 solve requires
-$\rho_{\mathrm{dir}}(N, N^{-s}) = \mathcal{O}(\ell\ln N)$
+$\rho_{\mathrm{dir}}(N, N^{-s}) = c_{\mathrm{dir}}\,\ell\,(1+s)\ln N$
 by~\eqref{eq:rho_dir}.  Table~\ref{tab:complexity_comparison} evaluates the
 cost model at the two radii.  The rows differ also in the inner tolerance: at
 an accuracy-driven radius the inner tolerances must track the target
-accuracy, contributing $\mathcal{O}(\ln N)$ inner iterations and one further
+accuracy, contributing $\lesssim s\ln N$ inner iterations and one further
 factor $\ln N$ to the direct solve's build and per-solve costs, whereas under
 the preconditioner formulation the inner tolerance is fixed
 (Section~\ref{sec:experiments}).  With that accounting the
@@ -1542,13 +1541,13 @@ ratio between the two rows is a power of $\ln N/\ln\ln N$.
 \begin{table}[htbp]
   \centering
   \caption{Complexity at the tolerance tracking the discretization error,
-    $\varepsilon \sim N^{-s}$.  Both rows use the cost model of
+    $\varepsilon = N^{-s}$.  Both rows use the cost model of
     Proposition~\ref{prop:cost_scaling_rho}, at the radius and with the inner
-    iteration counts each formulation requires: $\mathcal{O}(\ln N)$ inner
-    iterations for the direct solve, $\mathcal{O}(1)$ for the
-    preconditioner.  The direct row matches
-    \cite[Thm.~16.36]{Owhadi_Scovel_2019}.  Constants are absorbed into the
-    entries.}
+    iteration counts each formulation requires: $\lesssim s\ln N$ inner
+    iterations for the direct solve, $\lesssim \ln(2/\tau)$ at fixed $\tau$
+    for the preconditioner.  The direct row matches
+    \cite[Thm.~16.36]{Owhadi_Scovel_2019}.  Entries are up to the constants of the $\lesssim$
+    convention and powers of $1+s$.}
   \label{tab:complexity_comparison}
   \begin{tabular}{lccc}
     \toprule
