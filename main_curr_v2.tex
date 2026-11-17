@@ -46,37 +46,15 @@
 \maketitle
 
 \begin{abstract}
-The operator-adapted wavelet (OAW) factorization of Owhadi and Scovel
-is a sparse approximate inverse for the stiffness matrices of
-second-order elliptic problems, with quasi-linear complexity and
-accuracy guarantees for $L^\infty$ coefficients.  Used as a direct
-solver, the factorization must itself meet the target accuracy, so its
-construction grows with the tolerance, every change of tolerance means
-a new construction, and the stored global objects have confined
-implementations to moderate problem sizes.  We prove that the hierarchy
-as the algorithm builds it, with recursive localization and inexact
-local solves at any radii, tolerances and depth, preconditions the
-conjugate gradient method: an explicit bound on the condition number
-holds at every configuration, a localization radius proportional to
-$\ln N$ keeps the bound independent of the problem size $N$ with a
-construction that does not depend on the tolerance~$\varepsilon$, so
-that the construction costs $N\ln^{2d+1} N$ operations against
-$N\ln^{2d+1}(N/\varepsilon)$ for the direct solve, and replacing the
-detail-level solves of the apply phase by block-Jacobi scaling
-multiplies the bound by a constant.  We restructure the
-storage of the hierarchy: sparsity patterns are computed from the mesh
-and stored without indices, the factors are built without column
-indices and narrowed after their last use, local problems are solved
-iteratively to a loose tolerance and once per translation class, and
-the detail blocks of levels treated by block-Jacobi scaling are never
-stored.  Three-dimensional diffusion and linear elasticity problems
-with more than $10^{6}$ degrees of freedom are solved on a single GPU.
-Compared with GPU algebraic multigrid on the same systems, the method
-carries a convergence guarantee, converges on the elasticity systems
-where two of the three baselines fail, and with block-Jacobi detail
-levels holds a smaller stored hierarchy than the device memory in use
-by BoomerAMG after its solve; it takes more iterations, more time, and
-a higher build peak.
+Operator-adapted wavelets give an approximate inverse, with accuracy
+guarantees, for elliptic problems with rough coefficients, but in practice
+the method does not scale to large problems.  We use it instead as a
+preconditioner for the conjugate gradient method and prove rigorous bounds
+on the resulting condition number.  The setup then no longer depends on the
+target accuracy, which is reached by the iteration.  We also restructure the
+construction so that its sparsity patterns are computed in advance from the
+mesh and no matrix indices are stored, and solve three-dimensional diffusion
+and elasticity problems with over a million unknowns on a single GPU.
 \end{abstract}
 
 \begin{keywords}
