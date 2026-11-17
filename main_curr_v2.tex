@@ -488,41 +488,43 @@ does the cost of the setup (Table~\ref{tab:complexity_comparison}).
 \label{sec:results}
 
 \subsection{Analytical Bounds}\label{sec:main_bounds}
-We now consider~\eqref{eq:preconditioner} as a preconditioner for the
-conjugate gradient method (termed the \emph{OAW preconditioner}) and
-bound the convergence rate as a function of the radii, the accuracy of
-the patch solves, and the depth of the hierarchy.  The convergence rate
-of preconditioned CG is governed by the condition number of the
-preconditioned system $\widetilde{K}_\rho^{-1} K$: after $m$ iterations,
-the energy-norm error is reduced by at least the factor
-$2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^{m}$
-\cite{saad2003iterative}, so it suffices to bound the condition number
-of $\widetilde{K}_\rho^{-1} K$.
+% CLAIMS:
+% 1. For the hierarchy as built, at any radii, patch tolerances and depth,
+%    the condition number of the preconditioned system is bounded
+%    explicitly, so PCG converges (Theorem, iteration corollary).
+% 2. At a fixed configuration the bound is a degradation formula; its
+%    constants are not computable, the experiments give the values.
+% 3. Radii ~ ln N and patch tolerances ~ N^{-c} bound kappa independently
+%    of N; the target accuracy leaves the setup; the log counts coincide
+%    with the direct use at eps = N^{-s}.
+% 4. The blocks and patch systems are uniformly conditioned, so they can be
+%    solved iteratively.
+% 5. Approximate block solves in the apply cost a constant factor.
+% 6. One hierarchy preconditions spectrally equivalent operators.
+% 7. Thresholding is covered; the one-shot basis admits ell ln ln N radii.
+Proofs are in Section~\ref{sec:preconditioner}.  After $m$ iterations,
+preconditioned CG (PCG) reduces the energy-norm error by at least the
+factor $2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^{m}$, where
+$\kappa$ is the condition number of $\widetilde{K}_\rho^{-1} K$
+\cite{saad2003iterative}.
 
-The accuracy of the patch solves enters through one number per level.
 Let $\psi^{(k),\ast}_{\rho,i}$ be the exact minimizer
 of~\eqref{eq:recursive_patch} over the computed level-$(k{+}1)$
-functions and $\psi^{(k)}_{\rho,i}$ the computed function, obtained from
-the same patch and the same data with an approximate solution of the
-patch system in~\eqref{eq:R_structure}.  The \emph{relative energy
-error of the level-$k$ patch solves} is the smallest
-$\tau_k \geq 0$ with
+functions, and $\psi^{(k)}_{\rho,i}$ the function computed from an
+approximate solution of the same patch system.  The \emph{patch
+tolerance} $\tau_k$ is the smallest number with
 \begin{equation}\label{eq:tau_def}
   \bigl\| \psi^{(k)}_{\rho,i} - \psi^{(k),\ast}_{\rho,i} \bigr\|_a
   \;\leq\; \tau_k\, \bigl\| \psi^{(k),\ast}_{\rho,i} \bigr\|_a ,
   \qquad 1 \leq i \leq n_k .
 \end{equation}
-Exact patch solves have $\tau_k = 0$.  The main theorem is the
-following.
 
 \begin{theorem}[Conditioning of the preconditioned system]\label{prop:precond_conditioning}
-Let the measurement hierarchy satisfy the stability and locality
-conditions of Appendix~\ref{app:stability}, let the radii
-$r_k \geq 1$, $1 \leq k < q$, be arbitrary, let the level-$k$ patch
-solves have relative energy error at most~$\tau_k$ in the sense
-of~\eqref{eq:tau_def}, and let the coarsened matrices not be
-thresholded.  Then $\widetilde{K}_\rho^{-1}$ is symmetric positive
-definite and
+Let the measurement hierarchy satisfy the conditions of
+Appendix~\ref{app:stability}, let the radii $r_k \geq 1$,
+$1 \leq k < q$, be arbitrary, let the level-$k$ patch solves satisfy
+\eqref{eq:tau_def}, and let the coarsened matrices not be thresholded.
+Then $\widetilde{K}_\rho^{-1}$ is symmetric positive definite and
 \begin{align}
   \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
   &\;\leq\; \exp\Bigl( 2 \sum_{k=1}^{q-1} \operatorname{arsinh} X_k \Bigr),
@@ -541,32 +543,21 @@ where $X_q := 0$ and, for $k = q-1, \ldots, 1$,
 \end{equation}
 Here $\alpha \geq 1$ and $\omega \geq 1$ are the constants of
 \cite[Lemma~16.30]{Owhadi_Scovel_2019} (denoted $\alpha$ and $\beta$
-there), which depend only on the constants $C_\varphi$, $H$, $C_{\mathrm{nb}}$,
-$\gamma$ and $d$ of the conditions in Appendix~\ref{app:stability},
-and $C_1$, $C_2$ depend only on $C_\varphi$, $H$ and~$d$; none depends
+there), which depend only on the constants $C_\varphi$, $H$,
+$C_{\mathrm{nb}}$, $\gamma$ and $d$ of Appendix~\ref{app:stability},
+and $C_1$, $C_2$ depend only on $C_\varphi$, $H$ and~$d$.  None depends
 on $N$, the radii, the tolerances or the depth.
 \end{theorem}
 
-The proof is given in Subsection~\ref{sec:proof_conditioning}.  The
-quantity $X_k$ bounds the energy of the error committed in slot~$k$ of
-the computed basis (the level-1 functions for $k=1$, the level-$(k{-}1)$
-detail functions for $k \geq 2$) relative to the energy of the exact
-slot; the recursion~\eqref{eq:X_recursion} is the per-level error
-propagation of \cite[Lemma~16.30]{Owhadi_Scovel_2019}, rewritten in
-these relative units and extended by the patch-solve term.  The first
-term in the bracket is the error inherited from the finer level, the
-second is the error of truncating the exact nesting row to the patch,
-and the last is the error of the inexact patch solve; the constant
-$\alpha$ is the length, in level-$k$ mesh units, over which the
-truncation error decays.  The exponent of $\omega^{k+1} H^{k-1}$ and the
-factor $H^{-1-dk/2}$ are the normalizations of the exact basis at
-level~$k$, whose aggregate energy grows with the level.
-Substituting~\eqref{eq:kappa_arsinh} into the contraction factor gives
-the iteration bound.
+The number $X_k$ bounds the energy of the error in slot $k$ of the
+computed basis relative to the energy of the exact slot.  In
+\eqref{eq:X_recursion} the first term is the error inherited from level
+$k+1$, the second is the error of truncating the exact nesting row to
+the patch, and the third is the patch-solve error.
 
 \begin{corollary}[Outer iteration count]\label{cor:iteration_count}
-Let $\varepsilon \in (0,1)$ and write $k(\varepsilon)$ for the number of
-PCG iterations after which the energy-norm error is reduced by the
+Let $\varepsilon \in (0,1)$ and let $k(\varepsilon)$ be the number of
+PCG iterations that reduce the energy-norm error by the
 factor~$\varepsilon$.  Then
 \begin{equation}\label{eq:cg_iter_bound}
   k(\varepsilon) \;\leq\;
@@ -576,45 +567,31 @@ factor~$\varepsilon$.  Then
   \;\leq\;
   \tfrac{1}{2}\,(1+\beta)^2
   \bigl(1 + \beta + \cdots + \beta^{\,q-1}\bigr)
-  \,\ln\!\left(\frac{2}{\varepsilon}\right),
+  \,\ln\!\left(\frac{2}{\varepsilon}\right).
 \end{equation}
-and the solve to tolerance~$\varepsilon$ costs
-$\lesssim N\rho^{d}\,k(\varepsilon)$ arithmetic operations when the
-block systems are solved exactly.
 \end{corollary}
 
-Theorem~\ref{prop:precond_conditioning} is stated for the hierarchy as
-the algorithm builds it.  For whatever radii, patch tolerances and depth
-are chosen, the numbers $X_k$ are finite and computable from the
-recursion, both bounds are finite, and PCG converges at the rate of
-Corollary~\ref{cor:iteration_count}.  Each $X_k$ decreases when any
-radius $r_m$, $m \geq k$, increases or any tolerance $\tau_m$,
-$m \geq k$, decreases, and does not depend on the levels coarser
-than~$k$.  The depth enters through the number of steps of the recursion
-and through the level factors $\omega^{k+1} H^{k-1}$ and $H^{-1-dk/2}$,
-so at fixed radii and tolerances the bound grows with the depth; the
-rate of that growth is the subject of the discussion below.  The
+For any radii, patch tolerances and depth, the numbers $X_k$ are finite
+and PCG converges at the rate of Corollary~\ref{cor:iteration_count}.
+Each $X_k$ is nonincreasing in the radii $r_m$ and nondecreasing in the
+tolerances $\tau_m$, $m \geq k$, and does not depend on coarser levels.
+At fixed radii and tolerances the bound grows with the depth.  The
 constants $\alpha$, $\omega$, $C_1$, $C_2$ are not computable from the
-conditions of Appendix~\ref{app:stability}, so the theorem does not
-predict the value of~$\kappa$ for a given configuration; it gives the
-form of the dependence, and the experiments of
-Section~\ref{sec:experiments} measure the values.  Thresholding of the
-coarsened matrices is a further perturbation, treated in
-Remark~\ref{rem:inexact}.
+conditions of Appendix~\ref{app:stability}, so the theorem gives the
+form of the dependence on the configuration and
+Section~\ref{sec:experiments} measures the values.
+Remark~\ref{rem:inexact} treats thresholding.
 
-\subsubsection{Discussion}\label{rem:consequences}
-In practice the radii are set by the available memory, the patch
-tolerance by the build time, and the depth by the problem size; none
-follows a prescription in terms of~$N$.  The
-bound~\eqref{eq:kappa_bound} then reads as follows, in terms of the
-aggregate~$\beta$ of Theorem~\ref{prop:precond_conditioning} and with
-$q \leq C_q \ln N$.
+\subsubsection{Fixed configurations}\label{rem:consequences}
+In practice the memory fixes the radii, the build time fixes the patch
+tolerance, and the problem size fixes the depth.  With
+$q \leq C_q \ln N$, the bound~\eqref{eq:kappa_bound} reads as follows.
 \begin{center}
 \begin{tabular}{lcc}
 \toprule
  & $\kappa\bigl(\widetilde{K}_\rho^{-1}K\bigr)$ & $k(\varepsilon)$ \\
 \midrule
-$\beta \leq \tfrac12$ \
+$\beta \leq \tfrac12$
   & $\leq 21$
   & $\leq \tfrac{9}{4}\,\ln(2/\varepsilon)$ \\
 $\beta \leq 1$
@@ -626,29 +603,20 @@ $1 < \beta < H^{-1}$
 \bottomrule
 \end{tabular}
 \end{center}
-Here $c := 2C_q\ln\beta$, and in the third row $0 < c < 2/d$ when
-$C_q = 1/(d\ln(1/H))$, so the bound remains below the growth
-$\simeq N^{2/d}$ of the condition number of an unpreconditioned system
-on a quasi-uniform mesh~\cite{ErnGuermond2004}.  For
-$\beta \geq H^{-1}$ the bound exceeds this growth rate; convergence of
-PCG is still guaranteed by Theorem~\ref{prop:precond_conditioning},
-with no nontrivial bound on the rate.
-
-At fixed radii and a fixed patch tolerance the
-recursion~\eqref{eq:X_recursion} unrolls to
-$X_k \leq \sum_{n \geq k} ((1+\tau)\alpha/H)^{n-k} f_n$ with $f_n$ the
-forcing terms, so every $X_k$ and with it $\beta$ grow at most geometrically in
-the depth, and $\beta \lesssim q\, N^{c'}$ for a constant $c'$ set by
-$\alpha$, $\omega$, $H$, $d$ and the tolerance.  Which row of the table a configuration falls in is
-therefore a question about the size of the constants, which the theorem
-does not answer; Section~\ref{sec:experiments} measures the iteration
-counts at fixed radii as a function of the size.  The two prescriptions under which the first row
-is guaranteed for every~$N$, a radius proportional to the depth and a
-patch tolerance decreasing geometrically with the depth, are the content
-of the next corollary; they are not followed by the configurations that
-fit the memory of one device at the sizes reported here, and
-Theorem~\ref{prop:precond_conditioning} is the statement that applies
-to those configurations.
+Here $c := 2C_q\ln\beta$, and the constant in the third row depends
+on~$\beta$.  With $C_q = 1/(d\ln(1/H))$, the third row has
+$0 < c < 2/d$, below the growth $N^{2/d}$ of the condition number of
+the unpreconditioned system~\cite{ErnGuermond2004}.  For
+$\beta \geq H^{-1}$ PCG still converges, with no bound on the rate
+better than that growth.  At fixed radii and a fixed patch tolerance,
+\eqref{eq:X_recursion} unrolls to
+$X_k \leq \sum_{n \geq k} ((1+\tau)\alpha/H)^{n-k} f_n$, with $f_n$ the
+last two terms of~\eqref{eq:X_recursion}, so
+$\beta \lesssim q\, N^{c'}$ with $c'$ set by $\alpha$, $\omega$, $H$,
+$d$ and the tolerance.  Corollary~\ref{cor:asymptotic} gives radii and
+tolerances that place every $N$ in the first row.  The configurations
+of Section~\ref{sec:experiments} use fixed radii and a fixed tolerance,
+and Theorem~\ref{prop:precond_conditioning} applies to them.
 
 \begin{corollary}[Radius proportional to the depth]\label{cor:asymptotic}
 Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, let
@@ -675,22 +643,20 @@ $\lesssim N\,(\alpha\ln(2\alpha\omega)\ln N)^{d}\,\ln(1/\varepsilon)$
 operations.
 \end{corollary}
 
-The radius condition is the one under which
-\cite[Thm.~16.32]{Owhadi_Scovel_2019} bounds the localization error of
-the direct solve, with the term $\ln(1/\varepsilon)$ of that theorem's
-radius $r_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$ removed:
-the tolerance leaves the radius and the build, and enters through the
-factor $\ln(1/\varepsilon)$ of the iteration count.  The factor
-$\ln N$ in the build cost is the number of CG iterations per patch
-solve at the tolerance~\eqref{eq:asymptotic_radius}; the tolerance of
-the inner solves of the direct solve tracks the target accuracy
-instead \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
-Table~\ref{tab:complexity_comparison} compares the two at the tolerance
-$\varepsilon = N^{-s}$, $s$ fixed, which tracks the discretization error:
-the logarithm counts coincide, and the two formulations differ in what
-the radius depends on and in what a change of tolerance costs.  The
-radius condition of Corollary~\ref{cor:asymptotic} is sufficient for the
-bound; the corollary makes no statement about smaller radii.
+The radius condition~\eqref{eq:asymptotic_radius} is that of
+\cite[Thm.~16.32]{Owhadi_Scovel_2019},
+$r_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$, without the term
+$\ln(1/\varepsilon)$.  The target accuracy enters only through the
+factor $\ln(1/\varepsilon)$ of the iteration count, and the setup does
+not depend on it.  The factor $\ln N$ of the build cost is the CG
+iteration count of a patch solve at the tolerance
+\eqref{eq:asymptotic_radius}; the direct use instead solves the patch
+systems to an accuracy that tracks~$\varepsilon$
+\cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+Table~\ref{tab:complexity_comparison} compares the two at
+$\varepsilon = N^{-s}$, $s$ fixed.  The logarithm counts coincide, and a
+change of $\varepsilon$ requires a new setup only for the direct use.
+The corollary takes the Chebyshev interval as given.
 % [VERIFY: the relation between the constant alpha of Lemma 16.30 and
 % the decay length ell of eq:energy_decay.  Both are lengths in level-k
 % mesh units set by the decay of the basis functions (Condition 16.22,
@@ -719,11 +685,10 @@ bound; the corollary makes no statement about smaller radii.
   \end{tabular}
 \end{table}
 
-A matrix-vector product with~\eqref{eq:preconditioner} requires solving
-one system per diagonal block $B^{(k)}_\rho$, and the build solves one
-principal submatrix system of $B^{(k+1)}_\rho$ per level-$k$ patch.  For
-large~$N$ these systems are solved iteratively, so a bound on their
-condition numbers is needed.
+The apply phase solves one system per block $B^{(k)}_\rho$, and the
+build solves one principal submatrix system of $B^{(k+1)}_\rho$ per
+level-$k$ patch.  Iterative solution of these systems requires a bound
+on their condition numbers.
 
 \begin{corollary}[Localized block conditioning]\label{thm:localized_block_conditioning}
 Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, for
@@ -732,25 +697,16 @@ every slot $1 \leq k \leq q$,
   B^{(k)} \;\preceq\; B^{(k)}_\rho \;\preceq\; (1 + X_k^2)\, B^{(k)},
   \qquad\text{hence}\qquad
   \kappa\bigl(B^{(k)}_\rho\bigr)
-  \;\leq\; (1+X_k^2)\, \kappa\bigl(B^{(k)}\bigr)
   \;\leq\; (1+X_k^2)\, C_B^2\, H^{-2}.
 \end{equation}
 The level-$k$ patch systems are principal submatrices of
 $B^{(k+1)}_\rho$ and satisfy the same bound with $X_{k+1}$.
 \end{corollary}
 
-\noindent The proof is given in Subsection~\ref{sec:proof_conditioning}.
-The bound holds at every radius, tolerance and depth; the factor
-$1 + X_k^2$ is the one by which the computed slot's energy can exceed
-the exact slot's.  By Cauchy interlacing it transfers to the patch
-systems, so a CG solve of a block or a patch system to relative energy
-error~$\tau$ takes at most
-$\tfrac12 (1+X_k^2)^{1/2} C_B H^{-1} \ln(2/\tau)$ iterations.
-
-The apply phase of the preconditioner need not solve the block systems
-to a tolerance.  Replacing each block solve by a fixed linear
-approximation of the inverse multiplies the bound of
-Theorem~\ref{prop:precond_conditioning} by a constant factor.
+\noindent A CG solve of a block or a patch system to relative energy
+error~$\tau$ therefore takes at most
+$\tfrac12 (1+X_k^2)^{1/2} C_B H^{-1} \ln(2/\tau)$ iterations.  The block
+systems of the apply need not be solved to a tolerance.
 
 \begin{corollary}[Approximate detail solves in the apply]\label{cor:apply_factor}
 For each slot $k$ let $S_k$ be a symmetric positive definite matrix, and
@@ -803,20 +759,16 @@ $p\,C_{\mathrm{dec}}$ and the error term multiplied by
 $p\,(1 + X_k^2)\, C_B^2 H^{-2}$.
 \end{corollary}
 
-The factor~$\Gamma$ does not compound with the depth: the detail levels enter
-the preconditioner additively through the block-diagonal $\mathcal{B}_\rho^{-1}$,
-so an approximation made in the apply multiplies the bound once,
-whereas an inexact patch solve in the build enters the next level's
-problem and propagates through the recursion~\eqref{eq:X_recursion}.
-The scaling of (iii) is one (block) Jacobi smoothing step from a zero
-initial guess; it uses only the diagonal (blocks) of $B^{(k)}_\rho$, so
-no detail block needs to be stored.  In the subspace-correction
-framework~\cite{xu1992iterative}, \eqref{eq:preconditioner} is an
-additive multilevel preconditioner, Corollary~\ref{cor:apply_factor}
-is the standard comparison for inexact subspace solvers, and (iii) is
-the diagonal-scaling level solve of the BPX preconditioner, here applied
-on the computed detail spaces. the weight $\xi$ scales both extreme eigenvalues of
-$S_k B^{(k)}_\rho$ and leaves $\Gamma$ unchanged.  The bound in (iii) has two
+The factor~$\Gamma$ does not compound with the depth.  The detail
+levels enter the preconditioner through the block-diagonal
+$\mathcal{B}_\rho^{-1}$, whereas an inexact patch solve in the build
+changes the next level's problem and propagates
+through~\eqref{eq:X_recursion}.  The scaling (iii) is one block-Jacobi
+step from a zero initial guess, uses only the diagonal blocks of
+$B^{(k)}_\rho$, and is the level solve of the BPX preconditioner in the
+subspace-correction framework~\cite{xu1992iterative}, here on the
+computed detail spaces.  The weight $\xi$ scales both extreme
+eigenvalues of $S_k B^{(k)}_\rho$ and leaves $\Gamma$ unchanged.  The bound in (iii) has two
 parts.  The support count $m_k$ is $\lesssim r^d$ for a common
 radius~$r$ (Lemma~\ref{lem:support}), so without the error term the
 factor would grow with the radius;
@@ -827,59 +779,66 @@ $m_k e_{k-1} \lesssim r^d e^{-r/(2\gamma_3)}$ is bounded uniformly in
 the radius at any fixed depth, and is bounded uniformly in the depth
 under the radius condition of Corollary~\ref{cor:asymptotic}.  The
 term $C_{\mathrm{dec}}$ is the largest scaled row sum of an exact detail
-block, bounded through the decay of its entries.  The practical variant
-in which each block is solved by CG to a fixed tolerance is a nonlinear
-map of the residual, and the corollary does not cover it; its effect is
-measured in Section~\ref{sec:experiments}.
+block, bounded through the decay of its entries.
+% [VERIFY: uniformity in rho and depth under investigation]
 
-The preconditioner also serves operators other than the one it was
-built for.
-
-\begin{theorem}[Preconditioning of perturbed systems]
+\begin{proposition}[Preconditioning of perturbed systems]
 \label{thm:perturbed_system}
 Let $a_0$ and $a_1$ be symmetric coercive bilinear forms on
 $\mathcal{V}^{(q)}$ with stiffness matrices $K_0$ and $K_1$, and let
 $0 < c_1 \leq c_2$ satisfy
 $c_1\, a_0(v,v) \leq a_1(v,v) \leq c_2\, a_0(v,v)$ for every
 $v \in \mathcal{V}^{(q)}$.  Let $M_0$ be a symmetric positive definite
-matrix; in particular, $M_0$ may be the
-preconditioner~\eqref{eq:preconditioner} or the preconditioner
+matrix, such as the preconditioner~\eqref{eq:preconditioner} or
 $\widehat{M}$ of Corollary~\ref{cor:apply_factor} built from the
 hierarchy of~$a_0$.  Then $M_0 K_1$ has real positive spectrum and
 \begin{equation}\label{eq:perturbed_bound}
   \kappa\bigl(M_0 K_1\bigr)
   \;\leq\; \frac{c_2}{c_1}\, \kappa\bigl(M_0 K_0\bigr).
 \end{equation}
-For $A(\Delta t) = M + \Delta t K$ with $M$ symmetric positive definite and $K$
-symmetric positive semidefinite, and $M_0$ built for $A(\Delta t_0)$,
+For $A(\Delta t) = M + \Delta t K$ with $M$ symmetric positive definite
+and $K$ symmetric positive semidefinite, and $M_0$ built for
+$A(\Delta t_0)$,
 \begin{equation}\label{eq:timestep_bound}
   \kappa\bigl(M_0 A(\Delta t)\bigr)
   \;\leq\; \max\Bigl\{ \frac{\Delta t}{\Delta t_0},\, \frac{\Delta t_0}{\Delta t} \Bigr\}\,
     \kappa\bigl(M_0 A(\Delta t_0)\bigr),
   \qquad \Delta t > 0 .
 \end{equation}
-\end{theorem}
+\end{proposition}
 
-The proof is given in Subsection~\ref{sec:proof_conditioning}.  In the
-time-stepping instance, an implicit integrator for
-$M\dot{u} + Ku = f$ solves a system with $A(\Delta t)$ at every step,
-$\Delta t$ the effective step coefficient.  The form
-$a_{\Delta t_0}(u,v) = (u,v)_{L^2(\Omega)} + \Delta t_0\, a(u,v)$ is symmetric,
-coercive and local, so the hierarchy built for it is within the class
-of Theorem~\ref{prop:precond_conditioning}, with constants set by
-$a_{\Delta t_0}$, and its blocks obey
-Corollary~\ref{thm:localized_block_conditioning} whatever operator is
-being preconditioned.  A factor-of-two change in~$\Delta t$ increases the
-iteration bound of Corollary~\ref{cor:iteration_count} by at most
-$\sqrt{2}$, and one build serves a range of steps.
+An implicit integrator for $M\dot{u} + Ku = f$ solves a system with
+$A(\Delta t)$ at each step.  The form
+$(u,v)_{L^2(\Omega)} + \Delta t_0\, a(u,v)$ is symmetric, coercive and
+local, so Theorem~\ref{prop:precond_conditioning} applies to its
+hierarchy with constants set by this form.  A change of $\Delta t$ by a
+factor of two increases the iteration bound of
+Corollary~\ref{cor:iteration_count} by at most $\sqrt{2}$.
+
+\begin{remark}[Thresholding]\label{rem:inexact}
+The build drops an entry $A_{ij}$ of a coarsened matrix when
+$|A_{ij}| \leq \theta \sqrt{A_{ii} A_{jj}}$.  This perturbs the matrix
+by a symmetric $\Delta_\theta$ with
+$|x^\top \Delta_\theta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$,
+where $s \lesssim \rho^d$ bounds the nonzeros per row.  The patch
+systems of the next level are then solved for a perturbed matrix; since
+\eqref{eq:measurement_matching} holds for every $Z^{(k)}$, the effect is
+an inexact patch solve and is contained in~$\tau_k$.  The stored blocks
+satisfy $(1-\theta')B^{(k)}_\rho \preceq \widetilde{B}^{(k)}_\rho
+\preceq (1+\theta')B^{(k)}_\rho$ with
+$\theta' := \theta s\, \kappa(B^{(k)}_\rho)$, so for $\theta' < 1$
+Corollary~\ref{cor:apply_factor} applies with
+$S_k = (\widetilde{B}^{(k)}_\rho)^{-1}$ and
+$\Gamma \leq (1+\theta')/(1-\theta')$, uniformly in $k$ by
+Corollary~\ref{thm:localized_block_conditioning}.
+\end{remark}
 
 \begin{remark}[The one-shot basis and the radius $\ell \ln\ln N$]\label{rem:oneshot}
 Consider, in place of~\eqref{eq:recursive_patch}, the local problem
 posed over the full trial space.  Let $S^{(k)}_i$ be a union of mesh
-cells contained in the ball of radius $\rho h_k$ about $x^{(k)}_i$,
-containing the support of $\mu^{(k)}_i$ and such that the interior of
-$\operatorname{supp} \mu^{(k)}_j$ does not meet the boundary of
-$S^{(k)}_i$ for any~$j$, and define
+cells in the ball of radius $\rho h_k$ about $x^{(k)}_i$ that contains
+the support of $\mu^{(k)}_i$ and whose boundary meets the interior of
+no $\operatorname{supp} \mu^{(k)}_j$, and define
 \begin{equation}\label{eq:localized_basis}
   \psi^{(k),\mathrm{os}}_{\rho,i}
   := \operatorname{argmin}
@@ -888,48 +847,57 @@ $S^{(k)}_i$ for any~$j$, and define
      \mu^{(k)}_j(v) = \delta_{ij} \text{ for every } j \text{ with }
      \operatorname{supp} \mu^{(k)}_j \subseteq S^{(k)}_i \bigr\} ,
 \end{equation}
-the detail functions $\chi^{(k),\mathrm{os}}_{\rho,j} := \sum_m D^{(k)}_{jm}
-\psi^{(k+1),\mathrm{os}}_{\rho,m}$, and the preconditioner formed from
-them as in~\eqref{eq:preconditioner}.  Each
-problem~\eqref{eq:localized_basis} has $\simeq \rho^d H^{-d(q-k)}$
-unknowns, the fine-mesh degrees of freedom in the ball, and the
-algorithm does not compute this basis.  For it,
-\cite[Thm.~15.41]{Owhadi_Scovel_2019} gives
+with detail functions $\chi^{(k),\mathrm{os}}_{\rho,j} := \sum_m D^{(k)}_{jm}
+\psi^{(k+1),\mathrm{os}}_{\rho,m}$ and the preconditioner formed as
+in~\eqref{eq:preconditioner}.  Each problem~\eqref{eq:localized_basis}
+has $\simeq \rho^d H^{-d(q-k)}$ unknowns, and the algorithm does not
+compute this basis.  By \cite[Thm.~15.41]{Owhadi_Scovel_2019},
 \begin{equation}\label{eq:localization_error}
   \bigl\|\psi^{(k)}_i - \psi^{(k),\mathrm{os}}_{\rho,i}\bigr\|_a
   \;\leq\; C\,\|\psi^{(k)}_i\|_a\;e^{-\rho/(2\ell)} ,
 \end{equation}
-with $C$ depending on the operator but not on $k$ or~$\rho$, and the
-argument of Subsection~\ref{sec:proof_conditioning} applies without
-change, since each function lies in $\mathcal{V}^{(q)}$ and matches its
-level-$k$ data.  Appendix~\ref{app:oneshot} proves that in this case
-\eqref{eq:kappa_bound} holds with $\beta$ replaced by
+with $C$ independent of $k$ and~$\rho$.  Each function lies in
+$\mathcal{V}^{(q)}$ and matches its level-$k$ measurements, so the
+argument of Subsection~\ref{sec:proof_conditioning} applies, and
+Appendix~\ref{app:oneshot} proves \eqref{eq:kappa_bound} with $\beta$
+replaced by
 \begin{equation}\label{eq:beta}
   \beta_{\mathrm{os}} \;:=\; C_\beta\, H^{-1} \rho^{d/2} \sqrt{q}\;
     e^{-\rho/(2\ell)} ,
 \end{equation}
 where $C_\beta$ depends only on $C_B$, $d$, $\ell$ and the mesh
-regularity, so that
+regularity.  Hence
 \begin{equation}\label{eq:rho_iter}
   \rho \;\geq\; \rho_{\mathrm{iter}}(N) \;:=\; 2\ell\ln\ln N + C\ell,
 \end{equation}
-with $C$ depending only on $d$, $H$, $C_\beta$ and $\ell$, gives
+with $C$ depending only on $d$, $H$, $C_q$, $C_\beta$ and $\ell$, gives
 $\beta_{\mathrm{os}} \leq \tfrac12$ and
-$\kappa(\widetilde{K}_\rho^{-1} K) \leq 21$.  The factor $\sqrt{q}$,
-in place of the per-level amplification of~\eqref{eq:X_recursion},
-comes from the near-orthogonality of the localization errors
-(Lemma~\ref{lem:error_interactions}): the errors of two functions at
-distance~$r$ interact with energy $\lesssim e^{-\rho/(2\ell)} e^{-r/(4\ell)}$,
-so the energy of a slot's error combination is bounded by
-$\rho^d e^{-\rho/\ell}$ times the weighted coefficient norm, in place
-of a bound carrying the slot dimension.  The same lemma bounds the
-factor of Corollary~\ref{cor:apply_factor}(iii) for this basis
-by $c_\star (1 + \ell)^{d+1} (1 + X^2) C_B^2 H^{-2}$, uniformly in the
+$\kappa(\widetilde{K}_\rho^{-1} K) \leq 21$.  The factor $\sqrt{q}$
+replaces the per-level amplification of~\eqref{eq:X_recursion} because
+the localization errors of two functions at distance~$r$ interact with
+energy $\lesssim e^{-\rho/(2\ell)} e^{-r/(4\ell)}$
+(Lemma~\ref{lem:error_interactions}).  The same lemma bounds the factor
+of Corollary~\ref{cor:apply_factor}(iii) for this basis by
+$c_\star (1 + \ell)^{d+1} (1 + X^2) C_B^2 H^{-2}$, uniformly in the
 radius and the depth (Lemma~\ref{lem:oneshot_rowsum}).
+% [VERIFY: Lemma lem:oneshot_rowsum states the exponent d, this remark
+% d+1; block-Jacobi factor statements under investigation, left as is.]
 \end{remark}
-
 \subsection{Construction of the Preconditioner}
 \label{sec:implementation}
+% CLAIMS:
+% 1. Algorithms 1 and 2 are the method, with the build tolerance and the
+%    detail policy as inputs.
+% 2. The sparsity pattern of every product follows from the grid; entry
+%    positions are integer arithmetic, so no index arrays are stored; the
+%    factors, not the change of basis, are stored.
+% 3. A row depends only on the field in a ball; translation-equal rows are
+%    solved once per class.
+% 4. Stencil matrices store one value table per class and no indices.
+% 5. Patch systems are solved by CG within a bounded iteration count; the
+%    build tolerance sets the patch tolerance of Theorem 3.1.
+% 6. Block-Jacobi levels store only the diagonal blocks.
+% 7. The cost model as a sum over levels; the limits on other meshes.
 \begin{algorithm}[t]
 \caption{OAW Build}
 \label{alg:impl_build}
@@ -940,12 +908,12 @@ per level (solve or block-Jacobi); batch size~$m$\\[4pt]
 \textbf{for} $k = q-1, q-2, \ldots, 1$ \textbf{do}
 \begin{enumerate}
   \item[1.] Enumerate the level-$k$ sparsity patterns and the patch
-    index sets $\mathcal{P}^{(k)}_i$ by grid arithmetic; fix the sparse
-    right inverse $C^{(k)\dagger}$; allocate the outputs.
+    index sets $\mathcal{P}^{(k)}_i$ by grid arithmetic; allocate the
+    outputs.
   \item[2.] If the level-$(k{+}1)$ policy is solve:
     $B^{(k+1)}_\rho \gets D^{(k)}\,A^{(k+1)}\,D^{(k)\top}$ at the
     precomputed positions ($A^{(q)} = K$, applied by quadrature).  If it
-    is block-Jacobi: extract only the diagonal of $B^{(k+1)}_\rho$ (the
+    is block-Jacobi: compute only the diagonal of $B^{(k+1)}_\rho$ (the
     $p \times p$ diagonal blocks for vector-valued problems).
   \item[3.] \textbf{for} batches of $m$ nodes, one representative
     per translation class, \textbf{do}: gather the patch system
@@ -955,28 +923,27 @@ per level (solve or block-Jacobi); batch size~$m$\\[4pt]
      -[D^{(k)}\,A^{(k+1)}\,C^{(k)\dagger\top} e_i]_{\mathcal{P}^{(k)}_i}$
     by CG to relative residual tolerance~$\tau_{\mathrm{build}}$.
   \item[4.] $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)}\,D^{(k)}$, written
-    as a value table at the precomputed positions (no column indices).
+    as a value table at the precomputed positions.
   \item[5.] $A^{(k)} \gets R^{(k)}\,A^{(k+1)}\,R^{(k)\top}$ at the
     precomputed positions; threshold small entries; release $A^{(k+1)}$.
-  \item[6.] Narrow $R^{(k)}$ to its stored form.
 \end{enumerate}
-\textbf{end for.}  \textbf{Output:} values of $\{R^{(k)}\}$; for each
+\textbf{end for.}  \textbf{Output:} $\{R^{(k)}\}$; for each
 level, $B^{(k)}_\rho$ (solve) or its diagonal (block-Jacobi); $A^{(1)}$.
 \end{algorithm}
 
 \begin{algorithm}[t]
 \caption{OAW Apply (one preconditioner application)}
 \label{alg:impl_apply}
-\textbf{Input:} values of $\{R^{(k)}\}$; the blocks or diagonals of
-Algorithm~\ref{alg:impl_build}; $A^{(1)}$; residual $g$; detail policy
-per level; apply tolerance $\tau_{\mathrm{apply}}$\\[4pt]
+\textbf{Input:} the output of Algorithm~\ref{alg:impl_build}; residual
+$g$; detail policy per level; apply tolerance $\tau_{\mathrm{apply}}$\\[4pt]
 \begin{enumerate}
   \item[1.] Descent: $y^{(q)} \gets g$; \textbf{for}
     $k = q-1, \ldots, 1$: $w^{(k+1)} \gets D^{(k)} y^{(k+1)}$ and
     $y^{(k)} \gets R^{(k)} y^{(k+1)}$; set $w^{(1)} \gets y^{(1)}$.
-  \item[2.] Coarsest solve: $A^{(1)} c^{(1)} = w^{(1)}$ by CG to
-    relative residual tolerance~$\tau_{\mathrm{apply}}$.  Detail
-    levels, for $1 \leq k \leq q-1$: if the policy is solve,
+  \item[2.] Coarsest solve: $A^{(1)} c^{(1)} = w^{(1)}$, by a direct
+    factorization computed once when $A^{(1)}$ is small and by CG to
+    relative residual tolerance~$\tau_{\mathrm{apply}}$ otherwise.
+    Detail levels, for $1 \leq k \leq q-1$: if the policy is solve,
     $B^{(k+1)}_\rho\, c^{(k+1)} = w^{(k+1)}$ by CG to relative residual
     tolerance~$\tau_{\mathrm{apply}}$; if it is block-Jacobi,
     $c^{(k+1)} \gets \xi \operatorname{diag}(B^{(k+1)}_\rho)^{-1} w^{(k+1)}$
@@ -988,75 +955,51 @@ per level; apply tolerance $\tau_{\mathrm{apply}}$\\[4pt]
 \textbf{Output:} $\hat{u}_\rho = t^{(q)}$.
 \end{algorithm}
 
-
-It remains to compute the objects appearing
-in~\eqref{eq:preconditioner}.  Since the exact coarse spaces are
-nested, every exact level-$k$ basis function is a combination of exact
-level-$(k{+}1)$ basis functions, with coefficients forming the
-\emph{exact nesting matrices},
+The exact level-$k$ functions are combinations of the exact
+level-$(k{+}1)$ functions,
 \begin{equation}\label{eq:nesting_R}
   \psi^{(k)}_i \;=\; \sum_{j=1}^{n_{k+1}} R^{(k)}_{\mathrm{ex},ij}\, \psi^{(k+1)}_j,
   \qquad 1 \leq i \leq n_k,
 \end{equation}
-analogous to the nesting~\eqref{eq:nesting_maps} of the measurements;
-these are dense.  The computed hierarchy replaces them by the
-factors $R^{(k)}$ of~\eqref{eq:recursive_patch}, each row supported in
-its patch, and the detail functions and the blocks follow
-from~\eqref{eq:localized_detail_basis}.  The build algorithm computes
-the factors $R^{(k)}$ and the blocks $B^{(k)}_\rho$ level by level
-(Algorithm~\ref{alg:impl_build}); the application
-of~\eqref{eq:preconditioner} consists of restrictions by the factors,
-one block solve or block-Jacobi scaling per level, and prolongations by the
-transposes (Algorithm~\ref{alg:impl_apply}).  The patch systems are
-solved iteratively to the relative residual tolerance
-$\tau_{\mathrm{build}}$ in parallel batches of size~$m$, and the block
-systems of the apply either by CG to the tolerance
-$\tau_{\mathrm{apply}}$ or by the block-Jacobi scaling of Corollary~\ref{cor:apply_factor}(iii), as the per-level detail
-policy prescribes.  The recursion is similar to that of Budninskiy et
-al.~\cite{budni2019}, though without storage of some intermediate
-objects.
+with dense \emph{exact nesting matrices} $R^{(k)}_{\mathrm{ex}}$.  The
+computed factors $R^{(k)}$ of~\eqref{eq:recursive_patch} replace them,
+with each row supported in its patch.  Algorithm~\ref{alg:impl_build}
+computes the factors and the blocks level by level, and
+Algorithm~\ref{alg:impl_apply} applies~\eqref{eq:preconditioner}.  The
+recursion is that of Budninskiy et al.~\cite{budni2019}.
 
-Throughout, the mesh hierarchy is the regular quadrilateral or
-hexahedral grid on a box with dyadic nesting, $H = \tfrac12$, and the
-patch~\eqref{eq:patch_def} is realized as the max-norm box: the
-level-$(k{+}1)$ nodes within max-norm distance $r_k h_k$ of
-$x^{(k)}_i$, which contains the pseudometric ball of radius $r_k$ and is
-contained in the one of radius $\sqrt{d}\, r_k$.  Neither choice is
-necessary, but both simplify the index arithmetic and reflect the
-implementation.  The statements below are written for scalar nodal
-degrees of freedom, and extend to $p$-dimensional vector-valued ones by
-treating the matrix entries as $p\times p$ matrices and taking the
-$C^{(k)}$ and $D^{(k)}$ to be Kronecker products of selections.  The
-modifications to the argument are mechanical and are omitted.  The
-elasticity experiments of Section~\ref{sec:experiments} use this
-extension with $p = d$.
+The mesh hierarchy is the regular quadrilateral or hexahedral grid on a
+box with $H = \tfrac12$, and the patch~\eqref{eq:patch_def} is realized
+as the max-norm box of radius $r_k h_k$ about $x^{(k)}_i$, which
+contains the ball of radius $r_k$ and is contained in the ball of
+radius $\sqrt{d}\, r_k$.  Both choices simplify the index arithmetic.
+The statements below are written for scalar nodal degrees of freedom.
+They extend to $p$ components per node by treating matrix entries as
+$p\times p$ blocks and taking $C^{(k)}$ and $D^{(k)}$ to be Kronecker
+products of selections; the elasticity experiments use $p = d$.
 
-\subsubsection{Predetermined sparsity and storage}
+\subsubsection{Predetermined sparsity}
 \label{sec:consequences:patterns}
-Naively performing the matrix multiplication steps in
-Algorithm~\ref{alg:impl_build}, even with sparse data structures, leads
-to a blow-up in allocation for large $N$.  However, once $\rho$ and $H$
-are fixed, the sparsity pattern of each product is determined a priori,
-independently of the coefficients, and memory for every intermediate
-object may be allocated exactly.  Rows of $R^{(k)}_\rho$ lie in boxes
-of radius $\rho + c_\star$ about their nodes, and the widths of
-the coarsened operators and blocks are bounded uniformly in the level:
+Once the radii and $H$ are fixed, the sparsity pattern of each product
+in Algorithm~\ref{alg:impl_build} is independent of the coefficients
+and follows from the grid, so each intermediate is allocated once at its
+final size.  Rows of $R^{(k)}$ lie in boxes of radius $\rho + c_\star$
+about their nodes, and the widths of the coarsened operators and blocks
+are bounded uniformly in the level.
 
 \begin{proposition}[Stencil width]\label{prop:stencil_width}
-Measure distances at level~$k$ in level-$k$ mesh units.  At the finest
-level, the stencil width of $A^{(q)} = K$ is $\lesssim 1$, set by
-the finite-element connectivity.  At every coarser level, the stencil
-width of $A^{(k)}$ and of the detail blocks $B^{(k)}_\rho$ is at most
-$2\rho/(1-H) + c_\star$, uniformly in~$k$.
+Measure distances at level~$k$ in level-$k$ mesh units.  The stencil
+width of $A^{(q)} = K$ is $\lesssim 1$.  At every coarser level, the
+stencil width of $A^{(k)}$ and of the blocks $B^{(k)}_\rho$ is at most
+$2\rho/(1-H) + c_\star$.
 \end{proposition}
 
-\noindent The width obeys the recursion
-$w_k \leq 2\rho + H\, w_{k+1} + c_\star$: a coarsening step adds
-the two patch radii, and the finer level's width enters scaled by the
-mesh ratio.  The proof is given in Section~\ref{sec:construction}. On a uniform mesh, the position of any entry is computed by integer
-arithmetic from the node coordinates, so no index arrays need be
-stored.  Within the box of radius~$r$ about node~$x$, clipped to the
-grid with per-axis offsets $l_a := \max(x_a - r,\, 0)$ and extents
+\noindent A coarsening step adds the two patch radii to the width, and
+the finer width enters scaled by $H$, so $w_k \leq 2\rho + H\, w_{k+1} +
+c_\star$ (Section~\ref{sec:construction}).  On a uniform grid the
+position of an entry follows from the node coordinates.  Within the box
+of radius~$r$ about node~$x$, clipped to the grid with per-axis offsets
+$l_a := \max(x_a - r,\, 0)$ and extents
 $b_a := \min(x_a + r,\, n_a - 1) - l_a + 1$, the column at
 coordinates~$y$ occupies slot
 \begin{equation}\label{eq:slot_map}
@@ -1064,61 +1007,48 @@ coordinates~$y$ occupies slot
   \prod_{a' > a} b_{a'} ,
 \end{equation}
 and the slot determines~$y$ by the corresponding mixed-radix
-decomposition, both in at most $3d$ integer operations with no stored data.
-The explicit change-of-basis blocks $\Phi^{(k)}_{\rho}$, although
-nominally sparsified, hold
-$\simeq \rho^d H^{-d(q-k)}$ nonzero entries at level
-$k$, prohibitive at coarse levels. Thus, only the nesting matrices $R^{(k)}_{\rho}$ are stored.  The $C^{(k)}$ and $D^{(k)}$ need not be stored either. For first-order elements, whose
-degrees of freedom coincide with the mesh nodes, $C^{(k)}$ selects the
-level-$(k{+}1)$ nodes at the coarse positions and $D^{(k)}$ selects the
-remaining ones. Products with them and their transposes can therefore be performed by gathers
-and scatters at computed positions, without explicit storage of operator entries and indices.
-%The magnitude thresholding of prior implementations is retained; its effect on convergence is empirically negligible [TODO:
-%does this need a plot?], and a perturbation analysis is deferred.  The
-%level sizes decay geometrically and each stored row holds
-%$\mathcal{O}(\rho^d)$ values, so the persistent store is
-%$\mathcal{O}(N\rho^d)$ values.
+decomposition, so no index arrays are stored.  A column of the change
+of basis $\Phi_\rho$ at level $k$ has $\simeq \rho^d H^{-d(q-k)}$
+nonzero entries, so the algorithm stores the factors $R^{(k)}$ and not
+$\Phi_\rho$.  For first-order elements $C^{(k)}$ selects the
+level-$(k{+}1)$ nodes at coarse positions and $D^{(k)}$ the remaining
+ones; products with them and their transposes are gathers and scatters
+at computed positions.
 
 \subsubsection{Local translation invariance}
 \label{sec:consequences:compression}
-A row of $R^{(k)}_\rho$, as computed by Algorithm~\ref{alg:impl_build},
-is a function of the coefficient field on the max-norm ball of radius
-$C_H\,\rho h_k + c_\star h_k$ about its node, where
-$C_H := (1+H)/(1-H)^2$ (Lemma~\ref{lem:dependency}).  For
-$t \in \mathbb{R}^d$, we say the field is \emph{$t$-invariant} on a region $U$
-when its value at $x + t$ equals its value at $x$ for every $x \in U$;
-for a lattice translation~$t$ we write $T_t$ for the induced map on
-node indices.  Translating a node translates its patch, its measurement
-functionals, and its selections, so two nodes whose dependency balls
-see the same field are assigned the same patch system:
+A row of $R^{(k)}$ computed by Algorithm~\ref{alg:impl_build} is a
+function of the coefficient field on the max-norm ball of radius
+$C_H\,\rho h_k + c_\star h_k$ about its node, the \emph{dependency
+ball}, where $C_H := (1+H)/(1-H)^2$ (Lemma~\ref{lem:dependency}).  The
+field is \emph{$t$-invariant} on a region $U$ if its value at $x + t$
+equals its value at $x$ for every $x \in U$, and $T_t$ denotes the map
+on node indices induced by a lattice translation~$t$.
 
 \begin{theorem}[Row equality]\label{thm:row_equality}
-Let $t \in h_k\mathbb{Z}^d$, let the patches of~$i$ and of~$T_t i$ not
-meet $\partial\Omega$, and let the coefficient field be $t$-invariant
-on the max-norm ball of radius $C_H\,\rho h_k + c_\star h_k$
-about~$x^{(k)}_i$.  Then
+Let $t \in h_k\mathbb{Z}^d$, let the dependency balls of~$i$ and
+of~$T_t i$ not meet $\partial\Omega$, and let the coefficient field be
+$t$-invariant on the dependency ball of~$i$.  Then
 \begin{equation}\label{eq:row_equality}
-  R^{(k)}_{\rho,\,T_t i,\,T_t j} \;=\; R^{(k)}_{\rho,\,i,\,j}
+  R^{(k)}_{T_t i,\,T_t j} \;=\; R^{(k)}_{i,\,j}
   \qquad \text{for every } j,
 \end{equation}
 and likewise for the corresponding rows of the blocks.
 \end{theorem}
 
-For example, on a coefficient field of period $p$, with $p$ an integer
-multiple of $h_k$, two interior nodes whose coordinates agree modulo~$p$
-satisfy the hypotheses, so the interior rows of $R^{(k)}_\rho$ take at most
-$(p/h_k)^d$ distinct values, a fraction
-$\lesssim (p/\operatorname{diam}\Omega)^d$ of the $n_k$ rows, and the nodes
-whose dependency balls meet $\partial\Omega$ number
-$\lesssim \rho\, n_k^{(d-1)/d}$ and form the remaining classes.  The classes are identified from the coefficient field by
-coordinate arithmetic, and one representative of each need be solved.  This makes for a substantial reduction in complexity
-for a wide class of problems of practical interest.
+For a field of period $p$, an integer multiple of $h_k$, two interior
+nodes whose coordinates agree modulo~$p$ satisfy the hypotheses.  The
+interior rows of $R^{(k)}$ then take at most $(p/h_k)^d$ distinct
+values, a fraction $\lesssim (p/\operatorname{diam}\Omega)^d$ of the
+$n_k$ rows, and the $\lesssim \rho\, n_k^{(d-1)/d}$ nodes whose
+dependency balls meet $\partial\Omega$ form the remaining classes.  The
+classes are identified from the field by coordinate arithmetic, and one
+representative of each is solved.
 
 \subsubsection{Stencil matrices}
 \label{sec:consequences:storage}
-
-The two preceding observations motivate the following data structure
-(Figure~\ref{fig:stencil_vs_csr}):
+The factors, the coarsened operators and the blocks are stored in the
+following format (Figure~\ref{fig:stencil_vs_csr}).
 
 \begin{figure}[t]
 \centering
@@ -1128,238 +1058,119 @@ The two preceding observations motivate the following data structure
 A compressed-row format keeps a column index next to every value; the
 stencil matrix stores the values only, in the order of the slots of the
 box about the row's node, and the column of a value follows from its
-slot by~\eqref{eq:slot_map}, $\mathrm{slot}(i,j) = (y_1 - l_1)\, b_2 +
+slot by~\eqref{eq:slot_map}, $\mathrm{slot}(x,y) = (y_1 - l_1)\, b_2 +
 (y_2 - l_2)$ in two dimensions.}
 \label{fig:stencil_vs_csr}
 \end{figure}
 
 \begin{definition}[Stencil matrix]\label{def:stencil_matrix}
-A \emph{stencil matrix} on a level grid is a tuple $(\sigma, c, V)$: a
-stencil map~$\mathcal{S}$, evaluated by the index
-arithmetic~\eqref{eq:slot_map}; a class map~$c$ on the rows, and a value table~$V$ with one row per
-equivalence class.  It represents the matrix~$M$ with entries
+A \emph{stencil matrix} on a level grid is a tuple
+$(\mathcal{S}, c, \bar{x}, V)$: a stencil map~$\mathcal{S}$ that assigns
+to a node the box of its row, evaluated by~\eqref{eq:slot_map}; a class
+map~$c$ on the rows; a representative node $\bar{x}_{c}$ for each
+class~$c$; and a value table~$V$ with one row per class.  It represents
+the matrix~$M$ with entries
 \begin{equation}\label{eq:stencil_entry}
   M_{ij} \;=\;
   \begin{cases}
-    V_{c(i),\,\mathrm{slot}(x_{c(i)},\, y_j - t_i)},
-      & y_j - t_i \in \mathcal{S}(c(i)), \\[2pt]
+    V_{c(i),\,\mathrm{slot}(\bar{x}_{c(i)},\, y_j - t_i)},
+      & y_j - t_i \in \mathcal{S}(\bar{x}_{c(i)}), \\[2pt]
     0, & \text{otherwise},
   \end{cases}
-  \qquad t_i := x_i - x_{c(i)},
+  \qquad t_i := x_i - \bar{x}_{c(i)},
 \end{equation}
-where $y_j$ is the node of column~$j$.
+where $x_i$ and $y_j$ are the nodes of row~$i$ and column~$j$.
 \end{definition}
 
-The product $x \mapsto Mx$ is evaluated from the tuple,
-\begin{equation}\label{eq:stencil_matvec}
-  (Mx)_i \;=\; \sum_{y \,\in\, \mathcal{S}(i)}
-    V_{c(i),\,\mathrm{slot}(x_{c(i)},\, y - t_i)}\; x_{y},
-\end{equation}
-and the transpose product is the same sum with the roles of row and
-column exchanged.  On a level with $n$ nodes, stencil radius~$r$, and
-$n_c$ row classes, one product costs $n(2r+1)^d$ multiply--adds, with
-at most $3d$ integer operations per entry for the slots; the values
-read are the $(2r+1)^d$ entries of each representative row touched, at
-most $n_c(2r+1)^d$; and the stored data is the $n_c(2r+1)^d$ values of
-the table together with a constant number of descriptors (the grid
-dimensions, the radius, the class parameters).  A compressed-row format
-for the same matrix stores $n(2r+1)^d$ values, as many column indices,
-and $n$ row pointers; the stencil matrix stores no indices and no
-pointers, and reduces the stored values by the factor $n/n_c$.  The
-coarsened operators and blocks are symmetric and are stored as one
-triangle, halving their value tables.  For the
-factors $R^{(k)}_\rho$ the radius is $r = \rho + c_\star$; for
-the coarsened operators and blocks it is
-$r \leq 2\rho/(1-H) + c_\star$.  Reading or writing an entry is
-one evaluation of~\eqref{eq:stencil_entry}: a patch system is gathered
-by reading its entries, the coarsening product writes into a
-preallocated stencil matrix, and thresholding sets values to zero
-without changing the pattern.
+A product $x \mapsto Mx$ or $x \mapsto M^\top x$ evaluates
+\eqref{eq:stencil_entry} for each entry.  On a level with $n$ nodes,
+stencil radius~$r$ and $n_c$ classes it costs $n(2r+1)^d$
+multiply--adds and reads at most $n_c(2r+1)^d$ stored values.  A
+compressed-row format stores a column index per value and a pointer per
+row; the stencil matrix stores neither, and stores $n_c$ rows of values
+instead of~$n$.  The radius is $r = \rho + c_\star$ for the factors and
+$r \leq 2\rho/(1-H) + c_\star$ for the coarsened operators and blocks.
+Step~4 writes each factor directly into the value table of a stencil
+matrix, so the build forms no column index for the factors, and
+thresholding sets values to zero without changing the pattern.
 
-\subsubsection{Iterative subproblem solves}
+\subsubsection{Iterative patch solves}
 \label{sec:consequences:build}
-
-The patch systems of Algorithm~\ref{alg:impl_build} are mutually
-independent and are solved concurrently in batches of~$m$, which sets
-the working memory of the build.  Each system is a principal submatrix
-of a block $B^{(k+1)}_\rho$, so
-Corollary~\ref{thm:localized_block_conditioning} applies to it: its
-condition number is at most
-$\kappa_k := (1 + X_{k+1}^2)\, C_B^2 H^{-2}$, and CG from a zero initial
-guess reaches the relative residual tolerance $\tau_{\mathrm{build}}$
-within
+The patch systems are mutually independent and are solved concurrently
+in batches of~$m$, which sets the working memory of the build.  Each is
+a principal submatrix of $B^{(k+1)}_\rho$, so by
+Corollary~\ref{thm:localized_block_conditioning} its condition number is
+at most $\kappa_k := (1 + X_{k+1}^2)\, C_B^2 H^{-2}$, and CG from a zero
+initial guess reaches the relative residual tolerance
+$\tau_{\mathrm{build}}$ within
 \begin{equation}\label{eq:patch_iters}
   \iota_k \;\leq\; \tfrac12\, \sqrt{\kappa_k}\,
     \ln\bigl( 2\sqrt{\kappa_k} / \tau_{\mathrm{build}} \bigr)
 \end{equation}
-iterations \cite{saad2003iterative}, uniformly in the level and the
-radii.  The build tolerance is the input through which the patch-solve
-error $\tau_k$ of Theorem~\ref{prop:precond_conditioning} is set: the
-energy error of the computed correction relative to the exact
-correction is at most $\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$, since
-the energy norm of the error is bounded by the residual in the inverse
-norm and the initial residual by the right-hand side.  Loosening
-$\tau_{\mathrm{build}}$ shortens every patch solve and enlarges every
-$X_k$ through the last term of~\eqref{eq:X_recursion}; the operating
-point used in Section~\ref{sec:experiments} is
-$\tau_{\mathrm{build}} = 10^{-3}$.
+iterations~\cite{saad2003iterative}, a bound independent of the level and
+the radii for bounded $X_{k+1}$.  The build tolerance sets the patch
+tolerance of Theorem~\ref{prop:precond_conditioning}.  The energy error
+of the computed correction relative to the exact correction is at most
+$\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$, and the proof of
+Corollary~\ref{cor:asymptotic} bounds the ratio of the energies of the
+exact correction and of the patch minimizer by a constant times
+$H^{-(k+1)}$, so $\tau_k \lesssim H^{-(k+1)}\sqrt{\kappa_k}\,
+\tau_{\mathrm{build}}$.
 % [VERIFY: the conversion from the relative residual tolerance to the
-% per-function relative energy error tau_k of eq:tau_def carries, beyond
-% the factor sqrt(kappa_k), the ratio of the energies of the exact
-% correction and of the patch minimizer, bounded in the proof of
-% Corollary cor:asymptotic by a constant times H^{-(k+1)}; the text
-% states only the first factor.]
-When two patches satisfy the hypotheses of
-Theorem~\ref{thm:row_equality}, their systems coincide up to the
-translation; one representative per class is solved (step~3) and its
-row is stored once, through the class map of
-Definition~\ref{def:stencil_matrix}.  The row assembled in step~4
-contains the term $C^{(k)\dagger\top} e_i$, so the supports above
-require a sparse right inverse.  The Moore--Penrose pseudoinverse is
-dense in general; by Lemma~\ref{lem:cdagger_independence} the computed
-factors do not depend on the choice of right inverse, and the
-implementation uses the selection $C^{(k)\dagger} = C^{(k)}$.
+% per-function relative energy error tau_k of eq:tau_def; the factor
+% H^{-(k+1)} is taken from the proof of Corollary cor:asymptotic.]
+Loosening $\tau_{\mathrm{build}}$ shortens the patch solves and enlarges
+the $X_k$ through the last term of~\eqref{eq:X_recursion};
+Subsection~\ref{sec:exp:policy} measures both effects.
 
-\subsubsection{Factors without column indices}
-\label{sec:consequences:indexfree}
-
-The factor $R^{(k)}$ is written in step~4 as a value table at the
-positions of its precomputed pattern: the column of each value is
-recovered by the index arithmetic~\eqref{eq:slot_map}, so no column
-index is ever stored, during the build or after it.  The last read of
-$R^{(k)}$ in the build is the coarsening product of step~5; once that
-product is complete, step~6 narrows the factor to the form in which it
-is kept for the apply phase, its values converted to the storage
-precision, and the working-precision table is released.  The finest
-factor, which holds the largest share of the stored values, is kept in
-single precision; the coarser factors keep the working precision.
-% [VERIFY: which factors are narrowed to single precision in the
-% configuration of record; the text follows the description of the
-% stored form (values only; finest factor in single precision; column
-% indices of every factor computed from the grid).]
-The build peak therefore never holds a factor with its indices, and the
-stored hierarchy holds $4$ bytes per entry of the finest factor instead
-of the $12$ of a value with a four-byte index and an eight-byte value.
-Section~\ref{sec:experiments} reports the stored and peak footprints
-before and after this change.
-
-\subsubsection{Detail policy and diagonal-only extraction}
+\subsubsection{Detail policy}
 \label{sec:consequences:policy}
+The detail policy assigns to each detail level either a CG solve to
+$\tau_{\mathrm{apply}}$ or the block-Jacobi scaling of
+Corollary~\ref{cor:apply_factor}(iii).  On a level with the solve
+policy, step~2 extracts and stores $B^{(k+1)}_\rho$, with
+$\lesssim r_k^d$ values per detail degree of freedom.  On a level with
+the block-Jacobi policy, step~2 computes only the diagonal blocks of
+$B^{(k+1)}_\rho$, step~3 gathers the patch systems from $A^{(k+1)}$, and
+no detail block is stored.  The \emph{mixed} policy of
+Section~\ref{sec:experiments} solves the coarsest detail level and
+scales the finer ones.
 
-The detail policy assigns to every detail level one of two treatments
-of its block in Algorithm~\ref{alg:impl_apply}: a CG solve to the
-tolerance $\tau_{\mathrm{apply}}$, or the block-Jacobi scaling
-$c_i = \xi (B^{(k+1)}_\rho)_{ii}^{-1} w_i$ of
-Corollary~\ref{cor:apply_factor}(iii), which the corollary licenses at
-a constant factor in the condition number.  The policy also decides what the
-build stores.  On a level whose policy is solve, step~2 extracts the
-block $B^{(k+1)}_\rho$ from $A^{(k+1)}$ at its precomputed positions and
-stores one triangle of it, $\lesssim r_k^d$ values per detail degree of
-freedom.  On a level whose policy is block-Jacobi, the block is never
-extracted as a whole: step~2 computes only its diagonal, one value per
-detail degree of freedom for scalar problems and one $p \times p$ block
-for vector-valued ones, and the patch systems of step~3 are gathered
-directly from $A^{(k+1)}$.  The stored detail block of such a level,
-and the mirror indices that a symmetric half-stored block carries,
-leave the resident footprint.  The policy may differ between levels;
-the \emph{mixed} policy of Section~\ref{sec:experiments} solves the
-coarsest detail levels and applies block-Jacobi scaling at the finest.
-
-\subsubsection{Fidelity and cost}
+\subsubsection{Cost}
 \label{sec:consequences:apply}
-
-\begin{remark}[Inexact solves and thresholding]\label{rem:inexact}
-In practice coarsened matrices are \emph{thresholded} (entry $A_{ij}$ is dropped when
-$|A_{ij}| \leq \theta \sqrt{A_{ii} A_{jj}}$, with $\theta$ typically on the order of single precision floating point), and the block and patch
-systems are solved iteratively to the tolerances $\tau_{\mathrm{build}}$ and $\tau_{\mathrm{apply}}$. Thresholding is an additive symmetric
-perturbation~$\Delta_\theta$ with
-$|x^\top \Delta_\theta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$
-for $s \lesssim \rho^d$ nonzeros per row, hence
-$\|\Delta_\theta\|_2 \leq \theta s\, \lambda_{\max}(A)$.  By Weyl's theorem each eigenvalue moves by at most $\|\Delta_\theta\|_2$, so whenever
-$\theta' := \theta s\, \kappa\bigl(B^{(k)}_\rho\bigr) < 1$, the thresholded blocks remain positive definite and the bounds of
-Section~\ref{sec:main_bounds} hold with constants multiplied by
-$(1+\theta')/(1-\theta')$, uniformly in $k$ by
-Corollary~\ref{thm:localized_block_conditioning}; Theorem~\ref{prop:precond_conditioning} is stated at $\theta = 0$, and this remark covers $\theta > 0$. The perturbation due to solving the block systems of the apply by CG to a fixed tolerance is nonlinear, and its impact is not analyzed here. The effect of both perturbations on the outer iteration is measured empirically in Section~\ref{sec:experiments}.
-\end{remark}
-
-% Workshop/appendix candidate (2026-10-26): fixed-polynomial inexactness
-% result, kept for later placement.
-%\begin{remark}[Inexact block solves]
-%Let each block solve in Algorithm~\ref{alg:impl_apply} be replaced by a
-%fixed linear iteration: a polynomial $q$ applied to the block, with
-%\[
-%  (1-\delta)\, B^{-1} \;\preceq\; q(B) \;\preceq\; (1+\delta)\, B^{-1}
-%\]
-%for every block $B$ of $\mathcal{B}_\rho$ and some $\delta \in (0,1)$.  The
-%applied preconditioner is then the symmetric positive definite matrix
-%$\widehat{M} = \Phi_\rho \operatorname{diag}\bigl(q(B^{(k)}_\rho)\bigr)
-%\Phi_\rho^\top$, and
-%\[
-%  (1-\delta)\,\widetilde{K}_\rho^{-1}
-%  \;\preceq\; \widehat{M} \;\preceq\;
-%  (1+\delta)\,\widetilde{K}_\rho^{-1},
-%\]
-%so the condition number of the preconditioned system increases by at
-%most the factor $(1+\delta)/(1-\delta)$, and every bound of
-%Section~\ref{sec:main_bounds} holds with that factor.  By
-%Corollary~\ref{thm:localized_block_conditioning}, a Chebyshev polynomial
-%of degree $\mathcal{O}\bigl((1+\beta) H^{-1} \ln(1/\delta)\bigr)$
-%satisfies the two-sided bound.
-%Proof content: the bound holds per block, block-diagonal assembly
-%preserves the two-sided order, and congruence by $\Phi_\rho$ preserves
-%it again; spectral equivalence with ratio $(1+\delta)/(1-\delta)$
-%multiplies the generalized condition number by at most that factor.
-%\end{remark}
-
-The counts above give the total complexity of the algorithm.
-
 \begin{proposition}[Cost]\label{prop:cost}
-In the setting of this section, with radii $r_k$, batch size~$m$, the
-identity class map, and $\iota_k$ the number of CG iterations per
-level-$k$ patch solve~\eqref{eq:patch_iters},
+With radii $r_k$, batch size~$m$, the identity class map, and $\iota_k$
+the CG iteration count of a level-$k$ patch solve~\eqref{eq:patch_iters},
 Algorithm~\ref{alg:impl_build} performs
 \begin{equation}\label{eq:build_cost}
   \lesssim\; \sum_{k=1}^{q-1} n_k\, r_k^{2d}\, (1 + \iota_k)
   \;\lesssim\; N \rho^{2d}\, \max_k \sqrt{\kappa_k}\,
     \ln\bigl(2\sqrt{\kappa_k}/\tau_{\mathrm{build}}\bigr)
 \end{equation}
-operations, the first term of each summand the coarsening product and
-the second the patch solves, within working memory
+operations, the first term of each summand for the coarsening product
+and the second for the patch solves, within working memory
 $\lesssim m\rho^{2d}$ for the patch systems and $\lesssim N H^{d}\rho^{d}$
-for the transient coarsened operators.  The output holds
+for the coarsened operator.  The output holds
 $\lesssim \sum_k n_k r_k^d$ values for the factors, $\lesssim n_{k+1} r_k^d$
 values for the block of each level with the solve policy, and
-$n_{k+1} p^2$ values for the diagonal of each level with the block-Jacobi
-policy, in total $\lesssim N\rho^d$.  One application of
+$n_{k+1} p^2$ values for each level with the block-Jacobi policy, in
+total $\lesssim N\rho^d$.  One application of
 Algorithm~\ref{alg:impl_apply} performs $\lesssim N\rho^d$ operations
-for the factor products, plus, per detail level,
+for the factor products and, per detail level,
 $\lesssim n_{k+1} r_k^d\, \iota'_k$ operations under the solve policy,
 with $\iota'_k \leq \tfrac12 \sqrt{\kappa_{k}}
-\ln(2\sqrt{\kappa_{k}}/\tau_{\mathrm{apply}})$, and $n_{k+1} p^2$
+\ln(2\sqrt{\kappa_{k}}/\tau_{\mathrm{apply}})$, or $n_{k+1} p^2$
 operations under the block-Jacobi policy.
 \end{proposition}
 
-%Dense factorization of the patch systems costs $\mathcal{O}(\rho^{3d})$
-%per patch in time and workspace, and the build becomes
-%$\mathcal{O}(N\rho^{3d})$; these are the exponents $\alpha = 2$ and
-%$\alpha = 3$ of Section~\ref{sec:background}, and the iterative build
-%costs less whenever $1 + \beta < \rho^{d}$.
+\noindent The count $r_k^{2d}$ per patch is that of the coarse levels;
+at the finest level the stencil of $K$ has width $\lesssim 1$ and a
+patch iteration costs $\lesssim r_{q-1}^{d}$.
 
-%\subsubsection{Batched iterative subproblem solves}
-%Peak working memory in the build may be controlled by the batch size~$m$ rather
-%than the problem size. The patch systems are solved by CG in batches of~$m$. Since every patch
-%system is a principal submatrix of a block $B^{(k+1)}_\rho$, and the
-%eigenvalues of a principal submatrix of a symmetric matrix lie between
-%the extreme eigenvalues of the full matrix, the conditioning
-%of the blocks (Corollary~\ref{thm:localized_block_conditioning}) applies to the patch systems. Thus a solve to relative tolerance~$\tau$ takes at most
-%$\tfrac12\,(1+\beta)\, C_B H^{-1} \ln(2/\tau)$ CG iterations, uniformly
-%in the level and the radius; if the condition of
-%Corollary~\ref{lem:threshold} is met, the count is $\mathcal{O}(1)$,
-%independently of~$N$.
-
-\subsubsection{Discussion}
-On an unstructured mesh, the sparsity patterns remain computable from the mesh connectivity for every coefficient field and index arrays can still be avoided, but locating an entry becomes a graph search at logarithmic rather than constant cost.  Under local refinement of a dyadic grid, the translation-invariance argument is unchanged on the uniform subregions, but fails otherwise, since the local problems are then genuinely distinct.
-
+On an unstructured mesh the sparsity patterns remain computable from the
+mesh connectivity, but locating an entry requires a stored adjacency
+structure.  Under local refinement of a dyadic grid,
+Theorem~\ref{thm:row_equality} applies on the uniform subregions only.
 \section{Proofs of the Main Results}
 \label{sec:preconditioner}
 
