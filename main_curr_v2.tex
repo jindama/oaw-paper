@@ -785,9 +785,14 @@ In particular:
     $F \leq (1+\delta_s)/(1-\delta_s)$ with
     $\delta_s := 2\bigl((\sqrt{\kappa_B}-1)/(\sqrt{\kappa_B}+1)\bigr)^{s}$,
     whenever $\delta_s < 1$;
-  \item[(iii)] one Jacobi step, $S_k = \operatorname{diag}(B^{(k)}_\rho)^{-1}$,
-    gives, with $\widehat{S}_k := \operatorname{diag}(B^{(k)}_\rho)^{-1/2}
-    B^{(k)}_\rho \operatorname{diag}(B^{(k)}_\rho)^{-1/2}$,
+  \item[(iii)] the \emph{block-diagonal approximation of the detail
+    solves}, $S_k = \omega \operatorname{diag}(B^{(k)}_\rho)^{-1}$ with a
+    weight $\omega > 0$, which replaces the solve $B^{(k)}_\rho c = w$ by
+    the scaling $c_i = \omega\, (B^{(k)}_\rho)_{ii}^{-1} w_i$ applied once
+    from zero with no action of $B^{(k)}_\rho$, gives, with
+    $\widehat{S}_k := \operatorname{diag}(B^{(k)}_\rho)^{-1/2}
+    B^{(k)}_\rho \operatorname{diag}(B^{(k)}_\rho)^{-1/2}$ and for every
+    $\omega$,
     \begin{equation}\label{eq:jacobi_factor}
       F \;\leq\; \max_k \lambda_{\max}\bigl(\widehat{S}_k\bigr)\,
         \max_k \kappa\bigl(B^{(k)}_\rho\bigr)
@@ -801,8 +806,9 @@ In particular:
     Lemma~\ref{lem:per_function}, and $C_{\mathrm{dec}}$ depends only
     on the constants of Appendix~\ref{app:stability}.
 \end{enumerate}
-For vector-valued problems with $p$ components per node, one block
-Jacobi step with the $p \times p$ diagonal blocks satisfies
+For vector-valued problems with $p$ components per node, the
+block-diagonal approximation with the $p \times p$ diagonal blocks,
+$c_I = \omega\, (B^{(k)}_\rho)_{II}^{-1} w_I$, satisfies
 \eqref{eq:jacobi_factor} with $C_{\mathrm{dec}}$ replaced by
 $p\,C_{\mathrm{dec}}$ and the error term multiplied by
 $p\,(1 + X_k^2)\, C_B^2 H^{-2}$.
@@ -813,9 +819,13 @@ the preconditioner additively through the block-diagonal $D_\rho^{-1}$,
 so an approximation made in the apply multiplies the bound once,
 whereas an inexact patch solve in the build enters the next level's
 problem and propagates through the recursion~\eqref{eq:X_recursion}.
-The bound in (iii) has two parts.  The support count $m_k$ is
-$\lesssim r^d$ for a common radius~$r$ (Lemma~\ref{lem:support}), so
-without the error term the Jacobi factor would grow with the radius;
+The block-diagonal approximation of (iii) coincides with a single
+block-Jacobi iteration from a zero initial guess, which is why it needs
+no stored block; the weight $\omega$ scales both extreme eigenvalues of
+$S_k B^{(k)}_\rho$ and leaves $F$ unchanged.  The bound in (iii) has two
+parts.  The support count $m_k$ is $\lesssim r^d$ for a common
+radius~$r$ (Lemma~\ref{lem:support}), so without the error term the
+factor would grow with the radius;
 Lemma~\ref{lem:per_function} bounds $e_{k-1}$ by a per-function
 recursion of the same form as~\eqref{eq:X_recursion}, with the decaying
 factor $e^{-r/(2\gamma_3)}$ per level, so the product
@@ -919,7 +929,7 @@ distance~$r$ interact with energy $\lesssim e^{-\rho/(2\ell)} e^{-r/(4\ell)}$,
 so the energy of a slot's error combination is bounded by
 $\rho^d e^{-\rho/\ell}$ times the weighted coefficient norm, in place
 of a bound carrying the slot dimension.  The same lemma bounds the
-Jacobi factor of Corollary~\ref{cor:apply_factor}(iii) for this basis
+factor of Corollary~\ref{cor:apply_factor}(iii) for this basis
 by $c_\star (1 + \ell)^{d+1} (1 + X^2) C_B^2 H^{-2}$, uniformly in the
 radius and the depth (Lemma~\ref{lem:oneshot_rowsum}).
 \end{remark}
@@ -930,41 +940,53 @@ radius and the depth (Lemma~\ref{lem:oneshot_rowsum}).
 \caption{OAW Build}
 \label{alg:impl_build}
 \textbf{Input:} quadrature access to $a(\cdot,\cdot)$ on the fine mesh;
-nesting maps $\{C^{(k)}\}$; detail maps $\{D^{(k)}\}$; radius $\rho$;
-inner tolerance $\tau$; batch size~$m$\\[4pt]
+nesting maps $\{C^{(k)}\}$; detail maps $\{D^{(k)}\}$; radii
+$\{r_k\}$; build tolerance $\tau_{\mathrm{build}}$; detail policy
+per level (solve or block-diagonal); batch size~$m$\\[4pt]
 \textbf{for} $k = q-1, q-2, \ldots, 1$ \textbf{do}
 \begin{enumerate}
   \item[1.] Enumerate the level-$k$ sparsity patterns and the patch
-    index sets $\mathcal{P}_i$ by grid arithmetic; fix the sparse right
-    inverse $C^{(k)\dagger}$; allocate the outputs.
-  \item[2.] $B^{(k+1)}_\rho \gets D^{(k)}\,A^{(k+1)}\,D^{(k)\top}$ at
-    the precomputed positions ($A^{(q)} = K$, applied by quadrature).
+    index sets $\mathcal{P}^{(k)}_i$ by grid arithmetic; fix the sparse
+    right inverse $C^{(k)\dagger}$; allocate the outputs.
+  \item[2.] If the level-$(k{+}1)$ policy is solve:
+    $B^{(k+1)}_\rho \gets D^{(k)}\,A^{(k+1)}\,D^{(k)\top}$ at the
+    precomputed positions ($A^{(q)} = K$, applied by quadrature).  If it
+    is block-diagonal: extract only the diagonal of $B^{(k+1)}_\rho$ (the
+    $p \times p$ diagonal blocks for vector-valued problems).
   \item[3.] \textbf{for} batches of $m$ nodes, one representative
-    per translation class, \textbf{do}: solve
-    $[B^{(k+1)}_\rho]_{\mathcal{P}_i}\, z_i =
-     -[D^{(k)}\,A^{(k+1)}\,C^{(k)\dagger\top} e_i]_{\mathcal{P}_i}$
-    by CG to relative tolerance~$\tau$.
-  \item[4.] $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)}\,D^{(k)}$
-    (values only).
+    per translation class, \textbf{do}: gather the patch system
+    $[B^{(k+1)}_\rho]_{\mathcal{P}^{(k)}_i} =
+     [D^{(k)}\,A^{(k+1)}\,D^{(k)\top}]_{\mathcal{P}^{(k)}_i}$ and solve
+    $[B^{(k+1)}_\rho]_{\mathcal{P}^{(k)}_i}\, z_i =
+     -[D^{(k)}\,A^{(k+1)}\,C^{(k)\dagger\top} e_i]_{\mathcal{P}^{(k)}_i}$
+    by CG to relative residual tolerance~$\tau_{\mathrm{build}}$.
+  \item[4.] $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)}\,D^{(k)}$, written
+    as a value table at the precomputed positions (no column indices).
   \item[5.] $A^{(k)} \gets R^{(k)}\,A^{(k+1)}\,R^{(k)\top}$ at the
     precomputed positions; threshold small entries; release $A^{(k+1)}$.
+  \item[6.] Narrow $R^{(k)}$ to its stored form.
 \end{enumerate}
-\textbf{end for.}  \textbf{Output:} values of $\{R^{(k)}\}$,
-$\{B^{(k)}_\rho\}$, $A^{(1)}$.
+\textbf{end for.}  \textbf{Output:} values of $\{R^{(k)}\}$; for each
+level, $B^{(k)}_\rho$ (solve) or its diagonal (block-diagonal); $A^{(1)}$.
 \end{algorithm}
 
 \begin{algorithm}[t]
 \caption{OAW Apply (one preconditioner application)}
 \label{alg:impl_apply}
-\textbf{Input:} values of $\{R^{(k)}\}$, $\{B^{(k)}_\rho\}$, $A^{(1)}$;
-residual $g$; inner tolerance $\tau$\\[4pt]
+\textbf{Input:} values of $\{R^{(k)}\}$; the blocks or diagonals of
+Algorithm~\ref{alg:impl_build}; $A^{(1)}$; residual $g$; detail policy
+per level; apply tolerance $\tau_{\mathrm{apply}}$\\[4pt]
 \begin{enumerate}
   \item[1.] Descent: $y^{(q)} \gets g$; \textbf{for}
     $k = q-1, \ldots, 1$: $w^{(k+1)} \gets D^{(k)} y^{(k+1)}$ and
     $y^{(k)} \gets R^{(k)} y^{(k+1)}$; set $w^{(1)} \gets y^{(1)}$.
-  \item[2.] Block solves by CG to relative tolerance~$\tau$:
-    $A^{(1)} c^{(1)} = w^{(1)}$ and
-    $B^{(k+1)}_\rho\, c^{(k+1)} = w^{(k+1)}$ for $1 \leq k \leq q-1$.
+  \item[2.] Coarsest solve: $A^{(1)} c^{(1)} = w^{(1)}$ by CG to
+    relative residual tolerance~$\tau_{\mathrm{apply}}$.  Detail
+    levels, for $1 \leq k \leq q-1$: if the policy is solve,
+    $B^{(k+1)}_\rho\, c^{(k+1)} = w^{(k+1)}$ by CG to relative residual
+    tolerance~$\tau_{\mathrm{apply}}$; if it is block-diagonal,
+    $c^{(k+1)} \gets \omega \operatorname{diag}(B^{(k+1)}_\rho)^{-1} w^{(k+1)}$
+    (the $p \times p$ diagonal blocks for vector-valued problems).
   \item[3.] Ascent: $t^{(1)} \gets c^{(1)}$; \textbf{for}
     $k = 1, \ldots, q-1$:
     $t^{(k+1)} \gets R^{(k)\top} t^{(k)} + D^{(k)\top} c^{(k+1)}$.
@@ -974,36 +996,46 @@ residual $g$; inner tolerance $\tau$\\[4pt]
 
 
 It remains to compute the objects appearing
-in~\eqref{eq:preconditioner}. The construction
-is recursive; since the coarse spaces are nested, every level-$k$ basis
-function is a linear combination of level-$(k{+}1)$ basis functions, and
-the coefficients define the \emph{nesting matrices},
+in~\eqref{eq:preconditioner}.  Since the exact coarse spaces are
+nested, every exact level-$k$ basis function is a combination of exact
+level-$(k{+}1)$ basis functions, with coefficients forming the
+\emph{exact nesting matrices},
 \begin{equation}\label{eq:nesting_R}
-  \psi^{(k)}_i \;=\; \sum_{j=1}^{n_{k+1}} R^{(k)}_{ij}\, \psi^{(k+1)}_j,
+  \psi^{(k)}_i \;=\; \sum_{j=1}^{n_{k+1}} R^{(k)}_{\mathrm{ex},ij}\, \psi^{(k+1)}_j,
   \qquad 1 \leq i \leq n_k,
 \end{equation}
-analogous to the nesting~\eqref{eq:nesting_maps} of the measurements. Analogous statements hold for the detail functions, as well as their localized counterparts, and it suffices to compute only the rows of the $R^{(k)}_{\rho} \in \mathbb{R}^{n_{k} \times n_{k+1}}$; under localization, only $\lesssim \rho^d$ of these entries are nonzero (Appendix~\ref{app:oaw}). 
-%Each level's patch problems take the previous
-%level's localized functions as inputs, so the computed basis is the
-%recursively localized basis.
-%the assumption relating it to the basis of
-%Section~\ref{sec:background} is stated in Appendix~\ref{app:proofs}.
-The build algorithm computes the factors $R^{(k)}_\rho$ and blocks $B^{(k)}_\rho$
-level by level (Algorithm~\ref{alg:impl_build}); the application
+analogous to the nesting~\eqref{eq:nesting_maps} of the measurements;
+these are dense.  The computed hierarchy replaces them by the
+factors $R^{(k)}$ of~\eqref{eq:recursive_patch}, each row supported in
+its patch, and the detail functions and the blocks follow
+from~\eqref{eq:localized_detail_basis}.  The build algorithm computes
+the factors $R^{(k)}$ and the blocks $B^{(k)}_\rho$ level by level
+(Algorithm~\ref{alg:impl_build}); the application
 of~\eqref{eq:preconditioner} consists of restrictions by the factors,
-one block solve per level, and prolongations by their transposes (Algorithm~\ref{alg:impl_apply}). The subproblems are solved iteratively to relative tolerance~$\tau$ in parallel batches of size $m$.
-%We distinguish the \emph{persistent memory}, the
-%factors and blocks retained after ~\ref{alg:impl_build} terminates, and the \emph{working
-%memory} of the build, the peak memory required ruing the execution of~\ref{alg:recursive_build}. 
-The recursion is similar to that of Budninskiy et al.~\cite{budni2019}, though without storage of some intermediate objects.
+one block solve or block-diagonal scaling per level, and prolongations by the
+transposes (Algorithm~\ref{alg:impl_apply}).  The patch systems are
+solved iteratively to the relative residual tolerance
+$\tau_{\mathrm{build}}$ in parallel batches of size~$m$, and the block
+systems of the apply either by CG to the tolerance
+$\tau_{\mathrm{apply}}$ or by the block-diagonal approximation of Corollary~\ref{cor:apply_factor}(iii), as the per-level detail
+policy prescribes.  The recursion is similar to that of Budninskiy et
+al.~\cite{budni2019}, though without storage of some intermediate
+objects.
 
 Throughout, the mesh hierarchy is the regular quadrilateral or
-hexahedral grid on a box with dyadic nesting, and each patch
-$S^{(k)}_i$ is a max-norm ball. Neither choice is necessary, but both
-simplify the analysis and reflect our implementation.  The statements below are written for scalar nodal degrees of freedom, but the statements extend immediately to $p$-dimensional vector-valued ones by treating the matrix entries as $p\times p$ matrices and taking the
-$C^{(k)}$ and $D^{(k)}$ to be Kronecker products of selections. The modifications to the argument are mechanical and are omitted for clarity.
-The elasticity experiments of Section~\ref{sec:experiments} use this
-extension with $p = d$. 
+hexahedral grid on a box with dyadic nesting, $H = \tfrac12$, and the
+patch~\eqref{eq:patch_def} is realized as the max-norm box: the
+level-$(k{+}1)$ nodes within max-norm distance $r_k h_k$ of
+$x^{(k)}_i$, which contains the pseudometric ball of radius $r_k$ and is
+contained in the one of radius $\sqrt{d}\, r_k$.  Neither choice is
+necessary, but both simplify the index arithmetic and reflect the
+implementation.  The statements below are written for scalar nodal
+degrees of freedom, and extend to $p$-dimensional vector-valued ones by
+treating the matrix entries as $p\times p$ matrices and taking the
+$C^{(k)}$ and $D^{(k)}$ to be Kronecker products of selections.  The
+modifications to the argument are mechanical and are omitted.  The
+elasticity experiments of Section~\ref{sec:experiments} use this
+extension with $p = d$.
 
 \subsubsection{Predetermined sparsity and storage}
 \label{sec:consequences:patterns}
@@ -1142,13 +1174,33 @@ without changing the pattern.
 The patch systems of Algorithm~\ref{alg:impl_build} are mutually
 independent and are solved concurrently in batches of~$m$, which sets
 the working memory of the build.  Each system is a principal submatrix
-of a block $B^{(k+1)}_\rho$, and the eigenvalues of a principal
-submatrix of a symmetric matrix lie between the extreme eigenvalues of
-the full matrix, so Corollary~\ref{thm:localized_block_conditioning}
-applies to the patch systems: a solve to relative tolerance~$\tau$
-takes at most $\tfrac12\,(1+\beta)\, C_B H^{-1} \ln(2/\tau)$ CG
-iterations, uniformly in the level and the radius, and
-$\lesssim \ln(2/\tau)$ under the condition of Corollary~\ref{lem:threshold}.
+of a block $B^{(k+1)}_\rho$, so
+Corollary~\ref{thm:localized_block_conditioning} applies to it: its
+condition number is at most
+$\kappa_k := (1 + X_{k+1}^2)\, C_B^2 H^{-2}$, and CG from a zero initial
+guess reaches the relative residual tolerance $\tau_{\mathrm{build}}$
+within
+\begin{equation}\label{eq:patch_iters}
+  \iota_k \;\leq\; \tfrac12\, \sqrt{\kappa_k}\,
+    \ln\bigl( 2\sqrt{\kappa_k} / \tau_{\mathrm{build}} \bigr)
+\end{equation}
+iterations \cite{saad2003iterative}, uniformly in the level and the
+radii.  The build tolerance is the input through which the patch-solve
+error $\tau_k$ of Theorem~\ref{prop:precond_conditioning} is set: the
+energy error of the computed correction relative to the exact
+correction is at most $\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$, since
+the energy norm of the error is bounded by the residual in the inverse
+norm and the initial residual by the right-hand side.  Loosening
+$\tau_{\mathrm{build}}$ shortens every patch solve and enlarges every
+$X_k$ through the last term of~\eqref{eq:X_recursion}; the operating
+point used in Section~\ref{sec:experiments} is
+$\tau_{\mathrm{build}} = 10^{-3}$.
+% [VERIFY: the conversion from the relative residual tolerance to the
+% per-function relative energy error tau_k of eq:tau_def carries, beyond
+% the factor sqrt(kappa_k), the ratio of the energies of the exact
+% correction and of the patch minimizer, bounded in the proof of
+% Corollary cor:asymptotic by a constant times H^{-(k+1)}; the text
+% states only the first factor.]
 When two patches satisfy the hypotheses of
 Theorem~\ref{thm:row_equality}, their systems coincide up to the
 translation; one representative per class is solved (step~3) and its
@@ -1160,13 +1212,58 @@ dense in general; by Lemma~\ref{lem:cdagger_independence} the computed
 factors do not depend on the choice of right inverse, and the
 implementation uses the selection $C^{(k)\dagger} = C^{(k)}$.
 
+\subsubsection{Factors without column indices}
+\label{sec:consequences:indexfree}
+
+The factor $R^{(k)}$ is written in step~4 as a value table at the
+positions of its precomputed pattern: the column of each value is
+recovered by the index arithmetic~\eqref{eq:slot_map}, so no column
+index is ever stored, during the build or after it.  The last read of
+$R^{(k)}$ in the build is the coarsening product of step~5; once that
+product is complete, step~6 narrows the factor to the form in which it
+is kept for the apply phase, its values converted to the storage
+precision, and the working-precision table is released.  The finest
+factor, which holds the largest share of the stored values, is kept in
+single precision; the coarser factors keep the working precision.
+% [VERIFY: which factors are narrowed to single precision in the
+% configuration of record; the text follows the description of the
+% stored form (values only; finest factor in single precision; column
+% indices of every factor computed from the grid).]
+The build peak therefore never holds a factor with its indices, and the
+stored hierarchy holds $4$ bytes per entry of the finest factor instead
+of the $12$ of a value with a four-byte index and an eight-byte value.
+Section~\ref{sec:experiments} reports the stored and peak footprints
+before and after this change.
+
+\subsubsection{Detail policy and diagonal-only extraction}
+\label{sec:consequences:policy}
+
+The detail policy assigns to every detail level one of two treatments
+of its block in Algorithm~\ref{alg:impl_apply}: a CG solve to the
+tolerance $\tau_{\mathrm{apply}}$, or the block-diagonal approximation
+$c_i = \omega (B^{(k+1)}_\rho)_{ii}^{-1} w_i$ of
+Corollary~\ref{cor:apply_factor}(iii), which the corollary licenses at
+a constant factor in the condition number.  The policy also decides what the
+build stores.  On a level whose policy is solve, step~2 extracts the
+block $B^{(k+1)}_\rho$ from $A^{(k+1)}$ at its precomputed positions and
+stores one triangle of it, $\lesssim r_k^d$ values per detail degree of
+freedom.  On a level whose policy is block-diagonal, the block is never
+extracted as a whole: step~2 computes only its diagonal, one value per
+detail degree of freedom for scalar problems and one $p \times p$ block
+for vector-valued ones, and the patch systems of step~3 are gathered
+directly from $A^{(k+1)}$.  The stored detail block of such a level,
+and the mirror indices that a symmetric half-stored block carries,
+leave the resident footprint.  The policy may differ between levels;
+the \emph{mixed} policy of Section~\ref{sec:experiments} solves the
+coarsest detail levels and applies the block-diagonal approximation at the finest.
+
 \subsubsection{Fidelity and cost}
 \label{sec:consequences:apply}
 
 \begin{remark}[Inexact solves and thresholding]\label{rem:inexact}
 In practice coarsened matrices are \emph{thresholded} (entry $A_{ij}$ is dropped when
 $|A_{ij}| \leq \theta \sqrt{A_{ii} A_{jj}}$, with $\theta$ typically on the order of single precision floating point), and the block and patch
-systems are solved iteratively to relative tolerance~$\tau$. Thresholding is an additive symmetric
+systems are solved iteratively to the tolerances $\tau_{\mathrm{build}}$ and $\tau_{\mathrm{apply}}$. Thresholding is an additive symmetric
 perturbation~$\Delta$ with
 $|x^\top \Delta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$
 for $s \lesssim \rho^d$ nonzeros per row, hence
@@ -1174,7 +1271,7 @@ $\|\Delta\|_2 \leq \theta s\, \lambda_{\max}(A)$.  By Weyl's theorem each eigenv
 $\varepsilon := \theta s\, \kappa\bigl(B^{(k)}_\rho\bigr) < 1$, the thresholded blocks remain positive definite and the bounds of
 Section~\ref{sec:main_bounds} hold with constants multiplied by
 $(1+\varepsilon)/(1-\varepsilon)$, uniformly in $k$ by
-Corollary~\ref{thm:localized_block_conditioning}. The perturbation due to solving inner CG to a fixed tolerance is generally nonlinear, and its impact is not analyzed here. The effect of both perturbations on the outer iteration is measured empirically in Section~\ref{sec:experiments}.
+Corollary~\ref{thm:localized_block_conditioning}; Theorem~\ref{prop:precond_conditioning} is stated at $\theta = 0$, and this remark covers $\theta > 0$. The perturbation due to solving the block systems of the apply by CG to a fixed tolerance is nonlinear, and its impact is not analyzed here. The effect of both perturbations on the outer iteration is measured empirically in Section~\ref{sec:experiments}.
 \end{remark}
 
 % Workshop/appendix candidate (2026-10-26): fixed-polynomial inexactness
@@ -1206,18 +1303,32 @@ Corollary~\ref{thm:localized_block_conditioning}. The perturbation due to solvin
 %multiplies the generalized condition number by at most that factor.
 %\end{remark}
 
-The counts above give the total complexity of the algorithm:
+The counts above give the total complexity of the algorithm.
 
 \begin{proposition}[Cost]\label{prop:cost}
-In the setting of this section, with batch size~$m$, inner
-tolerance~$\tau$, and the identity class map,
+In the setting of this section, with radii $r_k$, batch size~$m$, the
+identity class map, and $\iota_k$ the number of CG iterations per
+level-$k$ patch solve~\eqref{eq:patch_iters},
 Algorithm~\ref{alg:impl_build} performs
-$\lesssim (1+\beta)\ln(2/\tau)\,N\rho^{2d}$ operations, within
-working memory $\lesssim m\rho^{2d}$ for the patch systems and
-$\lesssim N H^{d}\rho^{d}$ for the transient coarsened operators. The output holds
-$\lesssim N\rho^{d}$ values, and one application of
-Algorithm~\ref{alg:impl_apply} performs
-$\lesssim (1+\beta)\ln(2/\tau)\,N\rho^{d}$ operations.
+\begin{equation}\label{eq:build_cost}
+  \lesssim\; \sum_{k=1}^{q-1} n_k\, r_k^{2d}\, (1 + \iota_k)
+  \;\lesssim\; N \rho^{2d}\, \max_k \sqrt{\kappa_k}\,
+    \ln\bigl(2\sqrt{\kappa_k}/\tau_{\mathrm{build}}\bigr)
+\end{equation}
+operations, the first term of each summand the coarsening product and
+the second the patch solves, within working memory
+$\lesssim m\rho^{2d}$ for the patch systems and $\lesssim N H^{d}\rho^{d}$
+for the transient coarsened operators.  The output holds
+$\lesssim \sum_k n_k r_k^d$ values for the factors, $\lesssim n_{k+1} r_k^d$
+values for the block of each level with the solve policy, and
+$n_{k+1} p^2$ values for the diagonal of each level with the block-diagonal
+policy, in total $\lesssim N\rho^d$.  One application of
+Algorithm~\ref{alg:impl_apply} performs $\lesssim N\rho^d$ operations
+for the factor products, plus, per detail level,
+$\lesssim n_{k+1} r_k^d\, \iota'_k$ operations under the solve policy,
+with $\iota'_k \leq \tfrac12 \sqrt{\kappa_{k}}
+\ln(2\sqrt{\kappa_{k}}/\tau_{\mathrm{apply}})$, and $n_{k+1} p^2$
+operations under the block-diagonal policy.
 \end{proposition}
 
 %Dense factorization of the patch systems costs $\mathcal{O}(\rho^{3d})$
@@ -1732,8 +1843,9 @@ $S_k B^{(k)}_\rho$ are the values $1 - r_s(\lambda)$ at the eigenvalues
 $\lambda$ of $B^{(k)}_\rho$, all in $[1 - \delta_s, 1 + \delta_s]$, and
 $S_k$ is positive definite when $\delta_s < 1$.  For (iii), with
 $\Lambda := \operatorname{diag}(B^{(k)}_\rho)$, the eigenvalues of
-$S_k B^{(k)}_\rho = \Lambda^{-1} B^{(k)}_\rho$ are those of
-$\widehat{S}_k$; $\lambda_{\max}(\Lambda) \leq \lambda_{\max}(B^{(k)}_\rho)$
+$S_k B^{(k)}_\rho = \omega \Lambda^{-1} B^{(k)}_\rho$ are $\omega$ times
+those of $\widehat{S}_k$, and the factor $\omega$ cancels in the ratio
+defining~$F$; $\lambda_{\max}(\Lambda) \leq \lambda_{\max}(B^{(k)}_\rho)$
 since diagonal entries are Rayleigh quotients, so
 $\lambda_{\min}(\widehat{S}_k) \geq \lambda_{\min}(B^{(k)}_\rho)/\lambda_{\max}(\Lambda)
  \geq 1/\kappa(B^{(k)}_\rho)$, which gives the first inequality
@@ -1875,7 +1987,7 @@ by~\eqref{eq:block_conditioning} and
 $C_{\mathrm{dec}}$ through the ball growth and the bounded number of
 details per parent of \cite[Cond.~16.22]{Owhadi_Scovel_2019}, as in the
 proof of Lemma~\ref{lem:per_function}.  The remaining terms contribute
-at most $m_k (2 e_{k-1} + e_{k-1}^2)$.  For block Jacobi with
+at most $m_k (2 e_{k-1} + e_{k-1}^2)$.  For the block-diagonal approximation with
 $p \times p$ diagonal blocks $\Lambda_{II}$, the same argument applies
 to $\widehat{S}_k = \Lambda^{-1/2} B^{(k)}_\rho \Lambda^{-1/2}$ with the
 block Schur bound $\|\widehat{S}_k\|_2 \leq \max_I \sum_J \|\widehat{S}_{k,IJ}\|_2$,
@@ -2057,25 +2169,27 @@ At $m = k$, the claim for row~$i$ is~\eqref{eq:row_equality}.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:cost}}]
-Each stored row holds $\lesssim \rho^d$ values and the level sizes
-decay geometrically, so the stored values total $\lesssim N\rho^d$.
-At level~$k$ the build solves $n_k$ patch systems: each holds
-$\lesssim \rho^{2d}$ entries, one CG iteration costs that many
-operations, and the iteration count is at most
-$\tfrac12 (1+\beta) C_B H^{-1} \ln(2/\tau)$
-(Corollary~\ref{thm:localized_block_conditioning} with the submatrix
-argument of Subsection~\ref{sec:consequences:build}).  The coarsening product
-computes row~$i$ of $A^{(k)}$ in $\lesssim \rho^{2d}$ operations:
-the intermediate $R^{(k)}_{\rho,i,\cdot} A^{(k+1)}$ combines
-$\lesssim \rho^d$ rows of width $\lesssim \rho^d$, and each of
-the $\lesssim \rho^d$ output entries is one product with a factor
-row.  Summing $n_k(1+\beta)\rho^{2d}$ over the levels, with
-$n_k \simeq N H^{d(q-k)}$, gives the build count; the batch holds $m$
-systems of $\lesssim \rho^{2d}$ entries, and one transient
-coarsened operator of $\lesssim N H^d \rho^d$ values exists at a
-time.  One application is two factor products at $\lesssim N\rho^d$
-operations and block CG with the same iteration bound on
-$\lesssim N\rho^d$ total nonzeros.
+Each row of $R^{(k)}$ holds $\lesssim r_k^d$ values (the box of radius
+$r_k + c_\star$), each row of $B^{(k+1)}_\rho$ holds
+$\lesssim r_k^d$ values (Proposition~\ref{prop:stencil_width}), and the
+level sizes decay geometrically, so the stored values total
+$\lesssim N\rho^d$; a diagonal holds one $p \times p$ block per detail
+degree of freedom.  At level~$k$ the build solves $n_k$ patch systems:
+each holds $\lesssim r_k^{2d}$ entries, one CG iteration costs that
+many operations, and the iteration count is at most $\iota_k$
+by~\eqref{eq:patch_iters}.  The coarsening product computes row~$i$ of
+$A^{(k)}$ in $\lesssim r_k^{2d}$ operations: the intermediate
+$R^{(k)}_{i,\cdot} A^{(k+1)}$ combines $\lesssim r_k^d$ rows of width
+$\lesssim r_k^d$, and each of the $\lesssim r_k^d$ output entries is one
+product with a factor row.  Summing over the levels with
+$n_k \simeq N H^{d(q-k)}$ gives~\eqref{eq:build_cost}; the batch holds
+$m$ systems of $\lesssim \rho^{2d}$ entries, and one transient
+coarsened operator of $\lesssim N H^d \rho^d$ values exists at a time.
+One application is two factor products at $\lesssim N\rho^d$
+operations, and per detail level either a CG solve on
+$\lesssim n_{k+1} r_k^d$ nonzeros with the iteration bound of
+Corollary~\ref{thm:localized_block_conditioning} at the tolerance
+$\tau_{\mathrm{apply}}$, or one block-diagonal scaling.
 \end{proof}
 
 
