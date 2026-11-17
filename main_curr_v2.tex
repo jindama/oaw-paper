@@ -76,132 +76,134 @@ and elasticity problems with over a million unknowns on a single GPU.
 
 \section{Introduction}
 \label{sec:intro}
+% CLAIMS:
+% 1. Conforming FE discretizations of elliptic problems with L^infty
+%    coefficients give SPD systems; CG needs a preconditioner; multigrid
+%    coarse spaces are sparse heuristics tuned per problem.
+% 2. The OAW factorization is a sparse approximate inverse with an accuracy
+%    bound for L^infty coefficients.
+% 3. As a direct solver its setup tracks the target accuracy, and a new
+%    accuracy or operator requires a new setup.
+% 4. We prove a conditioning bound for the hierarchy as built; it justifies
+%    the preconditioner and removes the target accuracy from the setup.
+%    We give a construction; we measure it in 3D against multigrid.
+% 5. The technical ingredients; the roadmap.
 
-
-
-
-
-
-
-
-We consider elliptic variational problems of the form
+We consider elliptic variational problems
 \begin{equation}\label{eq:general_problem}
   u\in\mathcal V,\qquad
   a(u,v)=f(v)\quad\text{for all }v\in\mathcal V,
 \end{equation}
-where $\mathcal{V} \subseteq H^s(\Omega)$ a Sobolev space, $\Omega$ is a bounded piecewise-Lipschitz domain, $a$ is a bounded, symmetric, coercive, and local bilinear form, and boundary conditions are incorporated into the choice of trial space and load functional $\ell$. This setting includes, for example, diffusion--reaction and linear elasticity problems. A conforming finite-element discretization yields a symmetric positive definite system
+where $\mathcal V \subseteq H^s(\Omega)$ is a Sobolev space on a bounded
+Lipschitz domain $\Omega \subset \mathbb{R}^d$, $a$ is a bounded,
+symmetric, coercive and local bilinear form with $L^\infty$
+coefficients, and the boundary conditions are incorporated in
+$\mathcal V$ and~$f$.  Diffusion and linear elasticity are examples.  A
+conforming finite-element discretization on a trial space
+$\mathcal V^{(q)} \subset \mathcal V$ of dimension~$N$ yields a symmetric
+positive definite (SPD) linear system
 \begin{equation}\label{eq:linear_system}
-Ku = g.
-\end{equation}
-over a finite-dimensional trial space $\mathcal{V}^{(q)} \subset\mathcal{V}$ of
-dimension~$N$,
-
-
-\iffalse
-We consider boundary-value problems of the form
-\begin{equation}\label{eq:general_problem}
-  \mathcal{L}\mathbf{u} \;=\; g,
-  \quad \mathcal{B}u = h,
-\end{equation}
-where $ \mathbf{u}\in \mathcal{V} \subseteq W^{s,2}_0(\Omega)$, a Sobolev space over a
-bounded Lipschitz domain $\Omega \subset \mathbb{R}^d$, $  \mathcal{L} : \mathcal{V} \to \mathcal{V}^{*}$ is a
-linear, bounded, symmetric, and coercive differential operator with coefficients in $L^{\infty}$, and $\mathcal{B}:\mathcal{V} \to \mathcal{V}$ is an operator specifying the appropriate boundary conditions. We further stipulate that the bilinear form
-$a(\mathbf{u},\mathbf{v}) := [\mathcal{L}\mathbf{u}, \mathbf{v}]$ be \emph{local}, in the sense of being induced by an
-integrable energy density on~$\Omega$. Our hypotheses ensure existence, uniqueness, and continuous dependence of the solution $\mathbf{u}$ on the data~\cite{ErnGuermond2004}, and are satisfied by many physically relevant problems, such as diffusion-reaction or elasticity. A conforming finite-element discretization of \eqref{eq:general_problem} solves the weak form,
-\begin{equation}\label{eq:weak_form}
-  a(u,v) \;=\; \ell_g(v)
-  \qquad \forall\, v \in \mathcal{V}^{(q)},
+  Ku = g .
 \end{equation}
 
-
-over a finite-dimensional trial space $\mathcal{V}^{(q)} \subset\mathcal{V}$ of
-dimension~$N$, where $\ell_g \in \mathcal{V}^{(q)*}$ encodes the right-hand side $g$ and boundary conditions $\mathcal{B}$. Choosing a finite-element basis for $\mathcal{V}^{(q)}$ yields a sparse symmetric positive definite (SPD) system
-\begin{equation}\label{eq:linear_system}
-Ku = g.
-\end{equation}
-
-
-Coercivity is inherited by the conforming subspace, so the discrete problem is well posed.
-\fi
-
-Solving this linear system is a fundamental task in computational physics and engineering. For small systems this may be done directly through dense factorizations, but such techniques become computationally infeasible as $N$ grows. Sparse direct factorizations (such as sparse LU or Cholesky) scale better for larger systems, but their cost in work and memory still grows superlinearly in~$N$~\cite{golub2013matrix}.%
+Sparse direct factorizations of~\eqref{eq:linear_system} cost work and
+memory superlinear in~$N$~\cite{golub2013matrix},%
 \footnote{TODO: cite nested-dissection complexity.}
-Because of this, iterative methods are often preferred at scale. For SPD systems the standard choice is the conjugate gradient method (CG), whose iteration count scales with $\sqrt{\kappa(K)}$, the condition number of~$K$~\cite{saad2003iterative}. On a quasi-uniform mesh, $\kappa(K)$ grows as $N^{2/d}$, with a prefactor depending on the coefficient contrast~\cite{ErnGuermond2004}, so the iteration count scales as $N^{1/d}$ and a preconditioner must typically be employed to make CG practical. Among the most widely used preconditioners for SPD linear systems with multiple length scales are the geometric and algebraic
-multigrid methods (GMG and AMG, respectively), whose nominal solve time and memory are near-linear in~$N$. As Brannick et al. observe, constructing or enforcing the hypotheses required to obtain this optimal rate is of at least quadratic complexity in~$N$, incompatible with the desired linear complexity~\cite{brannick2019role}. In particular, a basis for the optimal coarse space may be constructed by minimizing the $K$-energy of each basis function while imposing a set of interpolation constraints, but the minimizers are globally supported and the associated coarsening matrices are dense. Practice circumvents this tension with coarsening and smoothing heuristics, such as smoothed aggregation schemes\cite{saad2003iterative} or approximate energy-minimizing interpolation under imposed sparsity \cite{Wan1998EnergyMinimizing}.
+so large systems are solved iteratively, SPD systems by the conjugate
+gradient method (CG).  The iteration count of CG grows as
+$\sqrt{\kappa(K)}$~\cite{saad2003iterative}, and on a quasi-uniform mesh
+$\kappa(K)$ grows as $N^{2/d}$ with a prefactor that depends on the
+coefficient contrast~\cite{ErnGuermond2004}, so CG requires a
+preconditioner.  Geometric and algebraic multigrid (GMG, AMG) have solve
+time and memory near-linear in~$N$.  Brannick et al.\ observe that the
+coarse spaces giving the optimal multigrid rate are expensive to
+construct~\cite{brannick2019role}.  Their basis functions minimize the
+energy under interpolation constraints and are globally supported.
+% [VERIFY: the draft attributed "at least quadratic complexity" to
+% brannick2019role; restore it only if the paper states it.]
+Implementations use sparse heuristic coarse spaces instead, such as
+smoothed aggregation~\cite{saad2003iterative} or energy minimization
+under an imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}, with
+parameters tuned per problem, in particular for coefficients that vary
+over many length scales and orders of magnitude.
 
-As a result, obtaining good convergence on a given problem often requires extensive tuning and domain-specific knowledge, particularly when the coefficients are non-smooth and vary over a wide range of length scales. However, a hierarchy of bases for \emph{approximate} orthogonal coarse spaces may be constructed at near-linear cost via the operator-adapted wavelet (OAW) decomposition of Owhadi~\cite{owhadi2017,Owhadi_Scovel_2019}. Bases for these spaces are constructed recursively from the full trial space via the same energy-minimizing principle as above, yielding a basis in which the operator becomes block diagonal, with one uniformly well-conditioned block per length scale. The globally supported basis functions are provably well approximated by functions with prescribed support on compact \emph{patches} in $\Omega$, with an error decaying exponentially in the radius $\rho$ of the support patch. The result is an approximate factorization of $K^{-1}$ with sparse factors, quasi-linear complexity, and rigorous accuracy guarantees for general $L^\infty$ coefficients. 
-%[TODO: mention the LOD or Peterseim as similar constructions, other direct multilevel methods, typically used for homogenization]
-%[TODO: a figure would be helpful here]
+The operator-adapted wavelet (OAW) factorization of Owhadi and
+Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the same
+energy-minimizing principle level by level.  Its basis makes the
+operator block diagonal, with one uniformly well-conditioned block per
+length scale, and its basis functions decay exponentially away from
+their nodes.  Restricting them to patches of radius~$\rho$ gives an
+approximate factorization of $K^{-1}$ with sparse factors and an
+accuracy bound for $L^\infty$ coefficients.
 
-The error in the solution obtained from this direct factorization is bounded by the choice of localization. More precisely, with localization radius $\rho$, the preprocessing time and the stored hierarchy grow as $N\rho^{3d}$ and $N\rho^{d}$, respectively, up to constants independent of $N$ and $\rho$~\cite{owhadi2017}. Ensuring a prescribed relative energy-norm error tolerance $\varepsilon$ requires $\rho$ proportional to $\ln(N/\varepsilon)$, resulting in time $N\ln^{3d}(N/\varepsilon)$ and memory $N\ln^{d}(N/\varepsilon)$, and obtaining an approximate solution with the stored factorization costs $N\ln^{d+1}(N/\varepsilon)$, up to the same constants. Improving the accuracy of the solution or perturbing the operator $a$ therefore requires repeating the comparatively expensive preprocessing with larger $\rho$. This is particularly limiting for implicit time-stepping problems; Owhadi and Zhang~\cite{owhadi_tpde} note that for heterogeneous time-steps, a change of step size repeats the full preprocessing cost, while Chen et al.~\cite{chen2021} observe the accumulation of approximation errors over time-steps if one does not incorporate post-hoc correction techniques. Existing realizations also assemble and store large global objects: the fine-scale stiffness matrix, the change of basis from nodal to OAW coordinates, and sparse-direct factorizations of the diagonal blocks, all of which strain working memory and storage constraints if one attempts to scale the algorithm naively. These costs have confined published implementations to moderate problem sizes, despite the nominally near-linear cost of the OAW factorization.
-
+Used as a direct solver, the factorization must reach the target
+relative accuracy~$\varepsilon$ itself.  The radius then grows like
+$\ln(N/\varepsilon)$ and the inner solves track~$\varepsilon$, so the
+setup costs $N\ln^{2d+1}(N/\varepsilon)$ operations and stores
+$N\ln^{d}(N/\varepsilon)$ values~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+A higher accuracy or a change of the operator requires a new setup.  In
+implicit time stepping a change of step size repeats the
+setup~\cite{owhadi_tpde}, and reuse across steps accumulates
+error~\cite{chen2021}.  Existing implementations store the fine-scale
+stiffness matrix, the change of basis and factorizations of the diagonal
+blocks, and are confined to moderate problem sizes.
+% [VERIFY: the sizes reached by published OAW implementations, with
+% citations.]
+Owhadi~\cite{owhadi2017} notes that the hierarchy can serve as a
+preconditioner and does not analyze or implement this use.  Sik et
+al.~\cite{sik2025hfm} precondition a two-dimensional electromagnetic
+problem with a stored factorization whose diagonal blocks are factored by
+sparse LU, without analysis.
 % BP: related work beyond the OAW line (robust multigrid and domain
 %     decomposition for heterogeneous coefficients; hierarchical
-%     factorization lines) -- content TODO, single home per comparison.
+%     factorizations) -- content TODO.
 
-Many of these limitations are consequences of deploying the
-factorization as a direct approximate inverse.  Using the hierarchy as
-a preconditioner is noted as a possibility in~\cite{owhadi2017}, but
-this direction is neither analyzed nor implemented there.  A stored
-factorization with sparse-LU diagonal blocks was applied
-heuristically in~\cite{sik2025hfm} to precondition a two-dimensional
-electromagnetic model problem, without supporting analysis or an
-implementation scaling to larger problems in three dimensions.  This
-paper supplies the analysis and the implementation.  We prove a bound
-on the condition number of the preconditioned system for the hierarchy
-as the algorithm builds it, with recursive localization, inexact patch
-solves, any radii and any depth; read at a fixed configuration the
-bound is an explicit degradation formula with convergence guaranteed,
-and read asymptotically it shows that a radius proportional to $\ln N$
-bounds the condition number independently of $N$ while the construction
-does not depend on the tolerance.  We prove that replacing the
-detail-level solves of the apply phase by a fixed linear approximation,
-in particular by block-Jacobi (diagonal) scaling, multiplies the bound by
-a constant factor, and that one hierarchy preconditions a spectrally
-equivalent operator, in particular every step of a variable-step
-implicit integrator, at a factor equal to the ratio of the equivalence
-constants.  We give the construction and its storage: sparsity patterns
-computed from the mesh and stored as stencils without indices, factors
-built without column indices and narrowed after their last use,
-patch problems solved iteratively to a loose tolerance and once per
-translation class, and detail blocks that are never stored on
-levels treated by block-Jacobi scaling.  We measure cost, memory and
-iteration counts on three-dimensional diffusion and linear elasticity
-problems with more than $10^6$ degrees of freedom on a single GPU,
-their robustness across coefficient contrast, field structure and size,
-and their standing against algebraic multigrid baselines, which build
-and solve faster.
+We prove a bound on the condition number of the preconditioned system
+for the hierarchy that the algorithm computes, with recursive
+localization and inexact patch solves, at any radii, patch tolerances
+and depth (Theorem~\ref{prop:precond_conditioning}).  The bound
+justifies the use of the factorization as a preconditioner.  CG
+converges at a rate that the bound controls, and the iteration reaches
+the target accuracy, so the setup does not depend on it.  Radii proportional to
+$\ln N$ and patch tolerances decreasing as a power of~$N$ bound the
+condition number independently of~$N$ (Corollary~\ref{cor:asymptotic}).
+We prove that replacing the detail-level solves of the apply phase by
+block-Jacobi scaling multiplies the bound by a constant
+(Corollary~\ref{cor:apply_factor}), and that a hierarchy built for one
+operator preconditions a spectrally equivalent operator, such as the
+system of a different implicit time step, at the ratio of the
+equivalence constants (Theorem~\ref{thm:perturbed_system}).  We give a
+construction in which the sparsity patterns are computed from the mesh,
+no index arrays are stored, patch problems are solved iteratively and
+once per translation class of the coefficient field, and levels treated
+by block-Jacobi scaling store no detail block
+(Subsection~\ref{sec:implementation}).  We measure cost, memory and
+iteration counts for three-dimensional diffusion and linear elasticity
+with up to $2.7\times10^{6}$ unknowns on one GPU, and compare with
+algebraic multigrid, which builds and solves faster
+(Section~\ref{sec:experiments}).
 
-The analysis has three ingredients.  The computed basis matches its
-measurements exactly at every level, also when the patch systems are
-solved inexactly, and this makes the perturbation relating the computed
-change of basis to the exact one strictly block triangular, hence
-nilpotent, so that the condition number is bounded by a product over
-the levels of factors depending on the slot-wise norms of the
-perturbation.  Those norms are bounded by the per-level error recursion
-of Owhadi and Scovel \cite[Lemma~16.30]{Owhadi_Scovel_2019}, converted
-to relative units and extended by the error of the inexact patch
-solves.  An approximation of the block solves in the apply phase enters
-the preconditioner additively, so its effect is a constant factor at
-any depth, bounded through a Rayleigh-quotient comparison.
+The computed basis functions match their measurements for any solution
+of the patch problems, exact or inexact.  The perturbation relating the
+computed change of basis to the exact one is therefore strictly block
+lower triangular, hence nilpotent, and the condition number is bounded by
+a product over the levels of factors that depend on the slot-wise norms
+of the perturbation.  We bound these norms with the per-level error
+recursion of~\cite[Lemma~16.30]{Owhadi_Scovel_2019}, extended by the
+error of inexact patch solves.  An approximation of the block solves of
+the apply phase changes only the block-diagonal part of the
+preconditioner, so its effect is one constant factor at any depth.
 
-The remainder of the paper is structured as follows.
-Section~\ref{sec:background} fixes the notation, the exact construction
-and the recursive localized construction the algorithm computes.
-Section~\ref{sec:results} states the main results: the conditioning
-theorem and its corollaries in Subsection~\ref{sec:main_bounds}, and
-the construction with its storage in Subsection~\ref{sec:implementation}.
-Section~\ref{sec:preconditioner} contains the proofs.
-Section~\ref{sec:experiments} reports the experiments: scaling with the
-problem size, memory, the build tolerance and the detail policy,
-robustness, translation classes, multigrid baselines and time-dependent
-problems, on a single A100 GPU.  Section~\ref{sec:conclusions} states
-the limitations of the analysis and the open questions.  The OAW
-factorization is reviewed from first principles in
-Appendix~\ref{app:oaw}, the one-shot remark is proved in
-Appendix~\ref{app:oneshot}, and the stability conditions are restated
-in Appendix~\ref{app:stability}.
-
+Section~\ref{sec:background} defines the exact and the computed
+hierarchies.  Section~\ref{sec:results} states the conditioning results
+(Subsection~\ref{sec:main_bounds}) and the construction
+(Subsection~\ref{sec:implementation}), and
+Section~\ref{sec:preconditioner} proves them.
+Section~\ref{sec:experiments} reports the experiments and
+Section~\ref{sec:conclusions} the limitations and open questions.
+Appendix~\ref{app:oaw} reviews the OAW factorization,
+Appendix~\ref{app:oneshot} proves the one-shot remark, and
+Appendix~\ref{app:stability} restates the stability conditions.
 \section{Background}
 \label{sec:background}
 
