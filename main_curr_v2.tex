@@ -172,7 +172,7 @@ block-Jacobi scaling multiplies the bound by a constant
 (Corollary~\ref{cor:apply_factor}), and that a hierarchy built for one
 operator preconditions a spectrally equivalent operator, such as the
 system of a different implicit time step, at the ratio of the
-equivalence constants (Theorem~\ref{thm:perturbed_system}).  We give a
+equivalence constants (Proposition~\ref{thm:perturbed_system}).  We give a
 construction in which the sparsity patterns are computed from the mesh,
 no index arrays are stored, patch problems are solved iteratively and
 once per translation class of the coefficient field, and levels treated
@@ -1174,18 +1174,14 @@ Theorem~\ref{thm:row_equality} applies on the uniform subregions only.
 \section{Proofs of the Main Results}
 \label{sec:preconditioner}
 
-This section proves Theorem~\ref{prop:precond_conditioning} and its
-corollaries, Theorem~\ref{thm:perturbed_system}, and the construction
-results of Subsection~\ref{sec:implementation}.  The conditioning
-argument has two parts.  The structural part uses only the measurement
-matching~\eqref{eq:measurement_matching}: the computed change of basis
-is the exact one times a perturbation of the identity, and the
-perturbation is strictly block lower triangular in the slot partition,
-hence nilpotent.  The quantitative part bounds the slot-wise norms of
-the perturbation by the per-level error recursion of
-\cite[Lemma~16.30]{Owhadi_Scovel_2019}, extended by the error of the
-inexact patch solves.  The two parts combine into the two bounds of the
-theorem.
+% CLAIMS:
+% 1. Measurement matching makes the perturbation of the change of basis
+%    strictly block lower triangular and nilpotent.
+% 2. The slot norms are bounded through the per-level recursion of OS19
+%    Lemma 16.30, valid for computed children, plus the patch-solve error.
+% 3. These give both bounds of Theorem 3.1 and its corollaries; the
+%    construction results follow from grid geometry.
+This section proves the results of Section~\ref{sec:results}.
 
 Throughout this section, $\varphi_i$ denotes a member of the
 multiresolution basis~\eqref{eq:combined_basis}, $\varphi_{\rho,i}$ its
@@ -1207,53 +1203,18 @@ of~\eqref{eq:block_conditioning}.  Distances between nodes of a
 level~$k$ are measured in the pseudometric $d^{(k)}$.
 
 \subsection{Proof of the conditioning bounds}\label{sec:proof_conditioning}
-The condition number of the preconditioned operator is, by definition,
-the ratio of its extreme eigenvalues,
-\[
-  \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
-  \;:=\;
-  \frac{\lambda_{\max}\bigl(\widetilde{K}_\rho^{-1} K\bigr)}
-       {\lambda_{\min}\bigl(\widetilde{K}_\rho^{-1} K\bigr)} .
-\]
-Conjugating $\widetilde{K}_\rho^{-1} K$ by $\Phi_\rho^{-1}$ preserves the
-spectrum:
-\[
-  \Phi_\rho^{-1}\bigl(\widetilde{K}_\rho^{-1} K\bigr)\Phi_\rho
-  = \Phi_\rho^{-1}\bigl(\Phi_\rho \mathcal{B}_\rho^{-1}\Phi_\rho^\top K\bigr)\Phi_\rho
-  = \mathcal{B}_\rho^{-1} G_\rho .
-\]
-The product $\mathcal{B}_\rho^{-1} G_\rho$ is not symmetric, but conjugating by
-$\mathcal{B}_\rho^{1/2}$ preserves the spectrum and yields a symmetric matrix:
-\[
-  \mathcal{B}_\rho^{1/2}\bigl(\mathcal{B}_\rho^{-1} G_\rho\bigr)\mathcal{B}_\rho^{-1/2}
-  = \mathcal{B}_\rho^{-1/2}\, G_\rho\, \mathcal{B}_\rho^{-1/2}
-  \;=:\; S_\rho .
-\]
-The matrix $S_\rho$ is congruent to $G_\rho$ via $\mathcal{B}_\rho^{-1/2}$, and
-congruence preserves positive definiteness, so $S_\rho$ is symmetric
-positive definite.  The preconditioned operator, though not itself
-symmetric, therefore has the same spectrum as the SPD $S_{\rho}$.  In
-particular its eigenvalues are real and positive, and by the
-Rayleigh--Ritz theorem~\cite{golub2013matrix} its extreme eigenvalues
-are the extreme values of the Rayleigh quotient
-$u^\top S_\rho\, u / u^\top u$.  The change of variables
-$u := \mathcal{B}_\rho^{1/2} w$ is a bijection of nonzero vectors in
-$\mathbb{R}^N$, so the set of quotient values, and with it the extrema,
-is unchanged, and we write
-\[
-  \frac{u^\top S_\rho\, u}{u^\top u}
-  = \frac{w^\top G_\rho\, w}{w^\top \mathcal{B}_\rho\, w}
-  \;=:\; R(w).
-\]
-Therefore
+The matrix $\widetilde{K}_\rho^{-1} K$ is similar to
+$\mathcal{B}_\rho^{-1} G_\rho$ through $\Phi_\rho$, and hence to the SPD
+matrix $\mathcal{B}_\rho^{-1/2} G_\rho \mathcal{B}_\rho^{-1/2}$.  Its
+eigenvalues are therefore real and positive, and with
+$R(w) := w^\top G_\rho w / w^\top \mathcal{B}_\rho w$,
 \begin{equation}\label{eq:rayleigh}
   \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
   = \frac{\max_{w \neq 0} R(w)}{\min_{w \neq 0} R(w)} .
 \end{equation}
 
-Recall that $\mathcal{B}$ was defined as the block diagonal matrix of the exact
-transformed matrices, and define the norm
-$\|w\|_{\mathcal{B}}^2 := w^\top \mathcal{B}\, w$.  Since $\Phi^\top K \Phi = \mathcal{B}$,
+Define $\|w\|_{\mathcal{B}}^2 := w^\top \mathcal{B}\, w$.
+By~\eqref{eq:block_diagonal},
 \begin{equation}\label{eq:isometry}
   \|\Phi w\|_K = \|w\|_{\mathcal{B}} \qquad \forall w \in \mathbb{R}^N .
 \end{equation}
@@ -1293,21 +1254,16 @@ $\|(I + F_\rho)\, v\|_{\mathcal{B}} / \|v\|_{\mathcal{B}}$ over $v \neq 0$, and
     \frac{\|F_\rho\, \hat{w}_k\|_{\mathcal{B}}}{\|\hat{w}_k\|_{\mathcal{B}}},
   \qquad 1 \leq k \leq q,
 \end{equation}
-for the slot-wise norms of the perturbation.  Bounds on the condition
-number follow from bounds on $\sigma_+$ and $\sigma_-$ and from a
-comparison of $w^\top \mathcal{B}_\rho\, w$ with $\|w\|_{\mathcal{B}}^2$.
+for the slot-wise norms of the perturbation.
 
 \paragraph{Structure.}
-The measurement matching~\eqref{eq:measurement_matching} states that
-every computed function lies in the feasible set of the exact problem
-it approximates,
+By~\eqref{eq:measurement_matching}, for all radii and every $Z^{(k)}$,
 \begin{equation}\label{eq:own_level_data}
   \psi^{(k)}_{\rho,i} \in \mathcal{A}^{(k)}_{i},
   \qquad 1 \leq i \leq n_k,\ 1 \leq k \leq q .
 \end{equation}
-This holds for every choice of the radii and every $Z^{(k)}$
-in~\eqref{eq:R_structure}, and it is the only property of the computed
-basis used in the three lemmas that follow.
+Lemmas~\ref{lem:domination}--\ref{lem:nilpotent} use no other property
+of the computed basis.
 
 \begin{lemma}[Block domination]\label{lem:domination}
 For every level $k$ and every coefficient vector~$c$,
@@ -1400,24 +1356,10 @@ vector $g$, zero in slots $1$ through~$k$, with $\Phi g = \delta$, and
 invertibility of $\Phi$ forces $f = g$.  Hence the slot-$k$ columns of
 $F_\rho$ vanish in slots $1$ through~$k$.
 
-For~\eqref{eq:nilpotency}, let $U_k \subset \mathbb{R}^N$ denote the
-span of the coordinate vectors of slots $k, \ldots, q$, so that
-$\mathbb{R}^N = U_1 \supset U_2 \supset \cdots \supset U_{q+1} = \{0\}$.
-A vector supported in slot~$t$ is mapped by $F_\rho$ to a combination of
-its slot-$t$ columns, each supported in slots $t+1$ through~$q$; a
-vector in $U_k$ is a sum of slot components with $t \geq k$, each mapped
-into $U_{t+1} \subseteq U_{k+1}$.  Hence $F_\rho(U_k) \subseteq U_{k+1}$,
-and $q$ applications send $U_1$ to $U_{q+1} = \{0\}$.  Write
-$T := \sum_{j=0}^{q-1} (-F_\rho)^j$.  Then
-\[
-  (I + F_\rho)\, T
-  = \sum_{j=0}^{q-1} (-F_\rho)^j - \sum_{j=1}^{q} (-F_\rho)^j
-  = I - (-F_\rho)^{q}
-  = I ,
-\]
-since $F_\rho^{\,q} = 0$, and the same computation gives
-$T\,(I + F_\rho) = I$.  Hence $I + F_\rho$ is invertible with
-inverse~$T$, which is~\eqref{eq:nilpotency}.
+For~\eqref{eq:nilpotency}, let $U_k \subset \mathbb{R}^N$ be the span
+of the coordinate vectors of slots $k, \ldots, q$.  The block structure
+gives $F_\rho(U_k) \subseteq U_{k+1}$, so $F_\rho^{\,q} = 0$, and the
+Neumann series of $(I+F_\rho)^{-1}$ terminates after $q$ terms.
 \end{proof}
 
 \paragraph{Errors.}
@@ -1584,7 +1526,7 @@ $\kappa_2(U) := \|U\|_2 \|U^{-1}\|_2$.  For $1 \leq k < q$ let $U_k$
 agree with the identity except in block column~$k$, where it agrees
 with~$U$.  For $i < j$, $(U_i - I)(U_j - I) = 0$, because the only
 nonzero block column of $U_j - I$ is column~$j$, and its block row~$i$
-vanishes since $U - I$ is strictly block lower triangular; expanding
+vanishes since $U - I$ is block lower triangular; expanding
 the product therefore gives $U_1 U_2 \cdots U_{q-1} = I + \sum_k (U_k - I)
 = U$.  Writing $J_k := (I + L_k^\top L_k)^{-1/2}$, the action of $U_k$
 on the slots $k$ and $> k$ is the block matrix
@@ -1609,9 +1551,7 @@ is increasing.
 The contraction factor $2((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1))^m$ is at
 most $2 e^{-2m/\sqrt{\kappa}}$, which is below $\varepsilon$ once
 $m \geq \tfrac12 \sqrt{\kappa}\, \ln(2/\varepsilon)$;
-substitute~\eqref{eq:kappa_arsinh} and~\eqref{eq:kappa_bound}.  One
-application of~\eqref{eq:preconditioner} with exact block solves costs
-$\lesssim N\rho^d$ operations by Proposition~\ref{prop:cost}.
+substitute~\eqref{eq:kappa_arsinh} and~\eqref{eq:kappa_bound}.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\textup{\ref{thm:localized_block_conditioning}}]
@@ -1824,7 +1764,7 @@ and the error term by $p\, \|B^{(k)}_\rho\|_2 / \lambda_{\min}(B^{(k)})
  \leq p (1 + X_k^2) C_B^2 H^{-2}$.
 \end{proof}
 
-\begin{proof}[Proof of Theorem~\textup{\ref{thm:perturbed_system}}]
+\begin{proof}[Proof of Proposition~\textup{\ref{thm:perturbed_system}}]
 $M_0 K_1$ is similar to $M_0^{1/2} K_1 M_0^{1/2}$, which is symmetric
 positive definite, so its spectrum is real and positive and its extreme
 eigenvalues are the extreme values of
@@ -1866,10 +1806,8 @@ conditions hold with $r_k \simeq \alpha \ln(2\alpha\omega)\, q$ and
 $\ln(1/\tau_k) \simeq q$ since $q \leq C_q \ln N$ and the additive terms
 are of lower order.
 
-For the costs, each patch holds at most $C_{\mathrm{nb}}^2 r_k^d$ indices
-\cite[Cond.~16.22, items 3 and 4]{Owhadi_Scovel_2019}, so a patch system
-has $\lesssim r^{2d}$ entries and one CG iteration costs that many
-operations.  To reach~\eqref{eq:tau_def}: the patch minimizer is
+For the costs we use Proposition~\ref{prop:cost} and bound the CG
+iteration count of a patch solve.  The patch minimizer is
 $\psi^{(k),\ast}_{\rho,i} = \psi_{0,i} + \zeta_i$ with
 $\psi_{0,i} := \sum_j C^{(k)\dagger}_{ij} \psi^{(k+1)}_{\rho,j}$ and
 $\zeta_i$ the correction in the detail coordinates~\eqref{eq:R_structure},
@@ -1890,16 +1828,9 @@ $1 = \mu^{(k)}_i(\psi^{(k)}_i)$, and the dual-norm bound of
 $\|\psi_{0,i}\|_a \leq \max_i \sum_j |C^{(k)\dagger}_{ij}|\,
  (C_A^{1/2} H^{-(k+1)} + \epsilon_{k+1})$ with
 $\epsilon_{k+1} \leq X_{k+1}/(C_1 H^k) \leq H^{-k}/C_1$.  So each patch
-takes $\lesssim \ln(1/\tau_k) + k \lesssim \ln N$ CG iterations, and the
-patch solves of level~$k$ cost $\lesssim n_k r^{2d} \ln N$.  The
-coarsening product $R^{(k)} A^{(k+1)}_\rho R^{(k)\top}$ costs
-$\lesssim n_k r^{2d}$: a row of $R^{(k)}$ has $\lesssim r^d$ entries, a
-row of $A^{(k+1)}_\rho$ has $\lesssim r^d$ entries by
-Lemma~\ref{lem:support}, and each of the $\lesssim r^d$ output entries of a
-row is one product with a factor row.  Summing over the levels with
-$n_k \lesssim N H^{d(q-k)}$ gives the build cost; the stored factors
-and blocks hold $\lesssim r^d$ values per row, hence
-$\lesssim N r^d$ in total.  For the solve, take $s$ Chebyshev steps per
+takes $\lesssim \ln(1/\tau_k) + k \lesssim \ln N$ CG iterations, and
+\eqref{eq:build_cost} with $\iota_k \lesssim \ln N$ gives the build
+cost and the storage.  For the solve, take $s$ Chebyshev steps per
 block with $\kappa_B := 2 C_B^2 H^{-2}$ in
 Corollary~\ref{cor:apply_factor}(ii); $s$ depending only on $C_B$ and
 $H$ gives $\delta_s \leq \tfrac13$, $\Gamma \leq 2$ and
@@ -1912,6 +1843,7 @@ gives the displayed costs.
 
 \subsection{Proofs of the Construction Results}
 \label{sec:construction}
+% CLAIMS: stencil width; dependency region; row equality; cost.
 
 The setting is that of Subsection~\ref{sec:implementation}. For first-order elements the nesting and detail maps are
 selection matrices, i.e. the level-$k$ nodes are the level-$(k{+}1)$ nodes
@@ -1920,11 +1852,11 @@ $C^{(k)}_{ij} = \delta_{j,\pi(i)}$ with
 $\pi(i) = x^{(k)}_i/H$, and $D^{(k)}$ selects the remaining nodes.
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:stencil_width}}]
-Row~$i$ of $R^{(k)}_\rho$ consists of the patch solution, supported in
-$S^{(k)}_i$, and the row of the right inverse $C^{(k)\dagger}$, a
+Row~$i$ of $R^{(k)}$ consists of the patch solution, supported in
+$\mathcal{P}^{(k)}_i$, and the row of the right inverse $C^{(k)\dagger}$, a
 selection row (Subsection~\ref{sec:consequences:patterns}), so it is supported within
 distance $\rho + c_\star$ of node~$i$ at level~$k$.  An entry
-$A^{(k)}_{ij} = (R^{(k)}_\rho A^{(k+1)} R^{(k)\top}_\rho)_{ij}$ requires
+$A^{(k)}_{ij} = (R^{(k)} A^{(k+1)} R^{(k)\top})_{ij}$ requires
 a level-$(k{+}1)$ entry coupling the two patches, so it vanishes unless
 $\operatorname{dist}(i,j) \leq 2\rho + w_{k+1} H + c_\star$,
 where $w_{k+1}$ is the level-$(k{+}1)$ stencil width and the factor~$H$
@@ -1937,7 +1869,7 @@ maps having support width $\lesssim 1$.
 \end{proof}
 
 \begin{lemma}[Dependency region]\label{lem:dependency}
-Row~$i$ of $R^{(k)}_\rho$ and the corresponding rows of $B^{(k+1)}_\rho$,
+Row~$i$ of $R^{(k)}$ and the corresponding rows of $B^{(k+1)}_\rho$,
 as computed by Algorithm~\ref{alg:impl_build}, are functions of the
 coefficient field on the max-norm ball of radius
 $C_H\, \rho h_k + c_\star h_k$ about $x^{(k)}_i$, where
@@ -1948,7 +1880,7 @@ $C_H := (1+H)/(1-H)^2$.
 The patch system of row~$i$ reads entries of $A^{(k+1)}$ and
 $B^{(k+1)}_\rho$ at nodes within $\rho h_k + c_\star h_{k+1}$ of
 $x^{(k)}_i$.  An entry of $A^{(m)}$ or $B^{(m)}_\rho$ reads the rows of
-$R^{(m)}_\rho$ at its two index nodes, which lie within the stencil
+$R^{(m)}$ at its two index nodes, which lie within the stencil
 width $2\rho h_m/(1-H) + c_\star h_m$ of each other
 (Proposition~\ref{prop:stencil_width}), and entries of $A^{(m+1)}$
 within the row supports; at the finest level the entries are quadrature
@@ -1960,14 +1892,15 @@ $C_H\,\rho h_k + c_\star h_k$.
 
 \begin{proof}[Proof of Theorem~\textup{\ref{thm:row_equality}}]
 The patches are translation-covariant away from the boundary
-($S^{(k)}_{i'} = S^{(k)}_i + t$ when $x^{(k)}_{i'} = x^{(k)}_i + t$ and
-neither patch meets $\partial\Omega$), the functional at a translated
+($\mathcal{P}^{(k)}_{i'} = T_t\mathcal{P}^{(k)}_i$ when
+$x^{(k)}_{i'} = x^{(k)}_i + t$ and neither dependency ball meets
+$\partial\Omega$), the functional at a translated
 node is the functional at the node composed with the shift by~$t$, and
 the selections are equivariant.
 Since the levels are nested, $t \in h_k\mathbb{Z}^d$ lies in the lattice
 of every level $m \geq k$, so $T_t$ maps each finer grid to itself.  For
 $k \leq m \leq q$, consider the claim: every entry of $A^{(m)}$ and of
-$B^{(m)}_\rho$, and every row of $R^{(m)}_\rho$, read by the computation
+$B^{(m)}_\rho$, and every row of $R^{(m)}$, read by the computation
 of row~$i$ satisfies the identity
 $X_{T_t a,\,T_t b} = X_{a b}$, respectively \eqref{eq:row_equality} at
 level~$m$.  By Lemma~\ref{lem:dependency}, every node these objects
@@ -1980,12 +1913,11 @@ field gives $A^{(q)}_{T_t a,\,T_t b} = A^{(q)}_{a b}$.
 For the step from $m{+}1$ to $m$, let the claim hold at level $m{+}1$,
 and let $a$ be a level-$m$ node read by the computation.  The patch
 systems of rows $a$ and $T_t a$ are images of one another under $T_t$:
-the patches satisfy $S^{(m)}_{T_t a} = S^{(m)}_a + t$, the selections
+the patches satisfy $\mathcal{P}^{(m)}_{T_t a} = T_t\mathcal{P}^{(m)}_a$, the selections
 $C^{(m)\dagger}$ and $D^{(m)}$ select translated nodes at translated
 positions, and the matrix and
-right-hand-side entries correspond by the claim at level $m{+}1$.  A symmetric positive
-definite system has a unique solution, so the solutions correspond
-under~$T_t$, and the assembled rows satisfy~\eqref{eq:row_equality} at
+right-hand-side entries correspond by the claim at level $m{+}1$.  CG from a zero initial guess commutes with the permutation $T_t$,
+so the computed solutions correspond under~$T_t$, and the assembled rows satisfy~\eqref{eq:row_equality} at
 level~$m$.  The entries of $A^{(m)}$ and $B^{(m)}_\rho$ are sums of
 products of corresponding entries, so they satisfy the identity, and
 equal values threshold equally.
@@ -2427,7 +2359,7 @@ identity class map.}
 \subsection{Time-dependent problems}
 \label{sec:exp:timestep}
 
-Theorem~\ref{thm:perturbed_system} licenses one hierarchy for every step
+Proposition~\ref{thm:perturbed_system} licenses one hierarchy for every step
 of a variable-step scheme.  Figure~\ref{fig:timestep} reports the outer
 iterations per linear solve for the parabolic problem
 $M\dot{u} + Ku = f$ on the channelized field, with the hierarchy built
@@ -2436,7 +2368,7 @@ while the step coefficient $\Delta t$ varies over four orders of magnitude,
 at $N = 274{,}625$ and $N = 912{,}673$.  At $\Delta t = \Delta t_0$ the counts are
 $19$ and $28$; at $\Delta t/\Delta t_0 = 100$ they are $58$ and $83$, and at
 $\Delta t/\Delta t_0 = 10^{-2}$ they are $135$ and $181$.  The bound of
-Theorem~\ref{thm:perturbed_system} multiplies the condition number by at
+Proposition~\ref{thm:perturbed_system} multiplies the condition number by at
 most $\max\{\Delta t/\Delta t_0, \Delta t_0/\Delta t\}$, hence the iteration bound by at
 most its square root, $10$ at both ends of the range; the measured
 ratios are $3.1$ and $3.0$ at $\Delta t/\Delta t_0 = 100$ and $7.1$ and $6.5$ at
