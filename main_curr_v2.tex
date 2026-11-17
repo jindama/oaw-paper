@@ -87,7 +87,7 @@ and elasticity problems with over a million unknowns on a single GPU.
 We consider elliptic variational problems of the form
 \begin{equation}\label{eq:general_problem}
   u\in\mathcal V,\qquad
-  a(u,v)=\ell(v)\quad\text{for all }v\in\mathcal V,
+  a(u,v)=f(v)\quad\text{for all }v\in\mathcal V,
 \end{equation}
 where $\mathcal{V} \subseteq H^s(\Omega)$ a Sobolev space, $\Omega$ is a bounded piecewise-Lipschitz domain, $a$ is a bounded, symmetric, coercive, and local bilinear form, and boundary conditions are incorporated into the choice of trial space and load functional $\ell$. This setting includes, for example, diffusion--reaction and linear elasticity problems. A conforming finite-element discretization yields a symmetric positive definite system
 \begin{equation}\label{eq:linear_system}
@@ -297,7 +297,7 @@ The components of the stiffness matrix of~$a$ in this basis are
 $G_{ij} = a(\varphi_i, \varphi_j)$, i.e. $G = \Phi^\top K \Phi$. By $a$-orthogonality of the summands in~\eqref{eq:scale_decomposition},
 $G$ is \emph{block diagonal}:
 \begin{equation}\label{eq:block_diagonal}
-  G = \operatorname{diag}\bigl(B^{(1)}, B^{(2)}, \ldots, B^{(q)}\bigr) := D,
+  G = \operatorname{diag}\bigl(B^{(1)}, B^{(2)}, \ldots, B^{(q)}\bigr) =: \mathcal{B},
 \end{equation}
 with $B^{(1)}_{ij} = a(\psi^{(1)}_i, \psi^{(1)}_j)$ and
 $B^{(k)}_{ij} = a(\chi^{(k-1)}_i, \chi^{(k-1)}_j)$ for $k \geq 2$.  The
@@ -495,21 +495,21 @@ Inverting the congruence gives
 \end{equation}
 Unlike~$G$, $G_\rho$ is not block diagonal; we write
 \begin{equation}\label{eq:gram_split}
-  G_\rho \;=\; D_\rho + E_\rho,
+  G_\rho \;=\; \mathcal{B}_\rho + E_\rho,
 \end{equation}
-where $D_\rho = \operatorname{diag}\{B^{(k)}_{\rho}\}_{k=1}^{q}$ is the
+where $\mathcal{B}_\rho = \operatorname{diag}\{B^{(k)}_{\rho}\}_{k=1}^{q}$ is the
 block-diagonal part, with
 $B^{(1)}_{\rho,ij} = a(\psi^{(1)}_{\rho,i}, \psi^{(1)}_{\rho,j})$ and
 $B^{(k)}_{\rho,ij} = a(\chi^{(k-1)}_{\rho,i}, \chi^{(k-1)}_{\rho,j})$
-for $k \geq 2$, and $E_\rho := G_\rho - D_\rho$ consists of the blocks
+for $k \geq 2$, and $E_\rho := G_\rho - \mathcal{B}_\rho$ consists of the blocks
 coupling different levels.  $G_\rho$ is SPD by congruence to~$K$, and
-each $B^{(k)}_\rho$ is a principal submatrix of~$G_\rho$, so $D_\rho$ is
+each $B^{(k)}_\rho$ is a principal submatrix of~$G_\rho$, so $\mathcal{B}_\rho$ is
 SPD.  The level-$k$ patch systems of~\eqref{eq:R_structure} are principal
 submatrices of $B^{(k+1)}_\rho$.  The couplings $E_{\rho}$ are not
 constructed, and the inverse is approximated as
 \begin{equation}\label{eq:preconditioner}
   \widetilde{K}_{\rho}^{-1}
-  \;=\; \Phi_{\rho}\,D_{\rho}^{-1}\,\Phi_{\rho}^{\top}.
+  \;=\; \Phi_{\rho}\,\mathcal{B}_{\rho}^{-1}\,\Phi_{\rho}^{\top}.
 \end{equation}
 Constructing these factors requires time and working memory
 $\lesssim N\rho^{\alpha d}$, where $\alpha \in (1, 3)$ depends on the
@@ -596,7 +596,7 @@ where $X_q := 0$ and, for $k = q-1, \ldots, 1$,
 \end{equation}
 Here $\alpha \geq 1$ and $\omega \geq 1$ are the constants of
 \cite[Lemma~16.30]{Owhadi_Scovel_2019} (denoted $\alpha$ and $\beta$
-there), which depend only on the constants $C_\varphi$, $H$, $\kappa$,
+there), which depend only on the constants $C_\varphi$, $H$, $C_{\mathrm{nb}}$,
 $\gamma$ and $d$ of the conditions in Appendix~\ref{app:stability},
 and $C_1$, $C_2$ depend only on $C_\varphi$, $H$ and~$d$; none depends
 on $N$, the radii, the tolerances or the depth.
@@ -815,30 +815,30 @@ $(B^{(k)}_\rho)^{-1}$ replaced by~$S_k$.  Then $\widehat{M}$ is
 symmetric positive definite and
 \begin{equation}\label{eq:apply_factor}
   \kappa\bigl(\widehat{M} K\bigr)
-  \;\leq\; F\, \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr),
+  \;\leq\; \Gamma\, \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr),
   \qquad
-  F := \frac{\max_k \lambda_{\max}\bigl(S_k B^{(k)}_\rho\bigr)}
+  \Gamma := \frac{\max_k \lambda_{\max}\bigl(S_k B^{(k)}_\rho\bigr)}
             {\min_k \lambda_{\min}\bigl(S_k B^{(k)}_\rho\bigr)} .
 \end{equation}
 In particular:
 \begin{enumerate}
   \item[(i)] exact block solves, $S_k = (B^{(k)}_\rho)^{-1}$, give
-    $F = 1$;
+    $\Gamma = 1$;
   \item[(ii)] $s$ steps of the Chebyshev iteration on an interval
     $[\lambda_-, \lambda_+]$ containing the spectrum of $B^{(k)}_\rho$,
     with $\kappa_B := \lambda_+/\lambda_-$, give
-    $F \leq (1+\delta_s)/(1-\delta_s)$ with
+    $\Gamma \leq (1+\delta_s)/(1-\delta_s)$ with
     $\delta_s := 2\bigl((\sqrt{\kappa_B}-1)/(\sqrt{\kappa_B}+1)\bigr)^{s}$,
     whenever $\delta_s < 1$;
   \item[(iii)] \emph{Jacobi scaling of the detail levels},
-    $S_k = \omega \operatorname{diag}(B^{(k)}_\rho)^{-1}$ with a weight
-    $\omega > 0$, which replaces the solve $B^{(k)}_\rho c = w$ by
-    $c_i = \omega\, (B^{(k)}_\rho)_{ii}^{-1} w_i$, gives, with
+    $S_k = \xi \operatorname{diag}(B^{(k)}_\rho)^{-1}$ with a weight
+    $\xi > 0$, which replaces the solve $B^{(k)}_\rho c = w$ by
+    $c_i = \xi\, (B^{(k)}_\rho)_{ii}^{-1} w_i$, gives, with
     $\widehat{S}_k := \operatorname{diag}(B^{(k)}_\rho)^{-1/2}
     B^{(k)}_\rho \operatorname{diag}(B^{(k)}_\rho)^{-1/2}$ and for every
-    $\omega$,
+    $\xi$,
     \begin{equation}\label{eq:jacobi_factor}
-      F \;\leq\; \max_k \lambda_{\max}\bigl(\widehat{S}_k\bigr)\,
+      \Gamma \;\leq\; \max_k \lambda_{\max}\bigl(\widehat{S}_k\bigr)\,
         \max_k \kappa\bigl(B^{(k)}_\rho\bigr)
       \;\leq\; \Bigl[ C_{\mathrm{dec}} + m_k\bigl(2 e_{k-1} + e_{k-1}^2\bigr) \Bigr]
         \bigl(1 + X^2\bigr) C_B^2 H^{-2},
@@ -852,14 +852,14 @@ In particular:
 \end{enumerate}
 For vector-valued problems with $p$ components per node, the
 block-Jacobi scaling with the nodal $p \times p$ diagonal blocks,
-$c_I = \omega\, (B^{(k)}_\rho)_{II}^{-1} w_I$, satisfies
+$c_I = \xi\, (B^{(k)}_\rho)_{II}^{-1} w_I$, satisfies
 \eqref{eq:jacobi_factor} with $C_{\mathrm{dec}}$ replaced by
 $p\,C_{\mathrm{dec}}$ and the error term multiplied by
 $p\,(1 + X_k^2)\, C_B^2 H^{-2}$.
 \end{corollary}
 
-The factor~$F$ does not compound with the depth: the detail levels enter
-the preconditioner additively through the block-diagonal $D_\rho^{-1}$,
+The factor~$\Gamma$ does not compound with the depth: the detail levels enter
+the preconditioner additively through the block-diagonal $\mathcal{B}_\rho^{-1}$,
 so an approximation made in the apply multiplies the bound once,
 whereas an inexact patch solve in the build enters the next level's
 problem and propagates through the recursion~\eqref{eq:X_recursion}.
@@ -870,8 +870,8 @@ framework~\cite{xu1992iterative}, \eqref{eq:preconditioner} is an
 additive multilevel preconditioner, Corollary~\ref{cor:apply_factor}
 is the standard comparison for inexact subspace solvers, and (iii) is
 the diagonal-scaling level solve of the BPX preconditioner, here applied
-on the computed detail spaces. the weight $\omega$ scales both extreme eigenvalues of
-$S_k B^{(k)}_\rho$ and leaves $F$ unchanged.  The bound in (iii) has two
+on the computed detail spaces. the weight $\xi$ scales both extreme eigenvalues of
+$S_k B^{(k)}_\rho$ and leaves $\Gamma$ unchanged.  The bound in (iii) has two
 parts.  The support count $m_k$ is $\lesssim r^d$ for a common
 radius~$r$ (Lemma~\ref{lem:support}), so without the error term the
 factor would grow with the radius;
@@ -905,26 +905,26 @@ hierarchy of~$a_0$.  Then $M_0 K_1$ has real positive spectrum and
   \kappa\bigl(M_0 K_1\bigr)
   \;\leq\; \frac{c_2}{c_1}\, \kappa\bigl(M_0 K_0\bigr).
 \end{equation}
-For $A(\tau) = M + \tau K$ with $M$ symmetric positive definite and $K$
-symmetric positive semidefinite, and $M_0$ built for $A(\tau_0)$,
+For $A(\Delta t) = M + \Delta t K$ with $M$ symmetric positive definite and $K$
+symmetric positive semidefinite, and $M_0$ built for $A(\Delta t_0)$,
 \begin{equation}\label{eq:timestep_bound}
-  \kappa\bigl(M_0 A(\tau)\bigr)
-  \;\leq\; \max\Bigl\{ \frac{\tau}{\tau_0},\, \frac{\tau_0}{\tau} \Bigr\}\,
-    \kappa\bigl(M_0 A(\tau_0)\bigr),
-  \qquad \tau > 0 .
+  \kappa\bigl(M_0 A(\Delta t)\bigr)
+  \;\leq\; \max\Bigl\{ \frac{\Delta t}{\Delta t_0},\, \frac{\Delta t_0}{\Delta t} \Bigr\}\,
+    \kappa\bigl(M_0 A(\Delta t_0)\bigr),
+  \qquad \Delta t > 0 .
 \end{equation}
 \end{theorem}
 
 The proof is given in Subsection~\ref{sec:proof_conditioning}.  In the
 time-stepping instance, an implicit integrator for
-$M\dot{u} + Ku = f$ solves a system with $A(\tau)$ at every step,
-$\tau$ the effective step coefficient.  The form
-$a_{\tau_0}(u,v) = (u,v)_{L^2(\Omega)} + \tau_0\, a(u,v)$ is symmetric,
+$M\dot{u} + Ku = f$ solves a system with $A(\Delta t)$ at every step,
+$\Delta t$ the effective step coefficient.  The form
+$a_{\Delta t_0}(u,v) = (u,v)_{L^2(\Omega)} + \Delta t_0\, a(u,v)$ is symmetric,
 coercive and local, so the hierarchy built for it is within the class
 of Theorem~\ref{prop:precond_conditioning}, with constants set by
-$a_{\tau_0}$, and its blocks obey
+$a_{\Delta t_0}$, and its blocks obey
 Corollary~\ref{thm:localized_block_conditioning} whatever operator is
-being preconditioned.  A factor-of-two change in~$\tau$ increases the
+being preconditioned.  A factor-of-two change in~$\Delta t$ increases the
 iteration bound of Corollary~\ref{cor:iteration_count} by at most
 $\sqrt{2}$, and one build serves a range of steps.
 
@@ -1034,7 +1034,7 @@ per level; apply tolerance $\tau_{\mathrm{apply}}$\\[4pt]
     levels, for $1 \leq k \leq q-1$: if the policy is solve,
     $B^{(k+1)}_\rho\, c^{(k+1)} = w^{(k+1)}$ by CG to relative residual
     tolerance~$\tau_{\mathrm{apply}}$; if it is block-Jacobi,
-    $c^{(k+1)} \gets \omega \operatorname{diag}(B^{(k+1)}_\rho)^{-1} w^{(k+1)}$
+    $c^{(k+1)} \gets \xi \operatorname{diag}(B^{(k+1)}_\rho)^{-1} w^{(k+1)}$
     (the $p \times p$ diagonal blocks for vector-valued problems).
   \item[3.] Ascent: $t^{(1)} \gets c^{(1)}$; \textbf{for}
     $k = 1, \ldots, q-1$:
@@ -1190,14 +1190,14 @@ slot by~\eqref{eq:slot_map}, $\mathrm{slot}(i,j) = (y_1 - l_1)\, b_2 +
 
 \begin{definition}[Stencil matrix]\label{def:stencil_matrix}
 A \emph{stencil matrix} on a level grid is a tuple $(\sigma, c, V)$: a
-stencil map~$\sigma$, evaluated by the index
+stencil map~$\mathcal{S}$, evaluated by the index
 arithmetic~\eqref{eq:slot_map}; a class map~$c$ on the rows, and a value table~$V$ with one row per
 equivalence class.  It represents the matrix~$M$ with entries
 \begin{equation}\label{eq:stencil_entry}
   M_{ij} \;=\;
   \begin{cases}
     V_{c(i),\,\mathrm{slot}(x_{c(i)},\, y_j - t_i)},
-      & y_j - t_i \in \sigma(c(i)), \\[2pt]
+      & y_j - t_i \in \mathcal{S}(c(i)), \\[2pt]
     0, & \text{otherwise},
   \end{cases}
   \qquad t_i := x_i - x_{c(i)},
@@ -1207,7 +1207,7 @@ where $y_j$ is the node of column~$j$.
 
 The product $x \mapsto Mx$ is evaluated from the tuple,
 \begin{equation}\label{eq:stencil_matvec}
-  (Mx)_i \;=\; \sum_{y \,\in\, \sigma(i)}
+  (Mx)_i \;=\; \sum_{y \,\in\, \mathcal{S}(i)}
     V_{c(i),\,\mathrm{slot}(x_{c(i)},\, y - t_i)}\; x_{y},
 \end{equation}
 and the transpose product is the same sum with the roles of row and
@@ -1304,7 +1304,7 @@ before and after this change.
 The detail policy assigns to every detail level one of two treatments
 of its block in Algorithm~\ref{alg:impl_apply}: a CG solve to the
 tolerance $\tau_{\mathrm{apply}}$, or the block-Jacobi scaling
-$c_i = \omega (B^{(k+1)}_\rho)_{ii}^{-1} w_i$ of
+$c_i = \xi (B^{(k+1)}_\rho)_{ii}^{-1} w_i$ of
 Corollary~\ref{cor:apply_factor}(iii), which the corollary licenses at
 a constant factor in the condition number.  The policy also decides what the
 build stores.  On a level whose policy is solve, step~2 extracts the
@@ -1327,13 +1327,13 @@ coarsest detail levels and applies block-Jacobi scaling at the finest.
 In practice coarsened matrices are \emph{thresholded} (entry $A_{ij}$ is dropped when
 $|A_{ij}| \leq \theta \sqrt{A_{ii} A_{jj}}$, with $\theta$ typically on the order of single precision floating point), and the block and patch
 systems are solved iteratively to the tolerances $\tau_{\mathrm{build}}$ and $\tau_{\mathrm{apply}}$. Thresholding is an additive symmetric
-perturbation~$\Delta$ with
-$|x^\top \Delta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$
+perturbation~$\Delta_\theta$ with
+$|x^\top \Delta_\theta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$
 for $s \lesssim \rho^d$ nonzeros per row, hence
-$\|\Delta\|_2 \leq \theta s\, \lambda_{\max}(A)$.  By Weyl's theorem each eigenvalue moves by at most $\|\Delta\|_2$, so whenever
-$\varepsilon := \theta s\, \kappa\bigl(B^{(k)}_\rho\bigr) < 1$, the thresholded blocks remain positive definite and the bounds of
+$\|\Delta_\theta\|_2 \leq \theta s\, \lambda_{\max}(A)$.  By Weyl's theorem each eigenvalue moves by at most $\|\Delta_\theta\|_2$, so whenever
+$\theta' := \theta s\, \kappa\bigl(B^{(k)}_\rho\bigr) < 1$, the thresholded blocks remain positive definite and the bounds of
 Section~\ref{sec:main_bounds} hold with constants multiplied by
-$(1+\varepsilon)/(1-\varepsilon)$, uniformly in $k$ by
+$(1+\theta')/(1-\theta')$, uniformly in $k$ by
 Corollary~\ref{thm:localized_block_conditioning}; Theorem~\ref{prop:precond_conditioning} is stated at $\theta = 0$, and this remark covers $\theta > 0$. The perturbation due to solving the block systems of the apply by CG to a fixed tolerance is nonlinear, and its impact is not analyzed here. The effect of both perturbations on the outer iteration is measured empirically in Section~\ref{sec:experiments}.
 \end{remark}
 
@@ -1345,7 +1345,7 @@ Corollary~\ref{thm:localized_block_conditioning}; Theorem~\ref{prop:precond_cond
 %\[
 %  (1-\delta)\, B^{-1} \;\preceq\; q(B) \;\preceq\; (1+\delta)\, B^{-1}
 %\]
-%for every block $B$ of $D_\rho$ and some $\delta \in (0,1)$.  The
+%for every block $B$ of $\mathcal{B}_\rho$ and some $\delta \in (0,1)$.  The
 %applied preconditioner is then the symmetric positive definite matrix
 %$\widehat{M} = \Phi_\rho \operatorname{diag}\bigl(q(B^{(k)}_\rho)\bigr)
 %\Phi_\rho^\top$, and
@@ -1463,17 +1463,17 @@ Conjugating $\widetilde{K}_\rho^{-1} K$ by $\Phi_\rho^{-1}$ preserves the
 spectrum:
 \[
   \Phi_\rho^{-1}\bigl(\widetilde{K}_\rho^{-1} K\bigr)\Phi_\rho
-  = \Phi_\rho^{-1}\bigl(\Phi_\rho D_\rho^{-1}\Phi_\rho^\top K\bigr)\Phi_\rho
-  = D_\rho^{-1} G_\rho .
+  = \Phi_\rho^{-1}\bigl(\Phi_\rho \mathcal{B}_\rho^{-1}\Phi_\rho^\top K\bigr)\Phi_\rho
+  = \mathcal{B}_\rho^{-1} G_\rho .
 \]
-The product $D_\rho^{-1} G_\rho$ is not symmetric, but conjugating by
-$D_\rho^{1/2}$ preserves the spectrum and yields a symmetric matrix:
+The product $\mathcal{B}_\rho^{-1} G_\rho$ is not symmetric, but conjugating by
+$\mathcal{B}_\rho^{1/2}$ preserves the spectrum and yields a symmetric matrix:
 \[
-  D_\rho^{1/2}\bigl(D_\rho^{-1} G_\rho\bigr)D_\rho^{-1/2}
-  = D_\rho^{-1/2}\, G_\rho\, D_\rho^{-1/2}
+  \mathcal{B}_\rho^{1/2}\bigl(\mathcal{B}_\rho^{-1} G_\rho\bigr)\mathcal{B}_\rho^{-1/2}
+  = \mathcal{B}_\rho^{-1/2}\, G_\rho\, \mathcal{B}_\rho^{-1/2}
   \;=:\; S_\rho .
 \]
-The matrix $S_\rho$ is congruent to $G_\rho$ via $D_\rho^{-1/2}$, and
+The matrix $S_\rho$ is congruent to $G_\rho$ via $\mathcal{B}_\rho^{-1/2}$, and
 congruence preserves positive definiteness, so $S_\rho$ is symmetric
 positive definite.  The preconditioned operator, though not itself
 symmetric, therefore has the same spectrum as the SPD $S_{\rho}$.  In
@@ -1481,12 +1481,12 @@ particular its eigenvalues are real and positive, and by the
 Rayleigh--Ritz theorem~\cite{golub2013matrix} its extreme eigenvalues
 are the extreme values of the Rayleigh quotient
 $u^\top S_\rho\, u / u^\top u$.  The change of variables
-$u := D_\rho^{1/2} w$ is a bijection of nonzero vectors in
+$u := \mathcal{B}_\rho^{1/2} w$ is a bijection of nonzero vectors in
 $\mathbb{R}^N$, so the set of quotient values, and with it the extrema,
 is unchanged, and we write
 \[
   \frac{u^\top S_\rho\, u}{u^\top u}
-  = \frac{w^\top G_\rho\, w}{w^\top D_\rho\, w}
+  = \frac{w^\top G_\rho\, w}{w^\top \mathcal{B}_\rho\, w}
   \;=:\; R(w).
 \]
 Therefore
@@ -1495,11 +1495,11 @@ Therefore
   = \frac{\max_{w \neq 0} R(w)}{\min_{w \neq 0} R(w)} .
 \end{equation}
 
-Recall that $D$ was defined as the block diagonal matrix of the exact
+Recall that $\mathcal{B}$ was defined as the block diagonal matrix of the exact
 transformed matrices, and define the norm
-$\|w\|_D^2 := w^\top D\, w$.  Since $\Phi^\top K \Phi = D$,
+$\|w\|_{\mathcal{B}}^2 := w^\top \mathcal{B}\, w$.  Since $\Phi^\top K \Phi = \mathcal{B}$,
 \begin{equation}\label{eq:isometry}
-  \|\Phi w\|_K = \|w\|_D \qquad \forall w \in \mathbb{R}^N .
+  \|\Phi w\|_K = \|w\|_{\mathcal{B}} \qquad \forall w \in \mathbb{R}^N .
 \end{equation}
 Because $\Phi$ is invertible, $\Phi_\rho$ may be written as a
 multiplicative perturbation of~$\Phi$:
@@ -1512,34 +1512,34 @@ The numerator of $R$ may be rewritten using~\eqref{eq:isometry}:
 \begin{equation}\label{eq:numerator_identity}
   w^\top G_\rho\, w = \|\Phi_\rho w\|_K^2
   = \|\Phi(I + F_\rho) w\|_K^2
-  = \|(I + F_\rho)\, w\|_D^2 .
+  = \|(I + F_\rho)\, w\|_{\mathcal{B}}^2 .
 \end{equation}
 For the denominator, partition the coordinates of $w$ into $q$ slots in
 the order of~\eqref{eq:combined_basis}, slot~1 holding the level-1
 coefficients and slot $k \geq 2$ the level-$(k-1)$ detail coefficients,
 and write $\hat{w}_k$ for the vector whose entries match those of $w$
-in slot $k$ and are zero elsewhere.  $D$ is block diagonal, so
+in slot $k$ and are zero elsewhere.  $\mathcal{B}$ is block diagonal, so
 \begin{equation}\label{eq:slot_orthogonality}
-  \|w\|_D^2 = \sum_{k=1}^q \|\hat{w}_k\|_D^2 .
+  \|w\|_{\mathcal{B}}^2 = \sum_{k=1}^q \|\hat{w}_k\|_{\mathcal{B}}^2 .
 \end{equation}
-Each diagonal block of $D_\rho$ is the corresponding diagonal block
+Each diagonal block of $\mathcal{B}_\rho$ is the corresponding diagonal block
 of~$G_\rho$, so \eqref{eq:numerator_identity} applied to each
 $\hat{w}_k$ gives
 \begin{equation}\label{eq:denominator_identity}
-  w^\top D_\rho\, w
+  w^\top \mathcal{B}_\rho\, w
   = \sum_k \hat{w}_k^\top G_\rho\, \hat{w}_k
-  = \sum_k \|(I + F_\rho)\, \hat{w}_k\|_D^2 .
+  = \sum_k \|(I + F_\rho)\, \hat{w}_k\|_{\mathcal{B}}^2 .
 \end{equation}
 Write $\sigma_+$ and $\sigma_-$ for the largest and smallest values of
-$\|(I + F_\rho)\, v\|_D / \|v\|_D$ over $v \neq 0$, and
+$\|(I + F_\rho)\, v\|_{\mathcal{B}} / \|v\|_{\mathcal{B}}$ over $v \neq 0$, and
 \begin{equation}\label{eq:b_k_def}
   b_k := \sup_{\hat{w}_k \neq 0}
-    \frac{\|F_\rho\, \hat{w}_k\|_D}{\|\hat{w}_k\|_D},
+    \frac{\|F_\rho\, \hat{w}_k\|_{\mathcal{B}}}{\|\hat{w}_k\|_{\mathcal{B}}},
   \qquad 1 \leq k \leq q,
 \end{equation}
 for the slot-wise norms of the perturbation.  Bounds on the condition
 number follow from bounds on $\sigma_+$ and $\sigma_-$ and from a
-comparison of $w^\top D_\rho\, w$ with $\|w\|_D^2$.
+comparison of $w^\top \mathcal{B}_\rho\, w$ with $\|w\|_{\mathcal{B}}^2$.
 
 \paragraph{Structure.}
 The measurement matching~\eqref{eq:measurement_matching} states that
@@ -1558,7 +1558,7 @@ For every level $k$ and every coefficient vector~$c$,
 \begin{equation}\label{eq:domination}
   c^\top B^{(k)}_\rho\, c \;\geq\; c^\top B^{(k)} c,
   \qquad \text{hence} \qquad
-  w^\top D_\rho\, w \;\geq\; \|w\|_D^2
+  w^\top \mathcal{B}_\rho\, w \;\geq\; \|w\|_{\mathcal{B}}^2
   \quad \forall w .
 \end{equation}
 \end{lemma}
@@ -1673,18 +1673,18 @@ For $1 \leq k \leq q$, $b_k \leq C_W\, C_B^{1/2}\, H^{k-1}\, \epsilon_k$.
 
 \begin{proof}
 By~\eqref{eq:F_def} and~\eqref{eq:isometry},
-$\|F_\rho \hat{w}_k\|_D = \|\Delta_\rho \hat{w}_k\|_K$.  For $k = 1$,
+$\|F_\rho \hat{w}_k\|_{\mathcal{B}} = \|\Delta_\rho \hat{w}_k\|_K$.  For $k = 1$,
 $\Delta_\rho \hat{w}_1$ is the coefficient vector of
 $\sum_i w_i \delta^{(1)}_i$, whose energy is at most
 $\sum_i |w_i| \|\delta^{(1)}_i\|_a \leq |w|\, \epsilon_1$ by
 Cauchy--Schwarz, while
-$\|\hat{w}_1\|_D^2 = w^\top B^{(1)} w \geq C_B^{-1} |w|^2$
+$\|\hat{w}_1\|_{\mathcal{B}}^2 = w^\top B^{(1)} w \geq C_B^{-1} |w|^2$
 by~\eqref{eq:block_conditioning}.  For $k \geq 2$,
 $\Delta_\rho \hat{w}_k$ is the coefficient vector of
 $\sum_j w_j (\chi^{(k-1)}_{\rho,j} - \chi^{(k-1)}_j)
  = \sum_m (D^{(k-1)\top} w)_m\, \delta^{(k)}_m$, whose energy is at
 most $|D^{(k-1)\top} w|\, \epsilon_k \leq C_W |w|\, \epsilon_k$, while
-$\|\hat{w}_k\|_D^2 = w^\top B^{(k)} w \geq C_B^{-1} H^{-2(k-1)} |w|^2$.
+$\|\hat{w}_k\|_{\mathcal{B}}^2 = w^\top B^{(k)} w \geq C_B^{-1} H^{-2(k-1)} |w|^2$.
 Taking the ratio gives the claim, with $C_W \geq 1$ covering $k = 1$.
 \end{proof}
 
@@ -1720,7 +1720,7 @@ $1 \leq k < q$,
     + \alpha\, e^{-r_k/\alpha}\, \omega^{k+1},
 \end{equation}
 with $\alpha, \omega \geq 1$ depending only on $C_\varphi$, $H$,
-$\kappa$, $\gamma$ and~$d$.
+$C_{\mathrm{nb}}$, $\gamma$ and~$d$.
 \end{lemma}
 
 \begin{proof}
@@ -1747,7 +1747,7 @@ of the computed level-$(k{+}1)$ functions, which is at most
 $\epsilon_{k+1} + (\operatorname{tr} A^{(k+1)})^{1/2}$
 \cite[Eqs.~(16.138)--(16.140)]{Owhadi_Scovel_2019}.  Third,
 $\|R^{(k)}_{\mathrm{ex}}\|_2 \leq C H^{-2}$ and
-$\|R^{(k),\mathrm{tail}}_{\mathrm{ex}}\|_2 \leq \kappa_2 e^{-r_k/\gamma_2}$
+$\|R^{(k),\mathrm{tail}}_{\mathrm{ex}}\|_2 \leq c_{\mathrm{t}} e^{-r_k/\gamma_2}$
 are properties of the exact hierarchy
 \cite[Lemmas~16.27 and 16.28]{Owhadi_Scovel_2019}.  None of the three
 depends on how the level-$(k{+}1)$ coefficients were computed.
@@ -1756,7 +1756,7 @@ depends on how the level-$(k{+}1)$ coefficients were computed.
 \begin{proof}[Proof of Theorem~\textup{\ref{prop:precond_conditioning}}]
 Positive definiteness of $\widetilde{K}_\rho^{-1}$ follows from the
 invertibility of $\Phi_\rho$ (Subsection~\ref{subsec:loc}) and of
-$D_\rho$.  Set $C_1 := C_W C_B^{1/2}$ and $C_2 := C_1 (c_n C_A)^{1/2}$.
+$\mathcal{B}_\rho$.  Set $C_1 := C_W C_B^{1/2}$ and $C_2 := C_1 (c_n C_A)^{1/2}$.
 We claim $b_k \leq C_1 H^{k-1} \epsilon_k \leq X_k$ for every $k$.  The
 first inequality is Lemma~\ref{lem:slot_error}; the second holds at
 $k = q$ since $\epsilon_q = 0$, and if it holds at $k+1$ then by
@@ -1779,29 +1779,29 @@ by $C_1 H^k \epsilon_{k+1} \leq X_{k+1}$.
 For~\eqref{eq:kappa_bound}: by the triangle inequality over the slots,
 \eqref{eq:b_k_def}, Cauchy--Schwarz and~\eqref{eq:slot_orthogonality},
 \[
-  \|F_\rho w\|_D \;\leq\; \sum_{k=1}^{q-1} \|F_\rho \hat{w}_k\|_D
-  \;\leq\; \sum_{k=1}^{q-1} b_k \|\hat{w}_k\|_D
-  \;\leq\; \Bigl(\sum_{k=1}^{q-1} b_k^2\Bigr)^{1/2} \|w\|_D
-  \;\leq\; \beta\, \|w\|_D ,
+  \|F_\rho w\|_{\mathcal{B}} \;\leq\; \sum_{k=1}^{q-1} \|F_\rho \hat{w}_k\|_{\mathcal{B}}
+  \;\leq\; \sum_{k=1}^{q-1} b_k \|\hat{w}_k\|_{\mathcal{B}}
+  \;\leq\; \Bigl(\sum_{k=1}^{q-1} b_k^2\Bigr)^{1/2} \|w\|_{\mathcal{B}}
+  \;\leq\; \beta\, \|w\|_{\mathcal{B}} ,
 \]
 the slot $q$ contributing nothing since $b_q = 0$.  Hence
 $\sigma_+ \leq 1 + \beta$.  The substitution $u = (I+F_\rho)v$
-identifies $\sigma_- = \|(I+F_\rho)^{-1}\|_D^{-1}$, and applying the
+identifies $\sigma_- = \|(I+F_\rho)^{-1}\|_{\mathcal{B}}^{-1}$, and applying the
 triangle inequality and submultiplicativity termwise to the finite sum
 of~\eqref{eq:nilpotency},
 \[
-  \bigl\|(I+F_\rho)^{-1}\bigr\|_D
-  \;\leq\; \sum_{j=0}^{q-1} \|F_\rho\|_D^{\,j}
+  \bigl\|(I+F_\rho)^{-1}\bigr\|_{\mathcal{B}}
+  \;\leq\; \sum_{j=0}^{q-1} \|F_\rho\|_{\mathcal{B}}^{\,j}
   \;\leq\; \sum_{j=0}^{q-1} \beta^{\,j},
   \qquad \text{so} \qquad
   \sigma_- \;\geq\; \Bigl(\sum_{j=0}^{q-1} \beta^{\,j}\Bigr)^{-1} > 0 .
 \]
 By~\eqref{eq:numerator_identity},
-$\sigma_-^2 \|w\|_D^2 \leq w^\top G_\rho\, w \leq \sigma_+^2 \|w\|_D^2$.
+$\sigma_-^2 \|w\|_{\mathcal{B}}^2 \leq w^\top G_\rho\, w \leq \sigma_+^2 \|w\|_{\mathcal{B}}^2$.
 By~\eqref{eq:denominator_identity}, the definition of $\sigma_+$ applied
 to each term, and~\eqref{eq:slot_orthogonality},
-$w^\top D_\rho\, w \leq \sigma_+^2 \|w\|_D^2$;
-Lemma~\ref{lem:domination} gives $w^\top D_\rho\, w \geq \|w\|_D^2$.
+$w^\top \mathcal{B}_\rho\, w \leq \sigma_+^2 \|w\|_{\mathcal{B}}^2$;
+Lemma~\ref{lem:domination} gives $w^\top \mathcal{B}_\rho\, w \geq \|w\|_{\mathcal{B}}^2$.
 Hence $R(w) \leq \sigma_+^2$ and $R(w) \geq \sigma_-^2/\sigma_+^2$,
 and by~\eqref{eq:rayleigh}
 $\kappa(\widetilde{K}_\rho^{-1} K) \leq \sigma_+^4 / \sigma_-^2
@@ -1809,20 +1809,20 @@ $\kappa(\widetilde{K}_\rho^{-1} K) \leq \sigma_+^4 / \sigma_-^2
 
 For~\eqref{eq:kappa_arsinh}, pass to coordinates in which the exact
 blocks are the identity.  Set
-$\widetilde{F} := D^{1/2} F_\rho D^{-1/2}$ and
-$T := I + \widetilde{F}$.  Since $D$ is block diagonal,
+$\widetilde{F} := \mathcal{B}^{1/2} F_\rho \mathcal{B}^{-1/2}$ and
+$T := I + \widetilde{F}$.  Since $\mathcal{B}$ is block diagonal,
 $\widetilde{F}$ is strictly block lower triangular with the same slot
 partition, and $\|\widetilde{F} \hat{x}_k\|_2 / \|\hat{x}_k\|_2
-= \|F_\rho \hat{w}_k\|_D / \|\hat{w}_k\|_D$ for $x = D^{1/2} w$, so
+= \|F_\rho \hat{w}_k\|_{\mathcal{B}} / \|\hat{w}_k\|_{\mathcal{B}}$ for $x = \mathcal{B}^{1/2} w$, so
 $L_k := \widetilde{F}_{>k,k}$, the block column~$k$ of $\widetilde{F}$
 below the diagonal, has $\|L_k\|_2 = b_k$.
-By~\eqref{eq:numerator_identity}, $G_\rho = D^{1/2} T^\top T D^{1/2}$,
+By~\eqref{eq:numerator_identity}, $G_\rho = \mathcal{B}^{1/2} T^\top T \mathcal{B}^{1/2}$,
 and by~\eqref{eq:denominator_identity},
-$D_\rho = D^{1/2}\, \Delta\, D^{1/2}$ with
-$\Delta := \operatorname{blockdiag}(T^\top T)$, whose block~$k$ is
-$I + L_k^\top L_k$.  The matrix $D_\rho^{-1} G_\rho$ is similar to
-$\Delta^{-1} T^\top T$ and hence to $U^\top U$ with
-$U := T \Delta^{-1/2}$, so
+$\mathcal{B}_\rho = \mathcal{B}^{1/2}\, \Theta\, \mathcal{B}^{1/2}$ with
+$\Theta := \operatorname{blockdiag}(T^\top T)$, whose block~$k$ is
+$I + L_k^\top L_k$.  The matrix $\mathcal{B}_\rho^{-1} G_\rho$ is similar to
+$\Theta^{-1} T^\top T$ and hence to $U^\top U$ with
+$U := T \Theta^{-1/2}$, so
 $\kappa(\widetilde{K}_\rho^{-1} K) = \kappa_2(U)^2$, where
 $\kappa_2(U) := \|U\|_2 \|U^{-1}\|_2$.  For $1 \leq k < q$ let $U_k$
 agree with the identity except in block column~$k$, where it agrees
@@ -1860,13 +1860,13 @@ $\lesssim N\rho^d$ operations by Proposition~\ref{prop:cost}.
 
 \begin{proof}[Proof of Corollary~\textup{\ref{thm:localized_block_conditioning}}]
 By~\eqref{eq:denominator_identity} applied to a single slot,
-$c^\top B^{(k)}_\rho c = \|(I+F_\rho)\hat{c}_k\|_D^2$.  By
+$c^\top B^{(k)}_\rho c = \|(I+F_\rho)\hat{c}_k\|_{\mathcal{B}}^2$.  By
 Lemma~\ref{lem:nilpotent}, $F_\rho \hat{c}_k$ is supported in slots
-$k+1$ through~$q$, so it is $D$-orthogonal to $\hat{c}_k$
+$k+1$ through~$q$, so it is $\mathcal{B}$-orthogonal to $\hat{c}_k$
 by~\eqref{eq:slot_orthogonality}, and
 \[
-  \|(I+F_\rho)\hat{c}_k\|_D^2
-  = \|\hat{c}_k\|_D^2 + \|F_\rho \hat{c}_k\|_D^2
+  \|(I+F_\rho)\hat{c}_k\|_{\mathcal{B}}^2
+  = \|\hat{c}_k\|_{\mathcal{B}}^2 + \|F_\rho \hat{c}_k\|_{\mathcal{B}}^2
   \;\in\; \bigl[\, 1,\; 1 + b_k^2 \,\bigr] \cdot c^\top B^{(k)} c .
 \]
 Hence $B^{(k)} \preceq B^{(k)}_\rho \preceq (1 + b_k^2) B^{(k)}$,
@@ -1879,13 +1879,13 @@ the full matrix.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\textup{\ref{cor:apply_factor}}]
-Set $\widehat{D} := \operatorname{diag}(S_k^{-1})$.  The argument
-leading to~\eqref{eq:rayleigh} applies with $D_\rho$ replaced
-by~$\widehat{D}$: $\widehat{M} K$ is similar to
-$\widehat{D}^{-1} G_\rho$, hence to the SPD matrix
-$\widehat{D}^{-1/2} G_\rho \widehat{D}^{-1/2}$, and its condition number
+Set $\widehat{\mathcal{B}} := \operatorname{diag}(S_k^{-1})$.  The argument
+leading to~\eqref{eq:rayleigh} applies with $\mathcal{B}_\rho$ replaced
+by~$\widehat{\mathcal{B}}$: $\widehat{M} K$ is similar to
+$\widehat{\mathcal{B}}^{-1} G_\rho$, hence to the SPD matrix
+$\widehat{\mathcal{B}}^{-1/2} G_\rho \widehat{\mathcal{B}}^{-1/2}$, and its condition number
 is the ratio of the extreme values of
-$\widehat{R}(w) := w^\top G_\rho w / w^\top \widehat{D} w$.  The
+$\widehat{R}(w) := w^\top G_\rho w / w^\top \widehat{\mathcal{B}} w$.  The
 eigenvalues of $S_k B^{(k)}_\rho$ are those of the pencil
 $(B^{(k)}_\rho, S_k^{-1})$, so for every slot vector
 $\lambda_{\min}(S_k B^{(k)}_\rho)\, \hat{w}_k^\top S_k^{-1} \hat{w}_k
@@ -1893,8 +1893,8 @@ $\lambda_{\min}(S_k B^{(k)}_\rho)\, \hat{w}_k^\top S_k^{-1} \hat{w}_k
  \leq \lambda_{\max}(S_k B^{(k)}_\rho)\, \hat{w}_k^\top S_k^{-1} \hat{w}_k$.
 Summing over the slots, with $\lambda_+ := \max_k \lambda_{\max}(S_k B^{(k)}_\rho)$
 and $\lambda_- := \min_k \lambda_{\min}(S_k B^{(k)}_\rho)$,
-$\lambda_+^{-1}\, w^\top D_\rho w \leq w^\top \widehat{D} w
- \leq \lambda_-^{-1}\, w^\top D_\rho w$, so
+$\lambda_+^{-1}\, w^\top \mathcal{B}_\rho w \leq w^\top \widehat{\mathcal{B}} w
+ \leq \lambda_-^{-1}\, w^\top \mathcal{B}_\rho w$, so
 $\lambda_- R(w) \leq \widehat{R}(w) \leq \lambda_+ R(w)$ for every~$w$,
 and the ratio of the extreme values of $\widehat{R}$ is at most
 $(\lambda_+/\lambda_-)$ times that of~$R$, which
@@ -1912,9 +1912,9 @@ $S_k B^{(k)}_\rho$ are the values $1 - r_s(\lambda)$ at the eigenvalues
 $\lambda$ of $B^{(k)}_\rho$, all in $[1 - \delta_s, 1 + \delta_s]$, and
 $S_k$ is positive definite when $\delta_s < 1$.  For (iii), with
 $\Lambda := \operatorname{diag}(B^{(k)}_\rho)$, the eigenvalues of
-$S_k B^{(k)}_\rho = \omega \Lambda^{-1} B^{(k)}_\rho$ are $\omega$ times
-those of $\widehat{S}_k$, and the factor $\omega$ cancels in the ratio
-defining~$F$; $\lambda_{\max}(\Lambda) \leq \lambda_{\max}(B^{(k)}_\rho)$
+$S_k B^{(k)}_\rho = \xi \Lambda^{-1} B^{(k)}_\rho$ are $\xi$ times
+those of $\widehat{S}_k$, and the factor $\xi$ cancels in the ratio
+defining~$\Gamma$; $\lambda_{\max}(\Lambda) \leq \lambda_{\max}(B^{(k)}_\rho)$
 since diagonal entries are Rayleigh quotients, so
 $\lambda_{\min}(\widehat{S}_k) \geq \lambda_{\min}(B^{(k)}_\rho)/\lambda_{\max}(\Lambda)
  \geq 1/\kappa(B^{(k)}_\rho)$, which gives the first inequality
@@ -1927,7 +1927,7 @@ Let $\bar{r} := \max_m r_m$.  The computed function $\psi^{(k)}_{\rho,i}$
 is supported in the ball of radius $s_k h_k$ about $x^{(k)}_i$ with
 $s_k \leq (\bar{r} + c_\star)/(1-H)$, and the number $m_k$ of nonzero
 entries in a row of $B^{(k)}_\rho$ satisfies
-$m_k \leq \kappa^2 (2 H s_k + c_\star)^d$, where $\kappa$ is the
+$m_k \leq C_{\mathrm{nb}}^2 (2 H s_k + c_\star)^d$, where $C_{\mathrm{nb}}$ is the
 constant of \cite[Cond.~16.22]{Owhadi_Scovel_2019}; in particular
 $m_k \lesssim \bar{r}^{\,d}$.
 \end{lemma}
@@ -1946,8 +1946,8 @@ $(s_k + c_\star) h_k$ about a level-$k$ node within $c_\star h_{k-1}$
 of the node of its parent, so the parents of $i$ and $j$ are within
 $d^{(k-1)}$-distance $2H s_k + c_\star$.  By
 \cite[Cond.~16.22, item 3]{Owhadi_Scovel_2019} there are at most
-$\kappa (2 H s_k + c_\star)^d$ such parents, and by item~4 each has at
-most $\kappa$ detail indices.
+$C_{\mathrm{nb}} (2 H s_k + c_\star)^d$ such parents, and by item~4 each has at
+most $C_{\mathrm{nb}}$ detail indices.
 \end{proof}
 
 \begin{lemma}[Per-function error recursion]\label{lem:per_function}
@@ -1961,7 +1961,7 @@ Then, for $1 \leq k < q$,
 \end{equation}
 where $C_R := \sup_{k,i} \sum_j |R^{(k)}_{\mathrm{ex},ij}|$ is the
 largest absolute row sum of an exact nesting matrix, and $C_T$,
-$\gamma_3$ depend only on $C_\varphi$, $H$, $\kappa$, $\gamma$, $d$.
+$\gamma_3$ depend only on $C_\varphi$, $H$, $C_{\mathrm{nb}}$, $\gamma$, $d$.
 Consequently the computed detail functions satisfy
 \begin{equation}\label{eq:detail_relative_error}
   e_k := \max_j
@@ -1973,18 +1973,18 @@ Consequently the computed detail functions satisfy
 
 \begin{proof}
 By \cite[Eq.~(16.104) in the proof of Lemma~16.27]{Owhadi_Scovel_2019},
-$|R^{(k)}_{\mathrm{ex},ij}| \leq \kappa_3 e^{-d^{(k)}(i, j^{(k)})/\gamma_3}$
-with $\kappa_3, \gamma_3$ depending only on $C_\varphi$, $H$, $\kappa$,
+$|R^{(k)}_{\mathrm{ex},ij}| \leq c_{\mathrm{e}} e^{-d^{(k)}(i, j^{(k)})/\gamma_3}$
+with $c_{\mathrm{e}}, \gamma_3$ depending only on $C_\varphi$, $H$, $C_{\mathrm{nb}}$,
 $\gamma$, $d$.  Grouping the level-$(k{+}1)$ indices by parent, at most
-$\kappa$ per parent, and using the ball growth of
+$C_{\mathrm{nb}}$ per parent, and using the ball growth of
 \cite[Cond.~16.22, item 3]{Owhadi_Scovel_2019},
 \[
   \sum_{j:\, d^{(k)}(i, j^{(k)}) > r}
     |R^{(k)}_{\mathrm{ex},ij}|
-  \;\leq\; \kappa \kappa_3 \sum_{l:\, d^{(k)}(i,l) > r}
+  \;\leq\; C_{\mathrm{nb}} c_{\mathrm{e}} \sum_{l:\, d^{(k)}(i,l) > r}
     e^{-d^{(k)}(i,l)/\gamma_3}
-  \;\leq\; \kappa \kappa_3\, e^{-r/(2\gamma_3)}
-    \sum_{n \geq 0} \kappa (n+1)^d e^{-n/(2\gamma_3)}
+  \;\leq\; C_{\mathrm{nb}} c_{\mathrm{e}}\, e^{-r/(2\gamma_3)}
+    \sum_{n \geq 0} C_{\mathrm{nb}} (n+1)^d e^{-n/(2\gamma_3)}
   \;=:\; C_T\, e^{-r/(2\gamma_3)} ,
 \]
 and the same sum without the restriction on the distance is bounded,
@@ -2077,12 +2077,12 @@ $c_1\, x^\top K_0 x \leq x^\top K_1 x \leq c_2\, x^\top K_0 x$ for every
 $x$, hence $\lambda_{\max}(M_0 K_1) \leq c_2 \lambda_{\max}(M_0 K_0)$ and
 $\lambda_{\min}(M_0 K_1) \geq c_1 \lambda_{\min}(M_0 K_0)$, which
 is~\eqref{eq:perturbed_bound}.  For~\eqref{eq:timestep_bound}, if
-$\tau \geq \tau_0$ then $A(\tau_0) \preceq A(\tau) \preceq (\tau/\tau_0) A(\tau_0)$,
-the second inequality being $(1 - \tau/\tau_0) M \preceq 0$; if
-$\tau \leq \tau_0$ then $(\tau/\tau_0) A(\tau_0) \preceq A(\tau) \preceq A(\tau_0)$,
-the first being $(1 - \tau/\tau_0) M \succeq 0$.  In either case
+$\Delta t \geq \Delta t_0$ then $A(\Delta t_0) \preceq A(\Delta t) \preceq (\Delta t/\Delta t_0) A(\Delta t_0)$,
+the second inequality being $(1 - \Delta t/\Delta t_0) M \preceq 0$; if
+$\Delta t \leq \Delta t_0$ then $(\Delta t/\Delta t_0) A(\Delta t_0) \preceq A(\Delta t) \preceq A(\Delta t_0)$,
+the first being $(1 - \Delta t/\Delta t_0) M \succeq 0$.  In either case
 \eqref{eq:perturbed_bound} applies with
-$c_2/c_1 = \max\{\tau/\tau_0, \tau_0/\tau\}$.
+$c_2/c_1 = \max\{\Delta t/\Delta t_0, \Delta t_0/\Delta t\}$.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\textup{\ref{cor:asymptotic}}]
@@ -2110,7 +2110,7 @@ conditions hold with $r_k \simeq \alpha \ln(2\alpha\omega)\, q$ and
 $\ln(1/\tau_k) \simeq q$ since $q \leq C_q \ln N$ and the additive terms
 are of lower order.
 
-For the costs, each patch holds at most $\kappa^2 r_k^d$ indices
+For the costs, each patch holds at most $C_{\mathrm{nb}}^2 r_k^d$ indices
 \cite[Cond.~16.22, items 3 and 4]{Owhadi_Scovel_2019}, so a patch system
 has $\lesssim r^{2d}$ entries and one CG iteration costs that many
 operations.  To reach~\eqref{eq:tau_def}: the patch minimizer is
@@ -2146,7 +2146,7 @@ and blocks hold $\lesssim r^d$ values per row, hence
 $\lesssim N r^d$ in total.  For the solve, take $s$ Chebyshev steps per
 block with $\kappa_B := 2 C_B^2 H^{-2}$ in
 Corollary~\ref{cor:apply_factor}(ii); $s$ depending only on $C_B$ and
-$H$ gives $\delta_s \leq \tfrac13$, $F \leq 2$ and
+$H$ gives $\delta_s \leq \tfrac13$, $\Gamma \leq 2$ and
 $\kappa(\widehat{M} K) \leq 2e^2$, so the iteration count is
 $\lesssim \ln(1/\varepsilon)$, and each application costs
 $\lesssim N r^d$ for the factor products and $\lesssim s N r^d$ for the
@@ -2160,8 +2160,8 @@ gives the displayed costs.
 The setting is that of Subsection~\ref{sec:implementation}. For first-order elements the nesting and detail maps are
 selection matrices, i.e. the level-$k$ nodes are the level-$(k{+}1)$ nodes
 whose coordinates, in level-$(k{+}1)$ units, are multiples of $1/H$, so
-$C^{(k)}_{ij} = \delta_{j,\sigma(i)}$ with
-$\sigma(i) = x^{(k)}_i/H$, and $D^{(k)}$ selects the remaining nodes.
+$C^{(k)}_{ij} = \delta_{j,\pi(i)}$ with
+$\pi(i) = x^{(k)}_i/H$, and $D^{(k)}$ selects the remaining nodes.
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:stencil_width}}]
 Row~$i$ of $R^{(k)}_\rho$ consists of the patch solution, supported in
@@ -2521,7 +2521,7 @@ The detail policy sets the cost of one application and the stored
 hierarchy.  Table~\ref{tab:policy} compares four policies at the middle
 sizes: CG detail solves to $10^{-6}$, CG detail solves to $10^{-1}$,
 block-Jacobi scaling on every detail level with
-$\omega = 1$, and the mixed policy, which solves the coarsest detail
+$\xi = 1$, and the mixed policy, which solves the coarsest detail
 level and applies block-Jacobi scaling at the finer ones.
 For diffusion the block-Jacobi policy takes $70$ iterations against
 $31$, applies in $6$~ms against $94$, solves in $2.7$~s against
@@ -2532,12 +2532,12 @@ $171$ iterations against $57$ at the same solve time, $36.6$~s against
 $36.1$, and stores $7.7$~GB against $14.8$; the loose CG solve is the
 fastest at $19.4$~s and $64$ iterations with the full storage, and the
 mixed policy sits between, $103$ iterations, $28.7$~s and $8.5$~GB.
-The weight $\omega$ moves the block-Jacobi counts by at most $12$
-iterations over $\omega \in [0.4, 2]$, with the minimum at
-$\omega = 0.8$ for diffusion and $0.6$ for elasticity.  The iteration
+The weight $\xi$ moves the block-Jacobi counts by at most $12$
+iterations over $\xi \in [0.4, 2]$, with the minimum at
+$\xi = 0.8$ for diffusion and $0.6$ for elasticity.  The iteration
 ratios between the block-Jacobi and the tight-solve policies, $2.3$
 for diffusion and $3.0$ for elasticity at these sizes, are the measured
-counterpart of the factor $F$ of Corollary~\ref{cor:apply_factor}.
+counterpart of the factor $\Gamma$ of Corollary~\ref{cor:apply_factor}.
 
 \begin{table}[t]
 \centering
@@ -2675,15 +2675,15 @@ Theorem~\ref{thm:perturbed_system} licenses one hierarchy for every step
 of a variable-step scheme.  Figure~\ref{fig:timestep} reports the outer
 iterations per linear solve for the parabolic problem
 $M\dot{u} + Ku = f$ on the channelized field, with the hierarchy built
-once for $A(\tau_0) = M + \tau_0 K$ at $\tau_0 = h^2$ and reused unchanged
-while the step coefficient $\tau$ varies over four orders of magnitude,
-at $N = 274{,}625$ and $N = 912{,}673$.  At $\tau = \tau_0$ the counts are
-$19$ and $28$; at $\tau/\tau_0 = 100$ they are $58$ and $83$, and at
-$\tau/\tau_0 = 10^{-2}$ they are $135$ and $181$.  The bound of
+once for $A(\Delta t_0) = M + \Delta t_0 K$ at $\Delta t_0 = h^2$ and reused unchanged
+while the step coefficient $\Delta t$ varies over four orders of magnitude,
+at $N = 274{,}625$ and $N = 912{,}673$.  At $\Delta t = \Delta t_0$ the counts are
+$19$ and $28$; at $\Delta t/\Delta t_0 = 100$ they are $58$ and $83$, and at
+$\Delta t/\Delta t_0 = 10^{-2}$ they are $135$ and $181$.  The bound of
 Theorem~\ref{thm:perturbed_system} multiplies the condition number by at
-most $\max\{\tau/\tau_0, \tau_0/\tau\}$, hence the iteration bound by at
+most $\max\{\Delta t/\Delta t_0, \Delta t_0/\Delta t\}$, hence the iteration bound by at
 most its square root, $10$ at both ends of the range; the measured
-ratios are $3.1$ and $3.0$ at $\tau/\tau_0 = 100$ and $7.1$ and $6.5$ at
+ratios are $3.1$ and $3.0$ at $\Delta t/\Delta t_0 = 100$ and $7.1$ and $6.5$ at
 $10^{-2}$.  No rebuild occurs; the build of the hierarchy costs $4.6$ and
 $17.2$~s once.
 
@@ -2693,8 +2693,8 @@ $17.2$~s once.
 % (research implementation 18d2b60, CombinedOperator M + tau K)
 \includegraphics[width=0.75\textwidth]{figures/timestep_ladder.pdf}
 \caption{Outer PCG iterations per linear solve as a function of the
-step-size ratio $\tau/\tau_0$, for a hierarchy built once at
-$\tau_0 = h^2$; diffusion on the channelized field, $\rho = (3,2,2)$,
+step-size ratio $\Delta t/\Delta t_0$, for a hierarchy built once at
+$\Delta t_0 = h^2$; diffusion on the channelized field, $\rho = (3,2,2)$,
 $N = 274{,}625$ and $N = 912{,}673$.}
 \label{fig:timestep}
 \end{figure}

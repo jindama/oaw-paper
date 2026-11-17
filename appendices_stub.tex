@@ -55,9 +55,9 @@ $S^{(k)}_i$ vanish on it, since no functional support straddles the
 boundary of the patch.  Hence~\eqref{eq:own_level_data} holds, and
 Lemmas~\ref{lem:domination}, \ref{lem:annihilation}
 and~\ref{lem:nilpotent}, together with the derivation
-of~\eqref{eq:kappa_bound} from the bound $\|F_\rho\|_D \leq \beta$ in
+of~\eqref{eq:kappa_bound} from the bound $\|F_\rho\|_{\mathcal{B}} \leq \beta$ in
 the proof of Theorem~\ref{prop:precond_conditioning}, apply without
-change.  It remains to bound $\|F_\rho\|_D$ for the one-shot basis,
+change.  It remains to bound $\|F_\rho\|_{\mathcal{B}}$ for the one-shot basis,
 which the following two lemmas do.
 
 \begin{lemma}[Near-orthogonality of localization errors]\label{lem:error_interactions}
@@ -146,8 +146,8 @@ $\|M\| \leq C_{\mathrm{o}}\,\rho^d\,e^{-\rho/\ell}$.
 \begin{lemma}[Norm of the perturbation]\label{lem:F_norm}
 For the one-shot basis, with $\beta_{\mathrm{os}}$ as in~\eqref{eq:beta},
 \[
-  \|F_\rho\|_D
-  \;:=\; \sup_{w \neq 0} \frac{\|F_\rho w\|_D}{\|w\|_D}
+  \|F_\rho\|_{\mathcal{B}}
+  \;:=\; \sup_{w \neq 0} \frac{\|F_\rho w\|_{\mathcal{B}}}{\|w\|_{\mathcal{B}}}
   \;\leq\; \beta_{\mathrm{os}} .
 \]
 \end{lemma}
@@ -156,7 +156,7 @@ For the one-shot basis, with $\beta_{\mathrm{os}}$ as in~\eqref{eq:beta},
 By~\eqref{eq:F_def}, $\Phi F_\rho = \Phi_\rho - \Phi =: \Delta_\rho$, the
 matrix whose columns are the localization errors~$\delta_i$.
 By~\eqref{eq:isometry},
-$\|F_\rho w\|_D = \|\Phi F_\rho w\|_K = \|\Delta_\rho w\|_K$.  Split
+$\|F_\rho w\|_{\mathcal{B}} = \|\Phi F_\rho w\|_K = \|\Delta_\rho w\|_K$.  Split
 $\Delta_\rho w$ by slot and apply the triangle inequality and
 Cauchy--Schwarz over the $q$ slots:
 \[
@@ -170,11 +170,11 @@ inequality~\eqref{eq:almost_orth}.  A termwise Cauchy--Schwarz estimate
 would introduce a factor of the slot dimension in place of the factor
 $\rho^d$, inflating the estimate by a factor of $\sqrt{N}$.  The block
 conditioning bound~\eqref{eq:block_conditioning} transforms the weighted
-Euclidean norm to the $D$-norm: within one slot,
+Euclidean norm to the $\mathcal{B}$-norm: within one slot,
 \[
   \sum_i w_i^2 \|\varphi_i\|_a^2
-  \;\leq\; \kappa\bigl(B^{(k)}\bigr)\, \hat{w}_k^\top D\, \hat{w}_k
-  \;\leq\; C_B^2 H^{-2} \|\hat{w}_k\|_D^2 ,
+  \;\leq\; \kappa\bigl(B^{(k)}\bigr)\, \hat{w}_k^\top \mathcal{B}\, \hat{w}_k
+  \;\leq\; C_B^2 H^{-2} \|\hat{w}_k\|_{\mathcal{B}}^2 ,
 \]
 since $\|\varphi_i\|_a^2$ is a diagonal entry of~$B^{(k)}$.
 With~\eqref{eq:slot_orthogonality},
@@ -182,10 +182,10 @@ With~\eqref{eq:slot_orthogonality},
   \|\Delta_\rho w\|_K^2
   \;\leq\;
   q\; C_{\mathrm{o}}\,\rho^d e^{-\rho/\ell}\; C_B^2 H^{-2}
-  \sum_{k} \|\hat{w}_k\|_D^2
+  \sum_{k} \|\hat{w}_k\|_{\mathcal{B}}^2
   \;=\;
   \bigl(C_\beta\, H^{-1} \rho^{d/2} \sqrt{q}\,
-  e^{-\rho/(2\ell)}\bigr)^2 \|w\|_D^2
+  e^{-\rho/(2\ell)}\bigr)^2 \|w\|_{\mathcal{B}}^2
 \]
 with $C_\beta := C_B\sqrt{C_{\mathrm{o}}}$.
 \end{proof}
