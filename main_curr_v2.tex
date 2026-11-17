@@ -46,21 +46,34 @@
 \maketitle
 
 \begin{abstract}
-The operator-adapted wavelet (OAW) factorization is a sparse approximate
-inverse factorization for the stiffness matrices of second-order elliptic
-PDEs whose quasi-linear complexity and provable
-accuracy guarantees with $L^\infty$ coefficients make it an attractive
-method for solving multiscale problems. However, the method's use as a direct solver has confined it to moderate problem sizes. We prove that the factorization may
-instead serve as a preconditioner for the conjugate gradient method and quantify the rate of convergence. For a
-problem with $N$ degrees of freedom and error tolerance $\varepsilon$, this
-reduces the setup cost, up to constant factors independent of $N$ and
-$\varepsilon$, from $N\ln^{2d+1}(N/\varepsilon)$ to
-$N(\ln\ln N)^{2d}$, independent of $\varepsilon$, and the solution cost
-from $N\ln^{d+1}(N/\varepsilon)$ to
-$N(\ln\ln N)^{d}\ln(1/\varepsilon)$. We further control the memory demands of
-the algorithm by solving subproblems iteratively rather than with stored
-factorizations, storing the preconditioner in a compressed factored form, and exploiting available problem symmetries, whereby the method thereby extends to large-scale systems. We demonstrate this on three-dimensional diffusion and elasticity problems with more than $10^{6}$ degrees of freedom on a single
-GPU, and compare with standard algebraic multigrid solvers.
+The operator-adapted wavelet (OAW) factorization of Owhadi and Scovel
+is a sparse approximate inverse for the stiffness matrices of
+second-order elliptic problems, with quasi-linear complexity and
+accuracy guarantees for $L^\infty$ coefficients.  Used as a direct
+solver, the factorization must itself meet the target accuracy, so its
+construction grows with the tolerance, every change of tolerance means
+a new construction, and the stored global objects have confined
+implementations to moderate problem sizes.  We prove that the hierarchy
+as the algorithm builds it, with recursive localization and inexact
+local solves at any radii, tolerances and depth, preconditions the
+conjugate gradient method: an explicit bound on the condition number
+holds at every configuration, a localization radius proportional to
+$\ln N$ keeps the bound independent of the problem size $N$ with a
+construction that does not depend on the tolerance~$\varepsilon$, so
+that the construction costs $N\ln^{2d+1} N$ operations against
+$N\ln^{2d+1}(N/\varepsilon)$ for the direct solve, and replacing the
+detail-level solves of the apply phase by a block-diagonal
+approximation multiplies the bound by a constant.  We restructure the
+storage of the hierarchy: sparsity patterns are computed from the mesh
+and stored without indices, the factors are built without column
+indices and narrowed after their last use, local problems are solved
+iteratively to a loose tolerance and once per translation class, and
+the detail blocks of block-diagonally approximated levels are never
+stored.  Three-dimensional diffusion and linear elasticity problems
+with more than $10^{6}$ degrees of freedom are solved on a single GPU.
+Compared with algebraic multigrid the method holds less memory and
+carries a convergence guarantee, and takes longer to build and to
+solve.
 \end{abstract}
 
 \begin{keywords}
@@ -145,34 +158,67 @@ The error in the solution obtained from this direct factorization is bounded by 
 %     decomposition for heterogeneous coefficients; hierarchical
 %     factorization lines) -- content TODO, single home per comparison.
 
-Many of these limitations are consequences of deploying the factorization as a direct approximate inverse, and while using the hierarchy as a preconditioner is noted as a possibility in~\cite{owhadi2017}, this direction is neither analyzed nor implemented there. A stored factorization with sparse-LU diagonal blocks was applied
+Many of these limitations are consequences of deploying the
+factorization as a direct approximate inverse.  Using the hierarchy as
+a preconditioner is noted as a possibility in~\cite{owhadi2017}, but
+this direction is neither analyzed nor implemented there.  A stored
+factorization with sparse-LU diagonal blocks was applied
 heuristically in~\cite{sik2025hfm} to precondition a two-dimensional
-electromagnetic model problem, but without supporting analysis or an
-implementation scaling to larger problems in three dimensions.  In this paper, we provide this missing analysis and address barriers to scalability of the OAW transform. We focus on using this factorization as a preconditioner for the conjugate gradient method, decoupling accuracy requirements from the build time and memory demands and allowing more aggressive approximation of local problems while preserving convergence guarantees. We provide explicit bounds on the condition number of the preconditioned system as a function of the problem size $N$ and the localization radius $\rho$. These bounds imply that CG convergence to arbitrary tolerance may be obtained in a number of iterations bounded independently of $N$, by taking a localization radius scaling asymptotically as $\ln \ln N$.
+electromagnetic model problem, without supporting analysis or an
+implementation scaling to larger problems in three dimensions.  This
+paper supplies the analysis and the implementation.  We prove a bound
+on the condition number of the preconditioned system for the hierarchy
+as the algorithm builds it, with recursive localization, inexact patch
+solves, any radii and any depth; read at a fixed configuration the
+bound is an explicit degradation formula with convergence guaranteed,
+and read asymptotically it shows that a radius proportional to $\ln N$
+bounds the condition number independently of $N$ while the construction
+does not depend on the tolerance.  We prove that replacing the
+detail-level solves of the apply phase by a fixed linear approximation,
+in particular by a block-diagonal approximation, multiplies the bound by
+a constant factor, and that one hierarchy preconditions a spectrally
+equivalent operator, in particular every step of a variable-step
+implicit integrator, at a factor equal to the ratio of the equivalence
+constants.  We give the construction and its storage: sparsity patterns
+computed from the mesh and stored as stencils without indices, factors
+built without column indices and narrowed after their last use,
+patch problems solved iteratively to a loose tolerance and once per
+translation class, and detail blocks that are never stored on
+block-diagonally approximated levels.  We measure cost, memory and
+iteration counts on three-dimensional diffusion and linear elasticity
+problems with more than $10^6$ degrees of freedom on a single GPU,
+their robustness across coefficient contrast, field structure and size,
+and their standing against algebraic multigrid baselines.
 
-The main technical ingredient in this result is a bound on the pairwise energy interactions of the localization errors (Lemma~\ref{lem:error_interactions}), which
-reduces the naive estimate on $\kappa$ by a factor of $\sqrt{N}$. Due to exponential decay of the basis functions for the coarse spaces, the errors in the exponential tails of the basis functions are approximately orthogonal in the energy norm, and this, combined with their exponential smallness, tightens the bound. We also show that the same factorization may precondition a \emph{perturbed} operator, and quantify the resulting increase in the iteration count. In particular, a single hierarchy may be used across every step of a variable-time-step time-stepping scheme, addressing a limitation of~\cite{owhadi_tpde} and~\cite{chen2021}. 
-
-We also present a practical algorithm to reduce demands on working memory and storage, allowing the construction to be feasible in three dimensions for more than $10^6$ degrees of freedom. 
-We first observe that the sparsity patterns of the matrices in the algorithm may be computed a-priori from the mesh geometry, allowing for the efficient allocation of memory 
-and reducing the number of matrix indices that need to be stored in memory. The storage demands of the coarsening operators may also be substantially reduced by exploiting local translation
-symmetries. Further savings may be achieved during preprocessing by solving local problems \emph{iteratively} in parallel batches and by using only the action $x \mapsto Kx$, rather than
-assembling $K$ explicitly, where possible.
+The analysis has three ingredients.  The computed basis matches its
+measurements exactly at every level, also when the patch systems are
+solved inexactly, and this makes the perturbation relating the computed
+change of basis to the exact one strictly block triangular, hence
+nilpotent, so that the condition number is bounded by a product over
+the levels of factors depending on the slot-wise norms of the
+perturbation.  Those norms are bounded by the per-level error recursion
+of Owhadi and Scovel \cite[Lemma~16.30]{Owhadi_Scovel_2019}, converted
+to relative units and extended by the error of the inexact patch
+solves.  An approximation of the block solves in the apply phase enters
+the preconditioner additively, so its effect is a constant factor at
+any depth, bounded through a Rayleigh-quotient comparison.
 
 The remainder of the paper is structured as follows.
-Section~\ref{sec:results} states the main results: the setting and
-definitions, the conditioning and cost guarantees, and the algorithms as
-implemented.  Section~\ref{sec:construction} develops the construction:
-its sparsity structure, storage scheme, and symmetry compressions.
-Section~\ref{sec:preconditioner} contains the analysis.
-Section~\ref{sec:experiments} reports experiments and scaling behavior
-for high-contrast scalar diffusion and linear elasticity on a single A100
-GPU, comparing with prior OAW implementations and AMG baselines.  In
-Section~\ref{sec:conclusions} we make some concluding remarks, indicating
-the limitations of our analysis as well as directions for future work.
-The OAW factorization is reviewed from first principles in
-Appendix~\ref{app:oaw}.
-% TODO: finalize the experiment list once experiments are regenerated.
+Section~\ref{sec:background} fixes the notation, the exact construction
+and the recursive localized construction the algorithm computes.
+Section~\ref{sec:results} states the main results: the conditioning
+theorem and its corollaries in Subsection~\ref{sec:main_bounds}, and
+the construction with its storage in Subsection~\ref{sec:implementation}.
+Section~\ref{sec:preconditioner} contains the proofs.
+Section~\ref{sec:experiments} reports the experiments: scaling with the
+problem size, memory, the build tolerance and the detail policy,
+robustness, translation classes, multigrid baselines and time-dependent
+problems, on a single A100 GPU.  Section~\ref{sec:conclusions} states
+the limitations of the analysis and the open questions.  The OAW
+factorization is reviewed from first principles in
+Appendix~\ref{app:oaw}, the one-shot remark is proved in
+Appendix~\ref{app:oneshot}, and the stability conditions are restated
+in Appendix~\ref{app:stability}.
 
 \section{Background}
 \label{sec:background}
@@ -2418,9 +2464,40 @@ at a reference step size.}
 
 \section{Conclusions}
 \label{sec:conclusions}
-% BP JOB: limitations and open questions; open questions here and nowhere
-%     else
-We have presented a construction and convergence rate bound for for a conjugate-gradient preconditioner based on operato adapted wavelets, with quasi-optimal convergence and demonstrated scalability to large three-dimensional problems beyond the capabilities of the original direct-solver algorithm. There are a number of limitations that may be worth pursuing in future work. Firstly, in our analysis the choice of measurement hierarchy is fixed a-priori, but the complexity of the algorithm does not change substantially if the coarse subspaces are selected dynamically based on the operator, which is closer to standard multigrid practice and may lead to superior convergence properties. The analysis is also restricted entirely to SPD systems, and a generalization to non-symmetric systems with distinct test and trial spaces (analogous to \cite{HauckPeterseim2021}) would close this gap. Also, the present paper is restricted to unstructured meshes and first order finite element trial spaces, and generalizing to unstructured meshes and higher-order elements would be indispensable to a production-quality implementation. Similarly, modifying the algorithm to work across multiple devices or optimizing the memory access mechanics, is a nontrivial endeavor crucial to practical adoption fo the method that we have not pursued.
+We have presented a conditioning bound and a construction for a
+conjugate-gradient preconditioner based on operator-adapted wavelets.
+The bound holds for the hierarchy as the algorithm builds it, with
+recursive localization and inexact patch solves at any radii, tolerances
+and depth, and the construction runs on three-dimensional diffusion and
+elasticity problems beyond the sizes reached by the direct use of the
+same factorization.
+
+The analysis has the following limitations.  The measurement hierarchy
+is fixed a priori; the cost of the algorithm does not change
+substantially if the coarse subspaces are selected from the operator,
+which is closer to multigrid practice and may improve convergence.  The
+analysis is restricted to symmetric positive definite systems, and a
+generalization to nonsymmetric systems with distinct test and trial
+spaces, analogous to \cite{HauckPeterseim2021}, would close this gap.
+The implementation is restricted to structured meshes and first-order
+finite element trial spaces; unstructured meshes and higher-order
+elements are needed for a production implementation.  Execution across
+several devices and the optimization of memory access have not been
+pursued.
+
+Four questions are open.  Whether the per-level error of the recursive
+construction contracts, that is, whether the amplification $\alpha/H$
+of~\eqref{eq:X_recursion} can be replaced by a factor below one, is not
+known; a contraction would transfer the radius $\ell\ln\ln N$ of the
+one-shot basis to the basis the algorithm computes.  Whether a build
+tolerance fixed independently of the depth, as in the experiments,
+keeps the condition number bounded as the depth grows is not known; the
+experiments fix the depth and cannot show growth in it.  Whether the
+radius proportional to $\ln N$ of Corollary~\ref{cor:asymptotic} is
+necessary for a bounded condition number is not known.  The inner CG
+solves of the apply phase, stopped at a tolerance, are a nonlinear map
+of the residual, and their effect on the outer iteration is measured
+but not analyzed.
 
 \section*{Acknowledgments}
 % TODO: carried from main_abridged.tex at harvest.
