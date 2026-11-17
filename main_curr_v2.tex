@@ -71,9 +71,10 @@ iteratively to a loose tolerance and once per translation class, and
 the detail blocks of block-diagonally approximated levels are never
 stored.  Three-dimensional diffusion and linear elasticity problems
 with more than $10^{6}$ degrees of freedom are solved on a single GPU.
-Compared with algebraic multigrid the method holds less memory and
-carries a convergence guarantee, and takes longer to build and to
-solve.
+Compared with GPU algebraic multigrid on the same systems, the method
+carries a convergence guarantee and converges on the elasticity systems
+where two of the three baselines fail, and it takes more iterations,
+more time and more memory than BoomerAMG.
 \end{abstract}
 
 \begin{keywords}
@@ -188,7 +189,8 @@ block-diagonally approximated levels.  We measure cost, memory and
 iteration counts on three-dimensional diffusion and linear elasticity
 problems with more than $10^6$ degrees of freedom on a single GPU,
 their robustness across coefficient contrast, field structure and size,
-and their standing against algebraic multigrid baselines.
+and their standing against algebraic multigrid baselines, which build
+and solve faster.
 
 The analysis has three ingredients.  The computed basis matches its
 measurements exactly at every level, also when the patch systems are
@@ -478,9 +480,26 @@ solved inexactly.
     energy minimizer among all functions of $\mathcal{V}^{(q)}$ with
     that data (Lemma~\ref{lem:domination}).
 \end{enumerate}
+Figure~\ref{fig:recursive_schematic} summarizes the construction.
 Iterating~\eqref{eq:computed_splitting},
 $\mathcal{V}^{(q)} = \mathcal{U}^{(1)} \oplus \mathcal{W}^{(1)}_\rho
-\oplus \cdots \oplus \mathcal{W}^{(q-1)}_\rho$.  Concatenating the
+\oplus \cdots \oplus \mathcal{W}^{(q-1)}_\rho$.
+
+\begin{figure}[t]
+\centering
+% results/paper_figs/argument_map/render_recursive_schematic.py (no data)
+\includegraphics[width=0.9\textwidth]{figures/recursive_schematic.pdf}
+\caption{The recursive construction.  At each level the exact space
+$\mathcal{V}^{(k)}$ (left) and the computed space $\mathcal{U}^{(k)}$
+(right); the finest level is exact.  Each level's patch
+problems~\eqref{eq:recursive_patch} are posed over the computed
+functions of the next finer level, and every computed function matches
+its level-$k$ data.  Theorem~\ref{prop:precond_conditioning} bounds the
+condition number of the preconditioner through the slot errors $X_k$,
+which the recursion~\eqref{eq:X_recursion} carries from the finest level
+upward.}
+\label{fig:recursive_schematic}
+\end{figure}  Concatenating the
 computed functions in the order of~\eqref{eq:combined_basis} yields the
 \emph{computed multiresolution basis} $\varphi_{\rho,i}$, and we write
 $\Phi_\rho$ for the invertible matrix whose $i$-th column holds the
@@ -1169,7 +1188,21 @@ for a wide class of problems of practical interest.
 \subsubsection{Stencil matrices}
 \label{sec:consequences:storage}
 
-The two preceding observations motivate the following data structure:
+The two preceding observations motivate the following data structure
+(Figure~\ref{fig:stencil_vs_csr}):
+
+\begin{figure}[t]
+\centering
+% results/paper_figs/stencil_fig/render_stencil_vs_csr_min.py
+\includegraphics[width=0.85\textwidth]{figures/stencil_vs_csr.pdf}
+\caption{One row of a nine-point operator in the two storage formats.
+A compressed-row format keeps a column index next to every value; the
+stencil matrix stores the values only, in the order of the slots of the
+box about the row's node, and the column of a value follows from its
+slot by~\eqref{eq:slot_map}, $\mathrm{slot}(i,j) = (y_1 - l_1)\, b_2 +
+(y_2 - l_2)$ in two dimensions.}
+\label{fig:stencil_vs_csr}
+\end{figure}
 
 \begin{definition}[Stencil matrix]\label{def:stencil_matrix}
 A \emph{stencil matrix} on a level grid is a tuple $(\sigma, c, V)$: a
@@ -2250,15 +2283,44 @@ $\tau_{\mathrm{apply}}$, or one block-diagonal scaling.
 % opens with one sentence naming the claim it substantiates.
 
 All experiments use the following configuration unless stated.  The
-domain is $[0,1]^3$ with $H = \tfrac12$.  The localization radius is listed from finest to coarsest level, e.g.\ $\rho = (3,2,2)$ means $\rho_3 = 3$, $\rho_2 = 2$, $\rho_1 = 2$. The coefficient field is a
-channelized field with correlation length $0.125$ and contrast
-$10^{5}$, represented exactly on every mesh of the sweep; the
-piecewise-constant field is a checkerboard with values $\{1, 10^{5}\}$
-and tile width $1/8$.  The diffusion operator uses this coefficient directly; the elasticity operator takes it as the Young's modulus, with $\nu = 0.3$.  Outer PCG iterates to relative residual $10^{-8}$,
-inner solves use the tolerance $10^{-6}$ fixed by
-Table~\ref{tab:inner_tol}, and coarsened matrices are thresholded at
-$10^{-8}$.  Errors are measured in the energy norm relative to reference solutions computed to $10^{-12}$.  All runs use one NVIDIA
+domain is $[0,1]^3$ with $H = \tfrac12$ and three levels.  The
+localization radii are listed from the finest patch level to the
+coarsest, so that $\rho = (3,2,2)$ means $r_{q-1} = 3$ and $r_k = 2$ at
+the coarser levels; the production radii are $(3,2,2)$ and $(4,3,3)$.
+The coefficient field is a channelized field with correlation length
+$0.125$ and contrast $10^{5}$, represented exactly on every mesh of the
+sweep; the piecewise-constant field is a checkerboard with values
+$\{1, 10^{5}\}$ and tile width $1/8$.  The diffusion operator uses this
+coefficient directly; the elasticity operator takes it as the Young's
+modulus, with $\nu = 0.3$.  Outer PCG iterates to relative residual
+$10^{-8}$; the detail solves of the apply phase use the tolerance
+$\tau_{\mathrm{apply}} = 10^{-6}$ fixed by Table~\ref{tab:inner_tol}
+unless the detail policy says otherwise; the build tolerance is
+$\tau_{\mathrm{build}} = 10^{-6}$ except in the sweep of
+Subsection~\ref{sec:exp:policy}; coarsened matrices are thresholded at
+$\theta = 10^{-8}$.  Errors are measured in the energy norm relative to
+reference solutions computed to $10^{-12}$.  All runs use one NVIDIA
 A100 with 80~GB of memory.  Details in Appendix~\ref{app:setup}.
+
+The results come from the following code configurations, named in
+each caption where a table mixes them.  The campaign of
+Subsection~\ref{sec:exp:scaling}, the baselines and the translation
+classes were run on the public implementation at commit
+\texttt{e3d461e}, with the detail blocks solved by CG on every level.
+The memory attribution compares that commit with the branches that
+release each factor after its last use (\texttt{c2b904d}), build the
+factors without column indices (\texttt{e3e38f1}), and combine the
+index-free build with the detail policy (\texttt{560a37b}).  The
+detail-policy and robustness measurements were run on the
+detail-policy branch, the build-tolerance sweep on the branch that
+exposes $\tau_{\mathrm{build}}$ (\texttt{96b8d93}), and the time-stepping
+experiment on the research implementation (\texttt{18d2b60}).
+% [VERIFY: the detail-policy branch (wt-detail-smoother) result files do
+% not record a commit; its head at the time of writing is aa7a6f5.]
+% [TABLE OF RECORD]: the flagship rerun on the final configuration
+% (tau_build = 1e-3, detail policy per problem, index-free factors)
+% replaces the campaign rows of Tables tab:flagship and tab:baselines and
+% the curves of Figures fig:iters_N and fig:scaling.
 
 \subsection{Cost and conditioning}
 \label{sec:exp:scaling}
@@ -2276,13 +2338,24 @@ All measurements of this subsection are on one problem: the channelized field of
 
 The measured iteration counts grow with the problem size: at uniform
 radius $\rho = 3$ the fitted rates are $N^{0.29}$ for diffusion and
-$N^{0.36}$ for elasticity (Figure~\ref{fig:iters_N}).  These radii lie
-below the threshold of Corollary~\ref{lem:threshold} at this decay
-length, in the regime where Theorem~\ref{prop:precond_conditioning}
-guarantees convergence at every radius but permits polynomial growth
-of the iteration count (Subsubsection~\ref{rem:consequences}).  The
-largest configuration, $2.7$ million unknowns, solves in $45$
-iterations.
+$N^{0.36}$ for elasticity (Figure~\ref{fig:iters_N}).  These radii are
+fixed across the sweep, so the recursion of
+Theorem~\ref{prop:precond_conditioning} is evaluated at a growing depth
+with fixed forcing, the regime of the third row of the table of
+Subsubsection~\ref{rem:consequences}, in which convergence is guaranteed
+and the bound permits polynomial growth of the iteration count.  The
+largest configuration, $2.7$ million unknowns, solves in $57$
+iterations at $\rho = (3,2,2)$ (Table~\ref{tab:flagship}).
+% [TABLE OF RECORD]: the fitted exponents above are from the uniform
+% radius-3 campaign series; the ladder series gives 10/20/31/41
+% (diffusion) and 16/35/57 (elasticity) iterations across the sweep.
+The iteration count is a function of the problem size alone, not of the
+path by which the size is reached: a hierarchy with a fixed coarsest
+mesh ($cr = 4$) and $q = 3, 4, 5$ levels takes $10$, $20$ and $41$
+iterations for diffusion and $16$ and $35$ for elasticity at $q = 3, 4$,
+the same counts as the three-level hierarchies of the same sizes in
+Figure~\ref{fig:iters_N}; these depths are too few to show growth in
+the depth at fixed~$N$.
 
 \begin{figure}[t]
 \centering
@@ -2383,31 +2456,181 @@ the tolerance used in all other experiments is fixed from this table.}
 \end{table}
 
 
+\subsection{Memory}
+\label{sec:exp:memory}
+
+Figure~\ref{fig:mem_bars} attributes the stored and the peak device
+memory of the two largest configurations to the storage devices of
+Subsection~\ref{sec:implementation}.  In the campaign configuration the
+stored hierarchy is $6.0$~GB for diffusion at $N = 2{,}146{,}689$ and
+$14.8$~GB for elasticity at $N = 2{,}738{,}019$, of which the detail
+blocks hold $4.0$ and $7.1$~GB and the factors $2.0$ and $7.6$~GB; the
+build peaks at $29.1$ and $39.9$~GB.  Releasing each factor after its
+last use leaves the diffusion peak unchanged, which falls at the patch
+solves of the finest level, and lowers the elasticity peak to
+$36.3$~GB.  Building the factors without column indices lowers the
+peaks to $26.3$ and $30.6$~GB and shortens the build by $12\%$ and
+$19\%$, with identical iteration counts.  The block-diagonal detail
+policy removes the stored detail blocks: the stored hierarchy falls to
+$2.1$ and $7.7$~GB, and the diffusion peak to $18.0$~GB, while the
+elasticity peak stays at $30.6$~GB.  Keeping the finest factor in
+single precision with grid-computed column indices reduces the stored
+hierarchy by $0.6$ and $0.4$~GB and, with the early release, the peaks
+to $19.6$ and $28.3$~GB, at unchanged iteration counts.
+
+\begin{figure}[t]
+\centering
+% results/paper_figs/memory/render_mem_bars_paper.py from mem_attrib.json
+% (main e3d461e), mem_attrib_branch.json (c2b904d), mem_attrib_vonly.json
+% (e3e38f1), smoother/combined_flagship.json (560a37b),
+% mem_attrib_typed_branch.json (c2b904d, typed storage)
+\includegraphics[width=\textwidth]{figures/mem_bars.pdf}
+\caption{Stored and peak device memory before and after each storage
+change, diffusion at $N = 2{,}146{,}689$ and elasticity at
+$N = 2{,}738{,}019$, $\rho = (3,2,2)$.  Arms from left to right: the
+campaign configuration (\texttt{e3d461e}); factors released after their
+last use (\texttt{c2b904d}); factors built without column indices
+(\texttt{e3e38f1}); the index-free build with the block-diagonal detail
+policy on every level (\texttt{560a37b}); the early release with the
+finest factor in single precision and grid-computed column indices
+(\texttt{c2b904d}).  Stored is the hierarchy kept after the build; peak
+is the whole-run allocator peak.}
+\label{fig:mem_bars}
+\end{figure}
+
+\subsection{Build tolerance and detail policy}
+\label{sec:exp:policy}
+
+The build tolerance sets the cost of the patch solves and, through the
+last term of~\eqref{eq:X_recursion}, the quality of the hierarchy.
+Figure~\ref{fig:build_tol} reports the build time, its patch-solve part,
+and the outer iteration count as $\tau_{\mathrm{build}}$ is loosened
+from $10^{-6}$ to $10^{-2}$.  For diffusion at $N = 912{,}673$ the patch
+solves fall from $7.3$ to $3.7$~s and the build from $11.1$ to $7.4$~s,
+and the outer iteration count stays at $31$ at every tolerance; for
+elasticity at $N = 823{,}875$ the patch solves fall from $21.8$ to
+$8.0$~s and the build from $55.2$ to $41.3$~s, and the count stays at
+$35$ down to $10^{-5}$, $10^{-4}$ and $10^{-3}$ and rises to $39$ at
+$10^{-2}$.  The operating point $\tau_{\mathrm{build}} = 10^{-3}$ keeps
+the iteration count of the tight build in both cases.
+
+\begin{figure}[t]
+\centering
+% results/paper_figs/build_tol/render_build_tol.py from measure.jsonl
+% (branch 96b8d93; budget 10 GB; the default arm plotted at 1e-6 with an
+% open marker)
+\includegraphics[width=\textwidth]{figures/build_tol.pdf}
+\caption{Build time with its patch-solve part, and outer PCG iterations,
+as functions of the build tolerance $\tau_{\mathrm{build}}$; diffusion
+at $N = 912{,}673$ and elasticity at $N = 823{,}875$, $\rho = (3,2,2)$.
+The circled points are the code default.}
+\label{fig:build_tol}
+\end{figure}
+
+The detail policy sets the cost of one application and the stored
+hierarchy.  Table~\ref{tab:policy} compares four policies at the middle
+sizes: CG detail solves to $10^{-6}$, CG detail solves to $10^{-1}$,
+the block-diagonal approximation on every detail level with
+$\omega = 1$, and the mixed policy, which solves the coarsest detail
+level and applies the block-diagonal approximation at the finer ones.
+For diffusion the block-diagonal policy takes $70$ iterations against
+$31$, applies in $6$~ms against $94$, solves in $2.7$~s against
+$3.8$, and stores $0.85$~GB against $2.39$, the detail blocks never
+being extracted; the loose CG solve takes $43$ iterations and $2.5$~s
+at the full storage.  For elasticity the block-diagonal policy takes
+$171$ iterations against $57$ at the same solve time, $36.6$~s against
+$36.1$, and stores $7.7$~GB against $14.8$; the loose CG solve is the
+fastest at $19.4$~s and $64$ iterations with the full storage, and the
+mixed policy sits between, $103$ iterations, $28.7$~s and $8.5$~GB.
+The weight $\omega$ moves the block-diagonal counts by at most $12$
+iterations over $\omega \in [0.4, 2]$, with the minimum at
+$\omega = 0.8$ for diffusion and $0.6$ for elasticity.  The iteration
+ratios between the block-diagonal and the tight-solve policies, $2.3$
+for diffusion and $3.0$ for elasticity at these sizes, are the measured
+counterpart of the factor $F$ of Corollary~\ref{cor:apply_factor}.
+
+\begin{table}[t]
+\centering
+% results/paper_figs/smoother/render_policy_table.py from
+% smoother_sweep.json (detail-policy branch; symmetric_half=None)
+\input{figures/policy_table}
+\caption{The detail policies at the middle sizes, $\rho = (3,2,2)$,
+outer tolerance $10^{-8}$.  Policy labels in the result files: cg,
+jacobi / block\_jacobi, mixed.}
+\label{tab:policy}
+\end{table}
+
+\subsection{Robustness}
+\label{sec:exp:robustness}
+
+Figure~\ref{fig:robustness} reports the outer iteration counts of the
+four policies as the problem size, the coefficient contrast and the
+field structure vary.  Across the contrasts $10$, $10^{3}$ and $10^{5}$
+at fixed size, the counts move by at most $4$ iterations for the CG
+policies and $7$ for the block-diagonal and mixed policies for diffusion, and by at
+most $8$ and $19$ for elasticity; every arm converges.  With the size,
+the counts of the four policies grow together: from $N = 35{,}937$ to
+$2{,}146{,}689$ the diffusion counts go from $10$ to $41$ (tight solve)
+and from $38$ to $90$ (block-diagonal), and from $N = 107{,}811$ to
+$2{,}738{,}019$ the elasticity counts from $16$ to $57$ and from $65$ to
+$171$.  On the checkerboard field the diffusion counts are $15$, $24$,
+$43$ and $32$ for the four policies, and on the layered elasticity
+field (the sandwich field of Table~\ref{tab:classes}) $15$, $22$, $61$
+and $29$, below the channelized counts at the same size.
+
+\begin{figure}[t]
+\centering
+% results/paper_figs/smoother/render_robustness.py from
+% robustness_{diffusion,elasticity}.jsonl (detail-policy branch)
+\includegraphics[width=\textwidth]{figures/robustness.pdf}
+\caption{Outer PCG iterations per detail policy as a function of the
+problem size (channelized field, contrast $10^{5}$) and of the contrast
+(channelized field; diffusion at $N = 912{,}673$, elasticity at
+$N = 823{,}875$), $\rho = (3,2,2)$, outer tolerance $10^{-8}$.}
+\label{fig:robustness}
+\end{figure}
+
 \subsection{Comparison with multigrid baselines}
-\begin{itemize}
-  \item Claim substantiated: the introduction's comparison with algebraic
-    multigrid on high-contrast fields.
-    \item Design: GPU algebraic multigrid baselines (GAMG, BoomerAMG) on
-    the same fields, same hardware, same tolerances: setup time, solve
-    time, iterations, memory; CPU pyAMG rows report iterations and
-    convergence only; prior OAW implementations enter as cited
-    published numbers, not reruns.
-  \item Reading: iteration counts on par with BoomerAMG, and robustness
-    exceeding GAMG and pyAMG, which fail on the large elasticity
-    systems; setup and solve wall-clock favor the production AMG codes,
-    conceded plainly; the amortization argument compares the
-    preconditioner with the direct use of the same factorization
-    (Section~\ref{sec:main_bounds}), not with multigrid.
-\end{itemize}
+\label{sec:exp:baselines}
+
+Table~\ref{tab:baselines} compares the preconditioner with two GPU
+algebraic multigrid solvers, GAMG and BoomerAMG, on the same systems,
+hardware and tolerance, and with two CPU solvers from pyAMG for which
+only iteration counts are recorded.  On the diffusion systems every
+solver converges; the preconditioner takes $41$ iterations at
+$N = 2{,}146{,}689$ against $16$ for GAMG and $19$ for BoomerAMG, its
+build takes $31.6$~s against $3.9$ and $1.7$~s, and its solve $11.2$~s
+against $0.08$ and $0.09$~s.  On the elasticity systems GAMG fails in
+its setup at $N \geq 2{,}738{,}019$ and converges only in the
+preconditioned norm at the smallest size, pyAMG's Ruge--St\"uben variant
+fails at $N \geq 823{,}875$, and its smoothed-aggregation variant takes
+$173$ iterations at $N = 2{,}738{,}019$ and does not converge in $200$
+at the next size; the preconditioner and BoomerAMG converge at every
+size run, $57$ against $39$ iterations at $N = 2{,}738{,}019$, with
+builds of $230.9$ against $5.8$~s and solves of $36.2$ against $0.5$~s.
+The memory column of the table is the device peak of each solver; the
+preconditioner's peak is the build peak of
+Subsection~\ref{sec:exp:memory}, and its stored hierarchy after the
+build is $6.0$~GB for diffusion and $14.8$~GB for elasticity at these
+sizes, against $4.2$ and $12.0$~GB for BoomerAMG.
+% [VERIFY: the definition of the memory column of the AMG rows in
+% baselines.json (mem_gb; peak_mem_gb is absent for GAMG rows).]
+The preconditioner carries the guarantee of
+Theorem~\ref{prop:precond_conditioning}; the multigrid solvers are
+faster to build and to apply on every system on which they converge.
+The amortization argument of Subsection~\ref{sec:main_bounds} compares
+the preconditioner with the direct use of the same factorization, not
+with multigrid.
 % Baseline environments: GAMG-GPU; BoomerAMG via the from-source
 % pdes-hypre-gpu environment (conda hypre is CPU-only).
 \begin{table}[t]
 \centering
-% PLACEHOLDER render: uniform-radius gamblet rows (2026-11-02); ladder
-% rerun + pyAMG rows pending.
+% [TABLE OF RECORD]: gamblet rows from the ladder campaign (e3d461e);
+% the final-configuration rerun replaces them.
 \input{figures/baselines}
-\caption{Comparison with GPU algebraic multigrid baselines and published
-OAW implementations.}
+\caption{Outer iterations of the preconditioner (\texttt{e3d461e},
+$\rho = (3,2,2)$) and of the multigrid baselines on the same systems;
+setup and solve times are given in the text.}
 \label{tab:baselines}
 \end{table}
 
@@ -2437,28 +2660,33 @@ identity class map.}
 \end{table}
 
 \subsection{Time-dependent problems}
-\begin{itemize}
-    \item Claim substantiated: Theorem~\ref{thm:perturbed_system} and the
-    introduction's time-stepping claim: a hierarchy built once
-    preconditions every step of a variable-step scheme.
-  \item Design: implicit time stepping of a parabolic problem on the
-    canonical field; the hierarchy is built for the operator at one
-    reference step size and reused unchanged while the step size varies
-    over several orders of magnitude; outer iterations per linear solve
-    recorded, no rebuilds.
-    \item Reading: iterations as a function of the ratio of the step size
-    to the reference, with both wings of the measured V inside the
-    $\sqrt{\max\{\tau/\tau_0,\,\tau_0/\tau\}}$ envelope of
-    Theorem~\ref{thm:perturbed_system}; the cost of the avoided
-    per-step rebuilds is read from the build column of the scaling
-    subsection.
-\end{itemize}
+\label{sec:exp:timestep}
+
+Theorem~\ref{thm:perturbed_system} licenses one hierarchy for every step
+of a variable-step scheme.  Figure~\ref{fig:timestep} reports the outer
+iterations per linear solve for the parabolic problem
+$M\dot{u} + Ku = f$ on the channelized field, with the hierarchy built
+once for $A(\tau_0) = M + \tau_0 K$ at $\tau_0 = h^2$ and reused unchanged
+while the step coefficient $\tau$ varies over four orders of magnitude,
+at $N = 274{,}625$ and $N = 912{,}673$.  At $\tau = \tau_0$ the counts are
+$19$ and $28$; at $\tau/\tau_0 = 100$ they are $58$ and $83$, and at
+$\tau/\tau_0 = 10^{-2}$ they are $135$ and $181$.  The bound of
+Theorem~\ref{thm:perturbed_system} multiplies the condition number by at
+most $\max\{\tau/\tau_0, \tau_0/\tau\}$, hence the iteration bound by at
+most its square root, $10$ at both ends of the range; the measured
+ratios are $3.1$ and $3.0$ at $\tau/\tau_0 = 100$ and $7.1$ and $6.5$ at
+$10^{-2}$.  No rebuild occurs; the build of the hierarchy costs $4.6$ and
+$17.2$~s once.
+
 \begin{figure}[t]
 \centering
-% PLACEHOLDER render: uniform rho=3 (2026-11-02); ladder rerun pending.
-\includegraphics[width=0.8\textwidth]{figures/timestep.pdf}
-\caption{Iteration counts across time steps for a hierarchy built once
-at a reference step size.}
+% results/paper_figs/timestep/render_timestep.py from timestep_ladder.json
+% (research implementation 18d2b60, CombinedOperator M + tau K)
+\includegraphics[width=0.75\textwidth]{figures/timestep_ladder.pdf}
+\caption{Outer PCG iterations per linear solve as a function of the
+step-size ratio $\tau/\tau_0$, for a hierarchy built once at
+$\tau_0 = h^2$; diffusion on the channelized field, $\rho = (3,2,2)$,
+$N = 274{,}625$ and $N = 912{,}673$.}
 \label{fig:timestep}
 \end{figure}
 
