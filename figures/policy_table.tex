@@ -6,12 +6,12 @@ problem & detail policy & iterations & solve (s) & apply (ms) & stored (GB) & bl
 \midrule
 diffusion, $N = 912{,}673$ & solve, $\tau_{\mathrm{apply}}=10^{-6}$ & 31 & 3.8 & 94 & 2.39 & 0.00 \\
  & solve, $\tau_{\mathrm{apply}}=10^{-1}$ & 43 & 2.5 & 18 & 2.39 & 0.00 \\
- & block-diagonal, all levels & 70 & 2.7 & 6 & 0.85 & 1.53 \\
+ & block-Jacobi, all levels & 70 & 2.7 & 6 & 0.85 & 1.53 \\
  & mixed & 57 & 2.8 & 16 & 1.05 & 1.34 \\
 \midrule
 elasticity, $N = 2{,}738{,}019$ & solve, $\tau_{\mathrm{apply}}=10^{-6}$ & 57 & 36.1 & 490 & 14.77 & 0.00 \\
  & solve, $\tau_{\mathrm{apply}}=10^{-1}$ & 64 & 19.4 & 111 & 14.77 & 0.00 \\
- & block-diagonal, all levels & 171 & 36.6 & 55 & 7.67 & 7.10 \\
+ & block-Jacobi, all levels & 171 & 36.6 & 55 & 7.67 & 7.10 \\
  & mixed & 103 & 28.7 & 122 & 8.47 & 6.30 \\
 \bottomrule
 \end{tabular}

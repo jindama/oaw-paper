@@ -62,19 +62,21 @@ $\ln N$ keeps the bound independent of the problem size $N$ with a
 construction that does not depend on the tolerance~$\varepsilon$, so
 that the construction costs $N\ln^{2d+1} N$ operations against
 $N\ln^{2d+1}(N/\varepsilon)$ for the direct solve, and replacing the
-detail-level solves of the apply phase by a block-diagonal
-approximation multiplies the bound by a constant.  We restructure the
+detail-level solves of the apply phase by block-Jacobi scaling
+multiplies the bound by a constant.  We restructure the
 storage of the hierarchy: sparsity patterns are computed from the mesh
 and stored without indices, the factors are built without column
 indices and narrowed after their last use, local problems are solved
 iteratively to a loose tolerance and once per translation class, and
-the detail blocks of block-diagonally approximated levels are never
+the detail blocks of levels treated by block-Jacobi scaling are never
 stored.  Three-dimensional diffusion and linear elasticity problems
 with more than $10^{6}$ degrees of freedom are solved on a single GPU.
 Compared with GPU algebraic multigrid on the same systems, the method
-carries a convergence guarantee and converges on the elasticity systems
-where two of the three baselines fail, and it takes more iterations,
-more time and more memory than BoomerAMG.
+carries a convergence guarantee, converges on the elasticity systems
+where two of the three baselines fail, and with block-Jacobi detail
+levels holds a smaller stored hierarchy than the device memory in use
+by BoomerAMG after its solve; it takes more iterations, more time, and
+a higher build peak.
 \end{abstract}
 
 \begin{keywords}
@@ -176,7 +178,7 @@ and read asymptotically it shows that a radius proportional to $\ln N$
 bounds the condition number independently of $N$ while the construction
 does not depend on the tolerance.  We prove that replacing the
 detail-level solves of the apply phase by a fixed linear approximation,
-in particular by a block-diagonal approximation, multiplies the bound by
+in particular by block-Jacobi (diagonal) scaling, multiplies the bound by
 a constant factor, and that one hierarchy preconditions a spectrally
 equivalent operator, in particular every step of a variable-step
 implicit integrator, at a factor equal to the ratio of the equivalence
@@ -185,7 +187,7 @@ computed from the mesh and stored as stencils without indices, factors
 built without column indices and narrowed after their last use,
 patch problems solved iteratively to a loose tolerance and once per
 translation class, and detail blocks that are never stored on
-block-diagonally approximated levels.  We measure cost, memory and
+levels treated by block-Jacobi scaling.  We measure cost, memory and
 iteration counts on three-dimensional diffusion and linear elasticity
 problems with more than $10^6$ degrees of freedom on a single GPU,
 their robustness across coefficient contrast, field structure and size,
@@ -850,11 +852,10 @@ In particular:
     $F \leq (1+\delta_s)/(1-\delta_s)$ with
     $\delta_s := 2\bigl((\sqrt{\kappa_B}-1)/(\sqrt{\kappa_B}+1)\bigr)^{s}$,
     whenever $\delta_s < 1$;
-  \item[(iii)] the \emph{block-diagonal approximation of the detail
-    solves}, $S_k = \omega \operatorname{diag}(B^{(k)}_\rho)^{-1}$ with a
-    weight $\omega > 0$, which replaces the solve $B^{(k)}_\rho c = w$ by
-    the scaling $c_i = \omega\, (B^{(k)}_\rho)_{ii}^{-1} w_i$ applied once
-    from zero with no action of $B^{(k)}_\rho$, gives, with
+  \item[(iii)] \emph{Jacobi scaling of the detail levels},
+    $S_k = \omega \operatorname{diag}(B^{(k)}_\rho)^{-1}$ with a weight
+    $\omega > 0$, which replaces the solve $B^{(k)}_\rho c = w$ by
+    $c_i = \omega\, (B^{(k)}_\rho)_{ii}^{-1} w_i$, gives, with
     $\widehat{S}_k := \operatorname{diag}(B^{(k)}_\rho)^{-1/2}
     B^{(k)}_\rho \operatorname{diag}(B^{(k)}_\rho)^{-1/2}$ and for every
     $\omega$,
@@ -872,7 +873,7 @@ In particular:
     on the constants of Appendix~\ref{app:stability}.
 \end{enumerate}
 For vector-valued problems with $p$ components per node, the
-block-diagonal approximation with the $p \times p$ diagonal blocks,
+block-Jacobi scaling with the nodal $p \times p$ diagonal blocks,
 $c_I = \omega\, (B^{(k)}_\rho)_{II}^{-1} w_I$, satisfies
 \eqref{eq:jacobi_factor} with $C_{\mathrm{dec}}$ replaced by
 $p\,C_{\mathrm{dec}}$ and the error term multiplied by
@@ -884,9 +885,14 @@ the preconditioner additively through the block-diagonal $D_\rho^{-1}$,
 so an approximation made in the apply multiplies the bound once,
 whereas an inexact patch solve in the build enters the next level's
 problem and propagates through the recursion~\eqref{eq:X_recursion}.
-The block-diagonal approximation of (iii) coincides with a single
-block-Jacobi iteration from a zero initial guess, which is why it needs
-no stored block; the weight $\omega$ scales both extreme eigenvalues of
+The scaling of (iii) is one (block) Jacobi smoothing step from a zero
+initial guess; it uses only the diagonal (blocks) of $B^{(k)}_\rho$, so
+no detail block needs to be stored.  In the subspace-correction
+framework~\cite{xu1992iterative}, \eqref{eq:preconditioner} is an
+additive multilevel preconditioner, Corollary~\ref{cor:apply_factor}
+is the standard comparison for inexact subspace solvers, and (iii) is
+the diagonal-scaling level solve of the BPX preconditioner, here applied
+on the computed detail spaces. the weight $\omega$ scales both extreme eigenvalues of
 $S_k B^{(k)}_\rho$ and leaves $F$ unchanged.  The bound in (iii) has two
 parts.  The support count $m_k$ is $\lesssim r^d$ for a common
 radius~$r$ (Lemma~\ref{lem:support}), so without the error term the
@@ -1007,7 +1013,7 @@ radius and the depth (Lemma~\ref{lem:oneshot_rowsum}).
 \textbf{Input:} quadrature access to $a(\cdot,\cdot)$ on the fine mesh;
 nesting maps $\{C^{(k)}\}$; detail maps $\{D^{(k)}\}$; radii
 $\{r_k\}$; build tolerance $\tau_{\mathrm{build}}$; detail policy
-per level (solve or block-diagonal); batch size~$m$\\[4pt]
+per level (solve or block-Jacobi); batch size~$m$\\[4pt]
 \textbf{for} $k = q-1, q-2, \ldots, 1$ \textbf{do}
 \begin{enumerate}
   \item[1.] Enumerate the level-$k$ sparsity patterns and the patch
@@ -1016,7 +1022,7 @@ per level (solve or block-diagonal); batch size~$m$\\[4pt]
   \item[2.] If the level-$(k{+}1)$ policy is solve:
     $B^{(k+1)}_\rho \gets D^{(k)}\,A^{(k+1)}\,D^{(k)\top}$ at the
     precomputed positions ($A^{(q)} = K$, applied by quadrature).  If it
-    is block-diagonal: extract only the diagonal of $B^{(k+1)}_\rho$ (the
+    is block-Jacobi: extract only the diagonal of $B^{(k+1)}_\rho$ (the
     $p \times p$ diagonal blocks for vector-valued problems).
   \item[3.] \textbf{for} batches of $m$ nodes, one representative
     per translation class, \textbf{do}: gather the patch system
@@ -1032,7 +1038,7 @@ per level (solve or block-diagonal); batch size~$m$\\[4pt]
   \item[6.] Narrow $R^{(k)}$ to its stored form.
 \end{enumerate}
 \textbf{end for.}  \textbf{Output:} values of $\{R^{(k)}\}$; for each
-level, $B^{(k)}_\rho$ (solve) or its diagonal (block-diagonal); $A^{(1)}$.
+level, $B^{(k)}_\rho$ (solve) or its diagonal (block-Jacobi); $A^{(1)}$.
 \end{algorithm}
 
 \begin{algorithm}[t]
@@ -1049,7 +1055,7 @@ per level; apply tolerance $\tau_{\mathrm{apply}}$\\[4pt]
     relative residual tolerance~$\tau_{\mathrm{apply}}$.  Detail
     levels, for $1 \leq k \leq q-1$: if the policy is solve,
     $B^{(k+1)}_\rho\, c^{(k+1)} = w^{(k+1)}$ by CG to relative residual
-    tolerance~$\tau_{\mathrm{apply}}$; if it is block-diagonal,
+    tolerance~$\tau_{\mathrm{apply}}$; if it is block-Jacobi,
     $c^{(k+1)} \gets \omega \operatorname{diag}(B^{(k+1)}_\rho)^{-1} w^{(k+1)}$
     (the $p \times p$ diagonal blocks for vector-valued problems).
   \item[3.] Ascent: $t^{(1)} \gets c^{(1)}$; \textbf{for}
@@ -1077,12 +1083,12 @@ from~\eqref{eq:localized_detail_basis}.  The build algorithm computes
 the factors $R^{(k)}$ and the blocks $B^{(k)}_\rho$ level by level
 (Algorithm~\ref{alg:impl_build}); the application
 of~\eqref{eq:preconditioner} consists of restrictions by the factors,
-one block solve or block-diagonal scaling per level, and prolongations by the
+one block solve or block-Jacobi scaling per level, and prolongations by the
 transposes (Algorithm~\ref{alg:impl_apply}).  The patch systems are
 solved iteratively to the relative residual tolerance
 $\tau_{\mathrm{build}}$ in parallel batches of size~$m$, and the block
 systems of the apply either by CG to the tolerance
-$\tau_{\mathrm{apply}}$ or by the block-diagonal approximation of Corollary~\ref{cor:apply_factor}(iii), as the per-level detail
+$\tau_{\mathrm{apply}}$ or by the block-Jacobi scaling of Corollary~\ref{cor:apply_factor}(iii), as the per-level detail
 policy prescribes.  The recursion is similar to that of Budninskiy et
 al.~\cite{budni2019}, though without storage of some intermediate
 objects.
@@ -1319,14 +1325,14 @@ before and after this change.
 
 The detail policy assigns to every detail level one of two treatments
 of its block in Algorithm~\ref{alg:impl_apply}: a CG solve to the
-tolerance $\tau_{\mathrm{apply}}$, or the block-diagonal approximation
+tolerance $\tau_{\mathrm{apply}}$, or the block-Jacobi scaling
 $c_i = \omega (B^{(k+1)}_\rho)_{ii}^{-1} w_i$ of
 Corollary~\ref{cor:apply_factor}(iii), which the corollary licenses at
 a constant factor in the condition number.  The policy also decides what the
 build stores.  On a level whose policy is solve, step~2 extracts the
 block $B^{(k+1)}_\rho$ from $A^{(k+1)}$ at its precomputed positions and
 stores one triangle of it, $\lesssim r_k^d$ values per detail degree of
-freedom.  On a level whose policy is block-diagonal, the block is never
+freedom.  On a level whose policy is block-Jacobi, the block is never
 extracted as a whole: step~2 computes only its diagonal, one value per
 detail degree of freedom for scalar problems and one $p \times p$ block
 for vector-valued ones, and the patch systems of step~3 are gathered
@@ -1334,7 +1340,7 @@ directly from $A^{(k+1)}$.  The stored detail block of such a level,
 and the mirror indices that a symmetric half-stored block carries,
 leave the resident footprint.  The policy may differ between levels;
 the \emph{mixed} policy of Section~\ref{sec:experiments} solves the
-coarsest detail levels and applies the block-diagonal approximation at the finest.
+coarsest detail levels and applies block-Jacobi scaling at the finest.
 
 \subsubsection{Fidelity and cost}
 \label{sec:consequences:apply}
@@ -1400,14 +1406,14 @@ $\lesssim m\rho^{2d}$ for the patch systems and $\lesssim N H^{d}\rho^{d}$
 for the transient coarsened operators.  The output holds
 $\lesssim \sum_k n_k r_k^d$ values for the factors, $\lesssim n_{k+1} r_k^d$
 values for the block of each level with the solve policy, and
-$n_{k+1} p^2$ values for the diagonal of each level with the block-diagonal
+$n_{k+1} p^2$ values for the diagonal of each level with the block-Jacobi
 policy, in total $\lesssim N\rho^d$.  One application of
 Algorithm~\ref{alg:impl_apply} performs $\lesssim N\rho^d$ operations
 for the factor products, plus, per detail level,
 $\lesssim n_{k+1} r_k^d\, \iota'_k$ operations under the solve policy,
 with $\iota'_k \leq \tfrac12 \sqrt{\kappa_{k}}
 \ln(2\sqrt{\kappa_{k}}/\tau_{\mathrm{apply}})$, and $n_{k+1} p^2$
-operations under the block-diagonal policy.
+operations under the block-Jacobi policy.
 \end{proposition}
 
 %Dense factorization of the patch systems costs $\mathcal{O}(\rho^{3d})$
@@ -2072,7 +2078,7 @@ by~\eqref{eq:block_conditioning} and
 $C_{\mathrm{dec}}$ through the ball growth and the bounded number of
 details per parent of \cite[Cond.~16.22]{Owhadi_Scovel_2019}, as in the
 proof of Lemma~\ref{lem:per_function}.  The remaining terms contribute
-at most $m_k (2 e_{k-1} + e_{k-1}^2)$.  For the block-diagonal approximation with
+at most $m_k (2 e_{k-1} + e_{k-1}^2)$.  For block-Jacobi scaling with
 $p \times p$ diagonal blocks $\Lambda_{II}$, the same argument applies
 to $\widehat{S}_k = \Lambda^{-1/2} B^{(k)}_\rho \Lambda^{-1/2}$ with the
 block Schur bound $\|\widehat{S}_k\|_2 \leq \max_I \sum_J \|\widehat{S}_{k,IJ}\|_2$,
@@ -2274,7 +2280,7 @@ One application is two factor products at $\lesssim N\rho^d$
 operations, and per detail level either a CG solve on
 $\lesssim n_{k+1} r_k^d$ nonzeros with the iteration bound of
 Corollary~\ref{thm:localized_block_conditioning} at the tolerance
-$\tau_{\mathrm{apply}}$, or one block-diagonal scaling.
+$\tau_{\mathrm{apply}}$, or one block-Jacobi scaling.
 \end{proof}
 
 
@@ -2476,7 +2482,7 @@ last use leaves the diffusion peak unchanged, which falls at the patch
 solves of the finest level, and lowers the elasticity peak to
 $36.3$~GB.  Building the factors without column indices lowers the
 peaks to $26.3$ and $30.6$~GB and shortens the build by $12\%$ and
-$19\%$, with identical iteration counts.  The block-diagonal detail
+$19\%$, with identical iteration counts.  The block-Jacobi detail
 policy removes the stored detail blocks: the stored hierarchy falls to
 $2.1$ and $7.7$~GB, and the diffusion peak to $18.0$~GB, while the
 elasticity peak stays at $30.6$~GB.  Keeping the finest factor in
@@ -2496,7 +2502,7 @@ change, diffusion at $N = 2{,}146{,}689$ and elasticity at
 $N = 2{,}738{,}019$, $\rho = (3,2,2)$.  Arms from left to right: the
 campaign configuration (\texttt{e3d461e}); factors released after their
 last use (\texttt{c2b904d}); factors built without column indices
-(\texttt{e3e38f1}); the index-free build with the block-diagonal detail
+(\texttt{e3e38f1}); the index-free build with the block-Jacobi detail
 policy on every level (\texttt{560a37b}); the early release with the
 finest factor in single precision and grid-computed column indices
 (\texttt{c2b904d}).  Stored is the hierarchy kept after the build; peak
@@ -2536,22 +2542,22 @@ The circled points are the code default.}
 The detail policy sets the cost of one application and the stored
 hierarchy.  Table~\ref{tab:policy} compares four policies at the middle
 sizes: CG detail solves to $10^{-6}$, CG detail solves to $10^{-1}$,
-the block-diagonal approximation on every detail level with
+block-Jacobi scaling on every detail level with
 $\omega = 1$, and the mixed policy, which solves the coarsest detail
-level and applies the block-diagonal approximation at the finer ones.
-For diffusion the block-diagonal policy takes $70$ iterations against
+level and applies block-Jacobi scaling at the finer ones.
+For diffusion the block-Jacobi policy takes $70$ iterations against
 $31$, applies in $6$~ms against $94$, solves in $2.7$~s against
 $3.8$, and stores $0.85$~GB against $2.39$, the detail blocks never
 being extracted; the loose CG solve takes $43$ iterations and $2.5$~s
-at the full storage.  For elasticity the block-diagonal policy takes
+at the full storage.  For elasticity the block-Jacobi policy takes
 $171$ iterations against $57$ at the same solve time, $36.6$~s against
 $36.1$, and stores $7.7$~GB against $14.8$; the loose CG solve is the
 fastest at $19.4$~s and $64$ iterations with the full storage, and the
 mixed policy sits between, $103$ iterations, $28.7$~s and $8.5$~GB.
-The weight $\omega$ moves the block-diagonal counts by at most $12$
+The weight $\omega$ moves the block-Jacobi counts by at most $12$
 iterations over $\omega \in [0.4, 2]$, with the minimum at
 $\omega = 0.8$ for diffusion and $0.6$ for elasticity.  The iteration
-ratios between the block-diagonal and the tight-solve policies, $2.3$
+ratios between the block-Jacobi and the tight-solve policies, $2.3$
 for diffusion and $3.0$ for elasticity at these sizes, are the measured
 counterpart of the factor $F$ of Corollary~\ref{cor:apply_factor}.
 
@@ -2573,11 +2579,11 @@ Figure~\ref{fig:robustness} reports the outer iteration counts of the
 four policies as the problem size, the coefficient contrast and the
 field structure vary.  Across the contrasts $10$, $10^{3}$ and $10^{5}$
 at fixed size, the counts move by at most $4$ iterations for the CG
-policies and $7$ for the block-diagonal and mixed policies for diffusion, and by at
+policies and $7$ for the block-Jacobi and mixed policies for diffusion, and by at
 most $8$ and $19$ for elasticity; every arm converges.  With the size,
 the counts of the four policies grow together: from $N = 35{,}937$ to
 $2{,}146{,}689$ the diffusion counts go from $10$ to $41$ (tight solve)
-and from $38$ to $90$ (block-diagonal), and from $N = 107{,}811$ to
+and from $38$ to $90$ (block-Jacobi), and from $N = 107{,}811$ to
 $2{,}738{,}019$ the elasticity counts from $16$ to $57$ and from $65$ to
 $171$.  On the checkerboard field the diffusion counts are $15$, $24$,
 $43$ and $32$ for the four policies, and on the layered elasticity
@@ -2614,13 +2620,32 @@ $173$ iterations at $N = 2{,}738{,}019$ and does not converge in $200$
 at the next size; the preconditioner and BoomerAMG converge at every
 size run, $57$ against $39$ iterations at $N = 2{,}738{,}019$, with
 builds of $230.9$ against $5.8$~s and solves of $36.2$ against $0.5$~s.
-The memory column of the table is the device peak of each solver; the
-preconditioner's peak is the build peak of
-Subsection~\ref{sec:exp:memory}, and its stored hierarchy after the
-build is $6.0$~GB for diffusion and $14.8$~GB for elasticity at these
-sizes, against $4.2$ and $12.0$~GB for BoomerAMG.
-% [VERIFY: the definition of the memory column of the AMG rows in
-% baselines.json (mem_gb; peak_mem_gb is absent for GAMG rows).]
+The memory figure recorded for the multigrid runs is the device
+memory in use, total minus free as reported by \texttt{cudaMemGetInfo},
+read once after the solve: it includes the CUDA and PETSc contexts, the
+assembled matrix and the Krylov vectors besides the multigrid
+hierarchy, and is neither a peak nor a count of the hierarchy alone.
+For BoomerAMG it is $4.2$~GB for diffusion at $N = 2{,}146{,}689$ and
+$12.0$~GB for elasticity at $N = 2{,}738{,}019$.  The stored hierarchy
+of the preconditioner, counted as the bytes of its factors, blocks and
+coarsest matrix, is $6.0$ and $14.8$~GB with CG detail solves on every
+level (\texttt{e3d461e}) and $2.05$ and $7.67$~GB with block-Jacobi
+scaling on every detail level (\texttt{560a37b}); the preconditioner
+applies the stiffness matrix by quadrature and stores no assembled
+matrix.  With block-Jacobi detail levels the preconditioner therefore
+holds less memory after the build than BoomerAMG has in use, by a
+comparison that counts more objects on the multigrid side.  Its build
+peak, $17.3$ and $29.3$~GB in that configuration under a $10$~GB
+working-memory budget, is higher than the multigrid figure, and it
+takes more iterations ($90$ and $171$) and more time.
+% [VERIFY: the multigrid memory column is a post-solve snapshot of the
+% whole device (cudaMemGetInfo, GiB; scripts/run_boomeramg_gpu.py
+% _peak_gpu_mem_gb), the preconditioner's stored figure an object byte
+% count (GB); a like-for-like comparison needs the hierarchy bytes of
+% BoomerAMG or the device snapshot of the preconditioner.]
+% [TABLE OF RECORD]: the block-Jacobi figures are from
+% smoother/combined_flagship.json; the final-configuration rerun
+% replaces them.
 The preconditioner carries the guarantee of
 Theorem~\ref{prop:precond_conditioning}; the multigrid solvers are
 faster to build and to apply on every system on which they converge.
