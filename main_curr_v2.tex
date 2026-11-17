@@ -1785,6 +1785,12 @@ Lemmas~\ref{lem:patch_error} and~\ref{lem:recursion}
   \;\leq\; X_k ,
 \]
 by $C_1 H^k \epsilon_{k+1} \leq X_{k+1}$.
+% [DECISION: the recursion keeps the factor (1 + tau_k) on the inherited
+% and truncation terms, which the definition eq:tau_def produces, and the
+% patch-solve term C_2 H^{-1-dk/2} tau_k, which carries the slot factor
+% H^{k-1}; the ticket's form C H^{-(1+d/2)k} tau_k without the (1+tau_k)
+% factor is implied for tau_k <= 1 after doubling alpha, and is not the
+% form stated.]
 
 For~\eqref{eq:kappa_bound}: by the triangle inequality over the slots,
 \eqref{eq:b_k_def}, Cauchy--Schwarz and~\eqref{eq:slot_orthogonality},
