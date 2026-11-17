@@ -28,6 +28,9 @@
 
 \section{Proof of the one-shot remark}
 \label{app:oneshot}
+% CLAIMS: localization errors are nearly orthogonal; hence the one-shot
+% perturbation norm carries sqrt(q) and the radius ell ln ln N suffices;
+% the one-shot Jacobi row sums are bounded independently of rho and depth.
 
 This appendix proves the statements of Remark~\ref{rem:oneshot} for the
 one-shot basis~\eqref{eq:localized_basis}.  Throughout,
@@ -166,9 +169,7 @@ Cauchy--Schwarz over the $q$ slots:
     \delta_i\Bigr\|_K^2 .
 \]
 Each slot term is bounded by Lemma~\ref{lem:error_interactions},
-inequality~\eqref{eq:almost_orth}.  A termwise Cauchy--Schwarz estimate
-would introduce a factor of the slot dimension in place of the factor
-$\rho^d$, inflating the estimate by a factor of $\sqrt{N}$.  The block
+inequality~\eqref{eq:almost_orth}.  The block
 conditioning bound~\eqref{eq:block_conditioning} transforms the weighted
 Euclidean norm to the $\mathcal{B}$-norm: within one slot,
 \[
