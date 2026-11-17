@@ -26,6 +26,225 @@
 [Placeholder.]
 \end{lemma}
 
+\section{Proof of the one-shot remark}
+\label{app:oneshot}
+
+This appendix proves the statements of Remark~\ref{rem:oneshot} for the
+one-shot basis~\eqref{eq:localized_basis}.  Throughout,
+$\varphi_{\rho,i}$ denotes the one-shot counterpart of the exact basis
+function $\varphi_i$ of~\eqref{eq:combined_basis}, and
+$\delta_i := \varphi_{\rho,i} - \varphi_i$, so that
+$\|\delta_i\|_a \leq C\,\|\varphi_i\|_a\,e^{-\rho/(2\ell)}$
+by~\eqref{eq:localization_error}; we assume without loss of generality
+$C \geq 1$.  Distances between nodes of a level are measured in units
+of that level's mesh width.  The detail functions
+$\chi^{(k),\mathrm{os}}_{\rho,j}$ satisfy~\eqref{eq:localization_error}
+with a constant depending also on~$D^{(k)}$, since each is a combination
+of at most $C_D$ one-shot functions whose exact counterparts have
+energies comparable to that of $\chi^{(k)}_j$.
+% [VERIFY: the detail-function localization estimate is not stated in
+% OS2019; it is obtained here by combining eq:localization_error over the
+% support of a row of D^(k) with the bound on the ratio of energies
+% ||psi^(k+1)_m|| / ||chi^(k)_j|| <= C_A^{1/2} C_B^{1/2} H^{-1}, from
+% Lemma 16.25(6) and eq:block_conditioning.]
+
+Every one-shot function lies in $\mathcal{V}^{(q)}$ and matches its
+full level-$k$ data: the constrained functionals are matched by
+construction, and the functionals whose support lies outside
+$S^{(k)}_i$ vanish on it, since no functional support straddles the
+boundary of the patch.  Hence~\eqref{eq:own_level_data} holds, and
+Lemmas~\ref{lem:domination}, \ref{lem:annihilation}
+and~\ref{lem:nilpotent}, together with the derivation
+of~\eqref{eq:kappa_bound} from the bound $\|F_\rho\|_D \leq \beta$ in
+the proof of Theorem~\ref{prop:precond_conditioning}, apply without
+change.  It remains to bound $\|F_\rho\|_D$ for the one-shot basis,
+which the following two lemmas do.
+
+\begin{lemma}[Near-orthogonality of localization errors]\label{lem:error_interactions}
+Let $i, j$ be indices at the same level and let
+$r = \operatorname{dist}(i,j)$.  Then
+\begin{equation}\label{eq:error_interaction}
+  |a(\delta_i, \delta_j)|
+  \;\leq\;
+  2\sqrt{e}\,C^2\,\|\varphi_i\|_a\,\|\varphi_j\|_a\;
+  e^{-\rho/(2\ell)}\,
+  \min\bigl\{e^{-\rho/(2\ell)},\; e^{-r/(4\ell)}\bigr\}.
+\end{equation}
+Consequently, for any coefficient vector $w$ supported on a single level,
+\begin{equation}\label{eq:almost_orth}
+  \Bigl\|\sum_i w_i\,\delta_i\Bigr\|_K^2
+  \;\leq\;
+  C_{\mathrm{o}}\;\rho^d\;e^{-\rho/\ell}
+  \sum_i w_i^2\,\|\varphi_i\|_a^2,
+\end{equation}
+where $C_{\mathrm{o}}$ depends only on $C$, $d$, $\ell$ and the
+mesh-regularity constant, and not on $N$, $\rho$, or the level index~$k$.
+\end{lemma}
+
+\begin{proof}
+The patch of a one-shot function at level~$k$ is contained in a ball of
+radius $\rho$ about a point within distance $c_\star$ of its node;
+absorbing this offset into the constants, we treat the patch of
+$\varphi_{\rho,i}$ as contained in $B(x_i, \rho)$.
+
+For any pair, Cauchy--Schwarz and the localization bound give
+$$
+|a(\delta_i,\delta_j)| \leq \|\delta_i\|_a\|\delta_j\|_a
+ \leq C^2\,\|\varphi_i\|_a\|\varphi_j\|_a\,e^{-\rho/\ell},
+$$
+which is~\eqref{eq:error_interaction} when $r \leq 2\rho$, where the
+minimum equals $e^{-\rho/(2\ell)}$.
+
+For $r > 2\rho$, let $S = B(x_i, r/2) \cap \Omega$.  The patch of
+$\varphi_{\rho,j}$ lies in $B(x_j, \rho)$, disjoint from~$S$, so
+$\varphi_{\rho,j}$ vanishes on~$S$ and
+$\|\delta_j\|_{a,S} = \|\varphi_j\|_{a,S}
+ \leq \sqrt{e}\,e^{-r/(4\ell)}\,\|\varphi_j\|_a$
+by~\eqref{eq:energy_decay} and Theorem~\ref{thm:energy_decay}, since
+$S \subset B(x_j, r/2)^c$.  Symmetrically, the patch of
+$\varphi_{\rho,i}$ lies in $B(x_i,\rho) \subset S$, so $\varphi_{\rho,i}$
+vanishes on~$S^c$ and
+$\|\delta_i\|_{a,S^c} = \|\varphi_i\|_{a,S^c}
+ \leq \sqrt{e}\,e^{-r/(4\ell)}\,\|\varphi_i\|_a$.  Splitting the form
+over $S$ and $S^c$ and applying Cauchy--Schwarz on each piece,
+\[
+  |a(\delta_i,\delta_j)|
+  \;\leq\;
+  \|\delta_i\|_a\,\|\delta_j\|_{a,S}
+  \;+\;
+  \|\delta_i\|_{a,S^c}\,\|\delta_j\|_a
+  \;\leq\;
+  2\sqrt{e}\,C\,\|\varphi_i\|_a\,\|\varphi_j\|_a\;
+  e^{-\rho/(2\ell)}\,e^{-r/(4\ell)},
+\]
+which, using $C \geq 1$, is~\eqref{eq:error_interaction} for $r > 2\rho$.
+
+For~\eqref{eq:almost_orth}, set
+$M_{ij} = a(\delta_i,\delta_j)/(\|\varphi_i\|_a\|\varphi_j\|_a)$ and
+$\widetilde{w}_i = w_i\,\|\varphi_i\|_a$, so that
+$$\|\sum_i w_i\delta_i\|_K^2 = \widetilde{w}^\top M\,\widetilde{w}
+ \leq \|M\|\,\|\widetilde{w}\|^2.$$
+Since $M$ is symmetric, its spectral norm is bounded by the maximal row
+sum, which we split by distance.  By shape regularity and the
+correspondence of functionals with degrees of freedom
+(Subsection~\ref{sec:background}), a node has $\lesssim \rho^d$
+same-level neighbours within distance $2\rho$ and $\lesssim r^{d-1}$ at
+distance approximately~$r$.  Near pairs, $r \leq 2\rho$: each term is
+bounded by $2\sqrt{e}\,C^2\,e^{-\rho/\ell}$, contributing
+$\lesssim \rho^d\,e^{-\rho/\ell}$.  Far pairs, $r > 2\rho$: the tail sum
+is bounded by
+\[
+  2\sqrt{e}\,C^2\,e^{-\rho/(2\ell)}
+  \sum_{r > 2\rho} c_\star\, r^{d-1}\,e^{-r/(4\ell)}
+  \;\lesssim\;
+  \ell\,\rho^{d-1}\,e^{-\rho/\ell},
+\]
+which is of lower order.  Hence
+$\|M\| \leq C_{\mathrm{o}}\,\rho^d\,e^{-\rho/\ell}$.
+\end{proof}
+
+\begin{lemma}[Norm of the perturbation]\label{lem:F_norm}
+For the one-shot basis, with $\beta_{\mathrm{os}}$ as in~\eqref{eq:beta},
+\[
+  \|F_\rho\|_D
+  \;:=\; \sup_{w \neq 0} \frac{\|F_\rho w\|_D}{\|w\|_D}
+  \;\leq\; \beta_{\mathrm{os}} .
+\]
+\end{lemma}
+
+\begin{proof}
+By~\eqref{eq:F_def}, $\Phi F_\rho = \Phi_\rho - \Phi =: \Delta_\rho$, the
+matrix whose columns are the localization errors~$\delta_i$.
+By~\eqref{eq:isometry},
+$\|F_\rho w\|_D = \|\Phi F_\rho w\|_K = \|\Delta_\rho w\|_K$.  Split
+$\Delta_\rho w$ by slot and apply the triangle inequality and
+Cauchy--Schwarz over the $q$ slots:
+\[
+  \|\Delta_\rho w\|_K^2
+  \;\leq\;
+  q \sum_{k=1}^{q} \Bigl\|\sum_i \bigl(\hat{w}_k\bigr)_i\,
+    \delta_i\Bigr\|_K^2 .
+\]
+Each slot term is bounded by Lemma~\ref{lem:error_interactions},
+inequality~\eqref{eq:almost_orth}.  A termwise Cauchy--Schwarz estimate
+would introduce a factor of the slot dimension in place of the factor
+$\rho^d$, inflating the estimate by a factor of $\sqrt{N}$.  The block
+conditioning bound~\eqref{eq:block_conditioning} transforms the weighted
+Euclidean norm to the $D$-norm: within one slot,
+\[
+  \sum_i w_i^2 \|\varphi_i\|_a^2
+  \;\leq\; \kappa\bigl(B^{(k)}\bigr)\, \hat{w}_k^\top D\, \hat{w}_k
+  \;\leq\; C_B^2 H^{-2} \|\hat{w}_k\|_D^2 ,
+\]
+since $\|\varphi_i\|_a^2$ is a diagonal entry of~$B^{(k)}$.
+With~\eqref{eq:slot_orthogonality},
+\[
+  \|\Delta_\rho w\|_K^2
+  \;\leq\;
+  q\; C_{\mathrm{o}}\,\rho^d e^{-\rho/\ell}\; C_B^2 H^{-2}
+  \sum_{k} \|\hat{w}_k\|_D^2
+  \;=\;
+  \bigl(C_\beta\, H^{-1} \rho^{d/2} \sqrt{q}\,
+  e^{-\rho/(2\ell)}\bigr)^2 \|w\|_D^2
+\]
+with $C_\beta := C_B\sqrt{C_{\mathrm{o}}}$.
+\end{proof}
+
+The threshold~\eqref{eq:rho_iter} follows.  With $q \leq C_q \ln N$ and
+$\rho = 2\ell\ln\ln N + C\ell$, $C \geq d$, one has
+$e^{-\rho/(2\ell)} = e^{-C/2}/\ln N$ and
+\[
+  \beta_{\mathrm{os}}
+  \;\leq\; C_\beta H^{-1} \sqrt{C_q}\; (4\ell)^{d/2}\, e^{-C/2}\,
+  \Bigl[ \sup_{N \geq 3} \frac{(\ln\ln N)^{d/2}}{\sqrt{\ln N}}
+    + \Bigl(\frac{C}{2}\Bigr)^{d/2} \Bigr],
+\]
+using $(a+b)^{d/2} \leq 2^{d/2}(a^{d/2} + b^{d/2})$.  The supremum is
+finite and $e^{-C/2}(C/2)^{d/2} \to 0$, so $C$ may be chosen, depending
+on $d$, $H$, $C_q$, $C_\beta$ and $\ell^{d/2}$, to make the right-hand
+side at most $\tfrac12$; and since $\rho \mapsto \rho^{d/2}
+e^{-\rho/(2\ell)}$ is decreasing for $\rho \geq d\ell$, the bound
+$\beta_{\mathrm{os}} \leq \tfrac12$ persists for every
+$\rho \geq \rho_{\mathrm{iter}}(N)$.  Then \eqref{eq:kappa_bound} gives
+$\kappa \leq (3/2)^4 \cdot 4 \leq 21$.
+% [DECISION: the constant C of eq:rho_iter depends on ell through the
+% factor ell^{d/2} displayed above, in addition to d, H, C_q and C_beta;
+% the remark states this dependence.]
+
+\begin{lemma}[Scaled row sums for the one-shot basis]\label{lem:oneshot_rowsum}
+For the one-shot detail blocks $B^{(k)}_\rho$, with
+$\widehat{S}_k := \operatorname{diag}(B^{(k)}_\rho)^{-1/2} B^{(k)}_\rho
+\operatorname{diag}(B^{(k)}_\rho)^{-1/2}$,
+$\lambda_{\max}(\widehat{S}_k) \leq c_\star (1 + \ell)^{d}$, uniformly in
+$\rho$, $k$ and~$N$; hence the Jacobi factor of
+Corollary~\ref{cor:apply_factor}(iii) is at most
+$c_\star (1 + \ell)^d (1 + X^2) C_B^2 H^{-2}$ for this basis.
+\end{lemma}
+
+\begin{proof}
+As in the proof of~\eqref{eq:jacobi_factor}, with
+$\eta_i := \chi^{(k-1),\mathrm{os}}_{\rho,i} - \chi^{(k-1)}_i$ and
+$\|\eta_i\|_a \leq C e^{-\rho/(2\ell)} \|\chi^{(k-1)}_i\|_a$, the
+absolute row sum of $\widehat{S}_k$ is at most
+\[
+  \sum_{j:\, \operatorname{dist}(i,j) \leq 2\rho + c_\star}
+  \Bigl[ \frac{|a(\chi^{(k-1)}_i, \chi^{(k-1)}_j)|}
+              {\|\chi^{(k-1)}_i\|_a \|\chi^{(k-1)}_j\|_a}
+    + 2 C e^{-\rho/(2\ell)} + C^2 e^{-\rho/\ell} \Bigr],
+\]
+the entries at larger distances vanishing because the patches of radius
+$\rho$ do not meet.  For the exact term at distance $r$, split the form
+at $S = B(x_i, r/2)$: $|a(\chi_i, \chi_j)| \leq
+\|\chi_i\|_{a}\|\chi_j\|_{a,S} + \|\chi_i\|_{a,S^c}\|\chi_j\|_a
+\leq 2\sqrt{e}\, e^{-r/(4\ell)} \|\chi_i\|_a \|\chi_j\|_a$ by
+Theorem~\ref{thm:energy_decay}; summing over the $\lesssim r^{d-1}$
+indices at distance $\simeq r$ gives
+$\lesssim \sum_{r \geq 0} (1+r)^{d-1} e^{-r/(4\ell)} \lesssim (1+\ell)^d$.
+The error terms are summed over $\lesssim \rho^d$ indices and
+contribute $\lesssim \rho^d e^{-\rho/(2\ell)} \leq (2d\ell/e)^d$, since
+$t \mapsto t^d e^{-t/(2\ell)}$ is maximal at $t = 2d\ell$.
+\end{proof}
+
 \section{Stability conditions for general measurement hierarchies}
 \label{app:stability}
 [Placeholder.]

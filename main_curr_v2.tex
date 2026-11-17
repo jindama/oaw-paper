@@ -292,70 +292,154 @@ restriction by $\Phi^\top$, one independent, well conditioned solve per diagonal
 and a prolongation by~$\Phi$.  
 
 
-\subsection{Localized Basis}\label{subsec:loc}
+The energy of $\psi^{(k)}_i$ decays exponentially with the distance from
+the node $x^{(k)}_i$ of its sole nonzero measurement: writing
+$\|v\|_{a,S}$ for the energy of $v$ restricted to a region $S$ and
+$B(x, r)$ for the ball of radius $r$,
+\begin{equation}\label{eq:energy_decay}
+  \|\psi^{(k)}_i\|_{a,\,\Omega \setminus B(x^{(k)}_i,\, r h_k)}
+  \;\leq\; \sqrt{e}\, e^{-r/(2\ell)}\, \|\psi^{(k)}_i\|_a ,
+  \qquad r \geq 0,
+\end{equation}
+\cite[Thm.~15.41]{Owhadi_Scovel_2019}; the same holds for the detail
+functions $\chi^{(k)}_j$ (Theorem~\ref{thm:energy_decay} in
+Appendix~\ref{app:oaw}).  The \emph{decay length} $\ell$ is a length in
+level-$k$ mesh units, depending on the operator only through its
+continuity and coercivity constants and on the mesh regularity, and not
+on $N$, the level or the mesh width.  For the model problem
+$-\nabla\cdot(a\nabla u)$ it grows at worst like the square root of the
+contrast of~$a$~\cite{owhadi2017}.
+% TODO: verify whether the book states the worst-case ell-contrast
+% formula; if yes, swap the owhadi2017 citation.
+
+\subsection{Recursive localized construction}\label{subsec:loc}
 The basis functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ are globally
 supported, so the change of basis $\Phi$ and the blocks $B^{(k)}$ are
-dense, making the exact construction computationally infeasible for large $N$. We associate with $\psi^{(k)}_i$ the node $x^{(k)}_i$ associated with the sole non-zero measurement constraint in~\eqref{eq:psi_k_def}. The energy of $\psi^{(k)}_i$ decays
-exponentially with distance from~$x^{(k)}_i$, with decay length
-proportional to the mesh width of the
-level~\cite[Thm.~15.41]{Owhadi_Scovel_2019}.
-% Localization
-This exponential decay motivates the definition of the \emph{localized basis functions}
-$\psi^{(k)}_{\rho,i}$: fix $\rho > 0$
-and let $S^{(k)}_i$ be a union of mesh cells contained in a ball of radius $\rho h_k$
-and containing the support of $\mu^{(k)}_i$, such that the interior of $\operatorname{supp} \mu^{(k)}_j$ does not intersect the boundary of~$S^{(k)}_i$ for any $j$. Then define %Appendix~\ref{app:stability} realizes such a choice for each measurement family.
-\begin{equation}\label{eq:localized_constraint_set}
-  \mathcal{A}^{(k)}_{\rho,i}
-  := \bigl\{ v \in \mathcal{V}^{(q)} :
-     \operatorname{supp} v \subseteq S^{(k)}_i,\;
-     \mu^{(k)}_j(v) = \delta_{ij} \text{ for every } j \text{ with }
-     \operatorname{supp} \mu^{(k)}_j \subseteq S^{(k)}_i \bigr\} ,
-\end{equation}
-\begin{equation}\label{eq:localized_basis}
-  \psi^{(k)}_{\rho,i}
-  := \operatorname{argmin}_{f \in \mathcal{A}^{(k)}_{\rho,i}}
-     \lVert f \rVert_a .
-\end{equation}
-Since the patch has radius $\rho h_k$ on a mesh
-of width~$h_k$, each patch contains $\simeq \rho^d$
-level-$k$ degrees of freedom.
+dense, and the exact construction is infeasible for large~$N$.  The
+construction analyzed in this paper computes, at every level, functions
+supported near their nodes, each from a local problem posed over the
+functions already computed at the next finer level.
 
-The minimizer over the patch approximates the exact basis function with
-an error exponentially small in the patch radius
-\cite[Thm.~15.41]{Owhadi_Scovel_2019}: writing $r_k := \rho h_k$ for the
-physical radius of the patch,
-\begin{equation}\label{eq:localization_error}
-  \|\psi^{(k)}_i - \psi^{(k)}_{\rho,i}\|_a
-  \;\leq\;
-  C\,\|\psi^{(k)}_i\|_a\;e^{-r_k/(2\ell h_k)} ,
+Localization is measured in the hierarchy of pseudometrics
+$d^{(k)}(i,j) := |x^{(k)}_i - x^{(k)}_j| / h_k$ on the index sets
+$I^{(k)} := \{1, \ldots, n_k\}$, together with a \emph{parent map}
+$I^{(k+1)} \to I^{(k)}$, $j \mapsto j^{(k)}$, which assigns to every
+level-$(k{+}1)$ index a level-$k$ index whose node lies within $c_\star$
+level-$k$ mesh widths of $x^{(k+1)}_j$; the detail indices
+$1 \leq m \leq d_k$ carry a parent $m^{(k)} \in I^{(k)}$ in the same way.
+The nesting and detail maps are \emph{cellular}:
+$C^{(k)}_{ij} = 0$ unless $j^{(k)} = i$, and $D^{(k)}_{mj} = 0$ unless
+$j^{(k)} = m^{(k)}$ \cite[Cond.~16.2]{Owhadi_Scovel_2019}.  For the
+selection maps of first-order elements (Subsection~\ref{sec:implementation})
+this holds with the parent of a level-$(k{+}1)$ node its nearest
+level-$k$ node.  The stability and locality conditions under which the
+results of Section~\ref{sec:results} hold are those of
+\cite[Conds.~14.15, 16.2, 16.22]{Owhadi_Scovel_2019}, restated in
+Appendix~\ref{app:stability}; they are satisfied by the three measurement
+families of Subsection~\ref{sec:background}.
+
+Fix radii $r_k \geq 1$, $1 \leq k < q$, measured in level-$k$ mesh
+units, and write $\rho$ for the family $(r_1, \ldots, r_{q-1})$; when
+the radii coincide, $\rho$ also denotes their common value.  The
+\emph{patch} of the level-$k$ index~$i$ is the set of level-$(k{+}1)$
+indices
+\begin{equation}\label{eq:patch_def}
+  \mathcal{P}^{(k)}_i := \bigl\{\, j \in I^{(k+1)} :
+    d^{(k)}\bigl(i, j^{(k)}\bigr) \leq r_k \,\bigr\},
 \end{equation}
-with $C$ depending on the operator but not on $k$ or the radius, and
-$\ell$ a dimensionless constant depending only on the continuity and coercivity constants of $a$.
-% Both estimates are stated in relative form: the h^{-s} prefactors of
-% [OS2019, Thm. 15.41] equal ||psi_i||_a up to constants by
-% [OS2019, Lemma 15.43, (15.132)].
-% eq:localized_basis poses the local problem over a patch contained in the
-% radius-rho h_k ball of [OS2019, Thm. 15.41]; the difference is absorbed
-% into C.
-% The chi estimates are not stated in OS2019; combination argument
-% (D-row locality, C_mu bounds, norm ratio ~ H^{-1}).
-% OS2019 Ch. 15 absorbs the coefficient contrast into its constants; no
-% explicit contrast formula is stated. The worst-case ell ~ sqrt(contrast)
-% stays cited to the model setting of owhadi2017.
-The localized detail functions are defined as
+which holds $\lesssim r_k^d$ indices \cite[Cond.~16.22, items 3 and
+4]{Owhadi_Scovel_2019}.  Set $\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$; the
+finest level is exact, since the feasible set~\eqref{eq:constraint_set}
+at $k = q$ is a single function.  For $k = q-1, \ldots, 1$, given the
+computed level-$(k{+}1)$ functions, define
+\begin{equation}\label{eq:recursive_patch}
+  \psi^{(k)}_{\rho,i} := \sum_{j=1}^{n_{k+1}} R^{(k)}_{ij}\,
+    \psi^{(k+1)}_{\rho,j},
+  \qquad
+  R^{(k)}_{i,\cdot} := \operatorname{argmin}
+  \Bigl\{ \Bigl\| \sum_j x_j \psi^{(k+1)}_{\rho,j} \Bigr\|_a :
+    x \in \mathbb{R}^{n_{k+1}},\;
+    x_j = 0 \text{ for } j \notin \mathcal{P}^{(k)}_i,\;
+    C^{(k)} x = e_i \Bigr\}.
+\end{equation}
+The feasible set is nonempty by cellularity
+\cite[Thm.~16.9]{Owhadi_Scovel_2019}, and the minimizer is unique
+because the computed level-$(k{+}1)$ functions are linearly independent
+(by the measurement matching~\eqref{eq:measurement_matching} below) and
+the energy norm is strictly convex.  By
+\cite[Thm.~16.7]{Owhadi_Scovel_2019}, the constraint $C^{(k)} x = e_i$
+may be replaced by its rows $l$ with $d^{(k)}(i, l) \leq r_k$ without
+changing the minimizer, so each problem~\eqref{eq:recursive_patch} has
+$\lesssim r_k^d$ unknowns and constraints.  The construction is that of
+\cite[\S16.2]{Owhadi_Scovel_2019}.
+
+The implementation solves~\eqref{eq:recursive_patch} in detail
+coordinates.  Fix a cellular right inverse $C^{(k)\dagger}$,
+$C^{(k)} C^{(k)\dagger\top} = I$, whose row $i$ is supported in the
+indices with parent~$i$ (for selection maps, $C^{(k)\dagger} = C^{(k)}$).
+A vector $x$ satisfies $C^{(k)} x = e_i$ if and only if
+$x^\top - C^{(k)\dagger}_{i,\cdot} = z D^{(k)}$ for a unique
+$z \in \mathbb{R}^{d_k}$, by~\eqref{eq:kernel_D}; and $x$ is supported in
+$\mathcal{P}^{(k)}_i$ if and only if $z$ is supported in the detail
+indices whose parent lies within distance $r_k$ of~$i$, since the rows
+of $D^{(k)}$ with distinct parents have disjoint supports.  Hence
+\begin{equation}\label{eq:R_structure}
+  R^{(k)} = C^{(k)\dagger} + Z^{(k)} D^{(k)},
+\end{equation}
+where row~$i$ of $Z^{(k)}$ is supported in the patch and solves the
+patch system of Algorithm~\ref{alg:impl_build}, step~3, a principal
+submatrix system of the computed detail block defined below.  The
+computed objects are the \emph{computed coarse spaces}
+$\mathcal{U}^{(k)} := \operatorname{span}\{\psi^{(k)}_{\rho,i}\}_{i=1}^{n_k}$,
+the \emph{computed detail functions}
 \begin{equation}\label{eq:localized_detail_basis}
-  \chi^{(k)}_{\rho,j}
-  = \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,\psi^{(k+1)}_{\rho,m},
-  \qquad 1 \leq j \leq d_k .
+  \chi^{(k)}_{\rho,j} := \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,
+    \psi^{(k+1)}_{\rho,m}, \qquad 1 \leq j \leq d_k,
 \end{equation}
-Estimates analogous to \eqref{eq:localization_error} hold for the $\chi^{(k)}_j$ and
-$\chi^{(k)}_{\rho,j}$, with constant prefactors depending on~$D^{(k)}$.
-% The localized factorization and the preconditioner 
-Concatenating the localized functions in the same order as ~\eqref{eq:combined_basis} yields the localized multiresolution basis
-$\varphi_{\rho,i}$, and we write $\Phi_\rho$ for the invertible matrix whose
-$i$-th column holds the coefficients of $\varphi_{\rho,i}$ in the
-fine-mesh basis. Define the \emph{localized}
-stiffness matrix
+and their span $\mathcal{W}^{(k)}_\rho$.  The algorithm computes the
+$\mathcal{U}^{(k)}$; the theory of Section~\ref{sec:results} bounds the
+conditioning of the preconditioner by the distance of the
+$\mathcal{U}^{(k)}$ from the $\mathcal{V}^{(k)}$.  Three properties hold
+for every choice of the radii and for every matrix $Z^{(k)}$
+in~\eqref{eq:R_structure}, in particular when the patch systems are
+solved inexactly.
+\begin{enumerate}
+  \item[(i)] \emph{Measurement matching.}  Since
+    $C^{(k)} D^{(k)\top} = 0$, \eqref{eq:R_structure} gives
+    $R^{(k)} C^{(k)\top} = I$, and by induction from the exact finest
+    level,
+    \begin{equation}\label{eq:measurement_matching}
+      \mu^{(k)}_l\bigl(\psi^{(k)}_{\rho,i}\bigr) = \delta_{il},
+      \qquad 1 \leq i, l \leq n_k,
+    \end{equation}
+    \cite[Eq.~(16.13)]{Owhadi_Scovel_2019}: every computed function
+    lies in the feasible set~\eqref{eq:constraint_set} of the exact
+    problem it approximates.
+  \item[(ii)] \emph{Nesting and splitting.}
+    $\mathcal{U}^{(k)} \subset \mathcal{U}^{(k+1)}$ by definition, and
+    \begin{equation}\label{eq:computed_splitting}
+      \mathcal{U}^{(k+1)} = \mathcal{U}^{(k)} \oplus \mathcal{W}^{(k)}_\rho ,
+    \end{equation}
+    a direct sum that is not $a$-orthogonal in general: the rows of
+    $R^{(k)}$ and of $D^{(k)}$ together span $\mathbb{R}^{n_{k+1}}$,
+    because $a^\top C^{(k)\dagger} + b^\top D^{(k)} = 0$ gives
+    $a = 0$ on multiplication by $C^{(k)\top}$ and then $b = 0$ by the
+    rank of $D^{(k)}$, and $R^{(k)}$ differs from $C^{(k)\dagger}$ by
+    a combination of the rows of $D^{(k)}$.
+  \item[(iii)] \emph{Domination.}  A function of $\mathcal{U}^{(k)}$
+    with level-$k$ data~$c$ has energy at least that of the function
+    of $\mathcal{V}^{(k)}$ with the same data, since the latter is the
+    energy minimizer among all functions of $\mathcal{V}^{(q)}$ with
+    that data (Lemma~\ref{lem:domination}).
+\end{enumerate}
+Iterating~\eqref{eq:computed_splitting},
+$\mathcal{V}^{(q)} = \mathcal{U}^{(1)} \oplus \mathcal{W}^{(1)}_\rho
+\oplus \cdots \oplus \mathcal{W}^{(q-1)}_\rho$.  Concatenating the
+computed functions in the order of~\eqref{eq:combined_basis} yields the
+\emph{computed multiresolution basis} $\varphi_{\rho,i}$, and we write
+$\Phi_\rho$ for the invertible matrix whose $i$-th column holds the
+coefficients of $\varphi_{\rho,i}$ in the fine-mesh basis.  Define the
+\emph{localized} stiffness matrix
 \begin{equation}\label{eq:G_rho}
   G_{\rho} \;=\; \Phi_{\rho}^{\top} K \, \Phi_{\rho},
 \end{equation}
@@ -364,70 +448,131 @@ Inverting the congruence gives
 \begin{equation}\label{eq:exact_identity}
   K^{-1} \;=\; \Phi_{\rho}\, G_{\rho}^{-1}\, \Phi_{\rho}^{\top}.
 \end{equation}
-Unlike~$G$, $G_\rho$ is
-not in general block diagonal; we write
+Unlike~$G$, $G_\rho$ is not block diagonal; we write
 \begin{equation}\label{eq:gram_split}
   G_\rho \;=\; D_\rho + E_\rho,
 \end{equation}
 where $D_\rho = \operatorname{diag}\{B^{(k)}_{\rho}\}_{k=1}^{q}$ is the
-block-diagonal part, the blocks defined as in~\eqref{eq:block_diagonal}
-from the localized functions, and $E_\rho := G_\rho - D_\rho$ consists
-of the blocks coupling different levels. Note that $G_\rho$ is SPD by congruence to~$K$, and since each $B^{(k)}_\rho$ is a principal submatrix of~$G_\rho$, so is
-$D_\rho$. The off-diagonal couplings $E_{\rho}$ are not typically constructed, and the
-inverse is then approximated as
+block-diagonal part, with
+$B^{(1)}_{\rho,ij} = a(\psi^{(1)}_{\rho,i}, \psi^{(1)}_{\rho,j})$ and
+$B^{(k)}_{\rho,ij} = a(\chi^{(k-1)}_{\rho,i}, \chi^{(k-1)}_{\rho,j})$
+for $k \geq 2$, and $E_\rho := G_\rho - D_\rho$ consists of the blocks
+coupling different levels.  $G_\rho$ is SPD by congruence to~$K$, and
+each $B^{(k)}_\rho$ is a principal submatrix of~$G_\rho$, so $D_\rho$ is
+SPD.  The level-$k$ patch systems of~\eqref{eq:R_structure} are principal
+submatrices of $B^{(k+1)}_\rho$.  The couplings $E_{\rho}$ are not
+constructed, and the inverse is approximated as
 \begin{equation}\label{eq:preconditioner}
   \widetilde{K}_{\rho}^{-1}
   \;=\; \Phi_{\rho}\,D_{\rho}^{-1}\,\Phi_{\rho}^{\top}.
 \end{equation}
 Constructing these factors requires time and working memory
-$\lesssim N\rho^{\alpha d}$ (where $\alpha \in (1, 3)$ depends on the method used to
-solve the localized optimizations \ref{eq:localized_basis}), storing the factors costs
-space $\lesssim N\rho^d$, and the matrix-vector product
+$\lesssim N\rho^{\alpha d}$, where $\alpha \in (1, 3)$ depends on the
+method used to solve the patch problems~\eqref{eq:recursive_patch},
+storing the factors costs space $\lesssim N\rho^d$, and the product
 $x \mapsto \widetilde{K}_{\rho}^{-1}x$ costs $\lesssim N\rho^d$
-arithmetic operations. Used as a direct solver, \eqref{eq:preconditioner} yields
-the approximate solution $\hat{u}_\rho := \widetilde{K}_{\rho}^{-1} g$,
-which satisfies $\|u - \hat{u}_\rho\|_K \leq \varepsilon \|u\|_K$, where
-$\|v\|_K := (v^\top K v)^{1/2}$, provided
+arithmetic operations (Proposition~\ref{prop:cost}).  Used as a direct
+solver, \eqref{eq:preconditioner} yields the approximate solution
+$\hat{u}_\rho := \widetilde{K}_{\rho}^{-1} g$, which satisfies
+$\|u - \hat{u}_\rho\|_K \leq \varepsilon \|u\|_K$, where
+$\|v\|_K := (v^\top K v)^{1/2}$, provided the radii satisfy
 \begin{equation}\label{eq:rho_dir}
-  \rho \;\geq\; \rho_{\mathrm{dir}}(N, \varepsilon)
+  r_k \;\geq\; \rho_{\mathrm{dir}}(N, \varepsilon)
   \;:=\; c_{\mathrm{dir}}\, \ell\,\bigl(\ln N + \ln(1/\varepsilon)\bigr)
 \end{equation}
-\cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+and the patch systems are solved to relative accuracy
+$\simeq e^{-r_k/c_\star \ell}$ \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
 % TODO (16.36): verify the error metric (relative K-norm as displayed in
-% the preceding paragraph).
-The cost of the approximation is thus set directly by the target precision $\varepsilon$.
+% the preceding paragraph).  The theorem's radii are r_k = rho_OS (k +
+% ln(1/eps)) with the book's constant rho_OS; the display bounds them by
+% their maximum at k = q <= C_q ln N and identifies the length scale
+% with ell up to the constant c_dir.
+% [VERIFY: the identification of the book's rate constant rho_OS with a
+% multiple of the decay length ell of eq:energy_decay.]
+The cost of the direct use is thus set by the target precision
+$\varepsilon$, through the radius and through the accuracy of the inner
+solves.
 
 
 \section{Main results}
 \label{sec:results}
 
-\subsection{Analytical Bounds}\label{sec:main_bounds} We now consider  \eqref{eq:preconditioner} as a preconditioner
-for the conjugate gradient method (termed the \emph{OAW preconditioner}) and
-bound the convergence rate as a function of $\rho$ and~$N$. The convergence rate of preconditioned CG is governed by the condition number of the
-preconditioned system $\widetilde{K}_\rho^{-1} K$: after $m$ iterations, the energy-norm error is reduced by at least the factor
+\subsection{Analytical Bounds}\label{sec:main_bounds}
+We now consider~\eqref{eq:preconditioner} as a preconditioner for the
+conjugate gradient method (termed the \emph{OAW preconditioner}) and
+bound the convergence rate as a function of the radii, the accuracy of
+the patch solves, and the depth of the hierarchy.  The convergence rate
+of preconditioned CG is governed by the condition number of the
+preconditioned system $\widetilde{K}_\rho^{-1} K$: after $m$ iterations,
+the energy-norm error is reduced by at least the factor
 $2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^{m}$
-\cite{saad2003iterative}, so it suffices to bound the condition number of $\widetilde{K}_\rho^{-1} K$. The main theorem is the following:
+\cite{saad2003iterative}, so it suffices to bound the condition number
+of $\widetilde{K}_\rho^{-1} K$.
+
+The accuracy of the patch solves enters through one number per level.
+Let $\psi^{(k),\ast}_{\rho,i}$ be the exact minimizer
+of~\eqref{eq:recursive_patch} over the computed level-$(k{+}1)$
+functions and $\psi^{(k)}_{\rho,i}$ the computed function, obtained from
+the same patch and the same data with an approximate solution of the
+patch system in~\eqref{eq:R_structure}.  The \emph{relative energy
+error of the level-$k$ patch solves} is the smallest
+$\tau_k \geq 0$ with
+\begin{equation}\label{eq:tau_def}
+  \bigl\| \psi^{(k)}_{\rho,i} - \psi^{(k),\ast}_{\rho,i} \bigr\|_a
+  \;\leq\; \tau_k\, \bigl\| \psi^{(k),\ast}_{\rho,i} \bigr\|_a ,
+  \qquad 1 \leq i \leq n_k .
+\end{equation}
+Exact patch solves have $\tau_k = 0$.  The main theorem is the
+following.
 
 \begin{theorem}[Conditioning of the preconditioned system]\label{prop:precond_conditioning}
-For every $\rho \geq 1$ and every~$N$, the preconditioner
-$\widetilde{K}_\rho^{-1}$ is symmetric positive definite and
-\begin{equation}\label{eq:kappa_bound}
+Let the measurement hierarchy satisfy the stability and locality
+conditions of Appendix~\ref{app:stability}, let the radii
+$r_k \geq 1$, $1 \leq k < q$, be arbitrary, let the level-$k$ patch
+solves have relative energy error at most~$\tau_k$ in the sense
+of~\eqref{eq:tau_def}, and let the coarsened matrices not be
+thresholded.  Then $\widetilde{K}_\rho^{-1}$ is symmetric positive
+definite and
+\begin{align}
   \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
-  \;\leq\;
-  (1+\beta)^4 \,\bigl(1 + \beta + \cdots + \beta^{\,q-1}\bigr)^{2},
+  &\;\leq\; \exp\Bigl( 2 \sum_{k=1}^{q-1} \operatorname{arsinh} X_k \Bigr),
+  \label{eq:kappa_arsinh} \\
+  \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
+  &\;\leq\; (1+\beta)^4 \,\bigl(1 + \beta + \cdots + \beta^{\,q-1}\bigr)^{2},
+  \qquad
+  \beta := \Bigl( \sum_{k=1}^{q-1} X_k^2 \Bigr)^{1/2},
+  \label{eq:kappa_bound}
+\end{align}
+where $X_q := 0$ and, for $k = q-1, \ldots, 1$,
+\begin{equation}\label{eq:X_recursion}
+  X_k \;:=\; (1 + \tau_k)\Bigl[ \frac{\alpha}{H}\, X_{k+1}
+    + C_1\, \alpha\, \omega^{k+1} H^{k-1} e^{-r_k/\alpha} \Bigr]
+    + C_2\, H^{-1 - dk/2}\, \tau_k .
 \end{equation}
-where
-\begin{equation}\label{eq:beta}
-  \beta \;:=\; C_\beta\, H^{-1} \rho^{d/2} \sqrt{q}\; e^{-\rho/(2\ell)}
-\end{equation}
-and $C_\beta$ depends only on the constant $C_B$
-of~\eqref{eq:block_conditioning}, $d$, $\ell$, and the mesh
-regularity, but not~$N$.
+Here $\alpha \geq 1$ and $\omega \geq 1$ are the constants of
+\cite[Lemma~16.30]{Owhadi_Scovel_2019} (denoted $\alpha$ and $\beta$
+there), which depend only on the constants $C_\varphi$, $H$, $\kappa$,
+$\gamma$ and $d$ of the conditions in Appendix~\ref{app:stability},
+and $C_1$, $C_2$ depend only on $C_\varphi$, $H$ and~$d$; none depends
+on $N$, the radii, the tolerances or the depth.
 \end{theorem}
 
-The proof is given in Section~\ref{sec:preconditioner}.  Substituting
-\eqref{eq:kappa_bound} into the contraction factor gives the iteration
-bound:
+The proof is given in Subsection~\ref{sec:proof_conditioning}.  The
+quantity $X_k$ bounds the energy of the error committed in slot~$k$ of
+the computed basis (the level-1 functions for $k=1$, the level-$(k{-}1)$
+detail functions for $k \geq 2$) relative to the energy of the exact
+slot; the recursion~\eqref{eq:X_recursion} is the per-level error
+propagation of \cite[Lemma~16.30]{Owhadi_Scovel_2019}, rewritten in
+these relative units and extended by the patch-solve term.  The first
+term in the bracket is the error inherited from the finer level, the
+second is the error of truncating the exact nesting row to the patch,
+and the last is the error of the inexact patch solve; the constant
+$\alpha$ is the length, in level-$k$ mesh units, over which the
+truncation error decays.  The exponent of $\omega^{k+1} H^{k-1}$ and the
+factor $H^{-1-dk/2}$ are the normalizations of the exact basis at
+level~$k$, whose aggregate energy grows with the level.
+Substituting~\eqref{eq:kappa_arsinh} into the contraction factor gives
+the iteration bound.
 
 \begin{corollary}[Outer iteration count]\label{cor:iteration_count}
 Let $\varepsilon \in (0,1)$ and write $k(\varepsilon)$ for the number of
@@ -435,72 +580,55 @@ PCG iterations after which the energy-norm error is reduced by the
 factor~$\varepsilon$.  Then
 \begin{equation}\label{eq:cg_iter_bound}
   k(\varepsilon) \;\leq\;
+  \tfrac{1}{2}\,
+  \exp\Bigl( \sum_{k=1}^{q-1} \operatorname{arsinh} X_k \Bigr)
+  \,\ln\!\left(\frac{2}{\varepsilon}\right)
+  \;\leq\;
   \tfrac{1}{2}\,(1+\beta)^2
   \bigl(1 + \beta + \cdots + \beta^{\,q-1}\bigr)
   \,\ln\!\left(\frac{2}{\varepsilon}\right),
 \end{equation}
 and the solve to tolerance~$\varepsilon$ costs
-$\lesssim N\rho^{d}\,k(\varepsilon)$ arithmetic
-operations.
+$\lesssim N\rho^{d}\,k(\varepsilon)$ arithmetic operations when the
+block systems are solved exactly.
 \end{corollary}
 
-In particular, a comparatively mild constraint on~$\rho$ suffices to
-bound the condition number, and with it the iteration count,
-independently of~$N$:
-
-\begin{corollary}[Threshold radius]\label{lem:threshold}
-If
-\begin{equation}\label{eq:rho_iter}
-  \rho \;\geq\; \rho_{\mathrm{iter}}(N) \;:=\; 2\ell\ln\ln N \;+\; C\ell,
-\end{equation}
-where $C$ depends only on $d$, $H$, and the constant $C_\beta$
-of~\eqref{eq:beta}, then $\beta \leq \tfrac12$,
-$\kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr) \lesssim 1$, and
-$k(\varepsilon) \lesssim \ln(1/\varepsilon)$ for every
-$\varepsilon \in (0,1)$.
-\end{corollary}
-
-Reaching tolerance~$\varepsilon$ with the direct approximate inverse
-requires $\rho \geq \rho_{\mathrm{dir}}(N,\varepsilon)$
-of~\eqref{eq:rho_dir}, hence preprocessing cost
-$\lesssim N \bigl(\ell\ln(N/\varepsilon)\bigr)^{\alpha d}$ and storage
-$\lesssim N \bigl(\ell\ln(N/\varepsilon)\bigr)^{d}$. Using PCG and the localization radius~\eqref{eq:rho_iter}, preprocessing and storage costs fall to
-$\lesssim N (\ell\ln\ln N)^{\alpha d}$ and
-$\lesssim N (\ell\ln\ln N)^{d}$, and the tolerance enters
-through the factor $\ln(1/\varepsilon)$ of the iteration count, which is strictly cheaper asymptotically. The $\ln \ln N$ multiple of $\ell$ grows slowly with $N$; for instance, $\ln\ln 10^{12} < 3.4$. 
-
-A matrix-vector product with~\eqref{eq:preconditioner} requires solving one system per diagonal block $B^{(k)}_\rho$.  For large~$N$, iterative
-methods for these systems are required in practice, so a bound on their
-condition numbers is useful:
-
-\begin{corollary}[Localized block conditioning]\label{thm:localized_block_conditioning}
-For every $\rho \geq 1$ and every $1 \leq k \leq q$,
-\begin{equation}\label{eq:localized_block_conditioning}
-  \kappa\bigl(B^{(k)}_\rho\bigr)
-  \;\leq\; (1+\beta)^2\, \kappa\bigl(B^{(k)}\bigr)
-  \;\leq\; (1+\beta)^2\, C_B^2\, H^{-2}.
-\end{equation}
-\end{corollary}
-
-\noindent The proof is given at the end of
-Section~\ref{sec:preconditioner}. This allows us to bound the number of iterations required to solve the systems $B^{(k)}_{\rho}z = w$, even if the localization radius $\rho$ is not large enough to ensure the bound independent of $N$ in \cite{Owhadi_Scovel_2019}.
+Theorem~\ref{prop:precond_conditioning} is stated for the hierarchy as
+the algorithm builds it.  For whatever radii, patch tolerances and depth
+are chosen, the numbers $X_k$ are finite and computable from the
+recursion, both bounds are finite, and PCG converges at the rate of
+Corollary~\ref{cor:iteration_count}.  Each $X_k$ decreases when any
+radius $r_m$, $m \geq k$, increases or any tolerance $\tau_m$,
+$m \geq k$, decreases, and does not depend on the levels coarser
+than~$k$.  The depth enters through the number of steps of the recursion
+and through the level factors $\omega^{k+1} H^{k-1}$ and $H^{-1-dk/2}$,
+so at fixed radii and tolerances the bound grows with the depth; the
+rate of that growth is the subject of the discussion below.  The
+constants $\alpha$, $\omega$, $C_1$, $C_2$ are not computable from the
+conditions of Appendix~\ref{app:stability}, so the theorem does not
+predict the value of~$\kappa$ for a given configuration; it gives the
+form of the dependence, and the experiments of
+Section~\ref{sec:experiments} measure the values.  Thresholding of the
+coarsened matrices is a further perturbation, treated in
+Remark~\ref{rem:inexact}.
 
 \subsubsection{Discussion}\label{rem:consequences}
-The constants in the bounds above are not generally explicitly
-computable, and the bounds may be pessimistic, especially when the decay
-length~$\ell$ is large.  In practice the radius is typically set by the
-available memory rather than by a threshold.  The guarantees for the
-possible outcomes of~$\beta$ are the following.
+In practice the radii are set by the available memory, the patch
+tolerance by the build time, and the depth by the problem size; none
+follows a prescription in terms of~$N$.  The
+bound~\eqref{eq:kappa_bound} then reads as follows, in terms of the
+aggregate~$\beta$ of Theorem~\ref{prop:precond_conditioning} and with
+$q \leq C_q \ln N$.
 \begin{center}
 \begin{tabular}{lcc}
 \toprule
  & $\kappa\bigl(\widetilde{K}_\rho^{-1}K\bigr)$ & $k(\varepsilon)$ \\
 \midrule
 $\beta \leq \tfrac12$ \
-  & $\lesssim 1$
-  & $\lesssim \ln(1/\varepsilon)$ \\
+  & $\leq 21$
+  & $\leq \tfrac{9}{4}\,\ln(2/\varepsilon)$ \\
 $\beta \leq 1$
-  & $\lesssim \ln^2 N$
+  & $\leq 16\, q^2 \lesssim \ln^2 N$
   & $\lesssim \ln N \,\ln(1/\varepsilon)$ \\
 $1 < \beta < H^{-1}$
   & $\lesssim N^{c}$
@@ -508,73 +636,293 @@ $1 < \beta < H^{-1}$
 \bottomrule
 \end{tabular}
 \end{center}
-Here $c := 2C_q\ln\beta = 2\ln\beta/(d\ln(1/H))$.  In the third row
-$0<c < 2/d$, so the bound remains below the growth $\simeq N^{2/d}$ for an unpreconditioned system on a quasi-uniform
-mesh~\cite{ErnGuermond2004}. For $\beta \geq H^{-1}$ the bound exceeds
-this growth rate, but we note that the bound is not necessarily tight. Convergence of PCG is still guaranteed, by
-Theorem~\ref{prop:precond_conditioning}, though we can claim no nontrivial bound on the rate.
+Here $c := 2C_q\ln\beta$, and in the third row $0 < c < 2/d$ when
+$C_q = 1/(d\ln(1/H))$, so the bound remains below the growth
+$\simeq N^{2/d}$ of the condition number of an unpreconditioned system
+on a quasi-uniform mesh~\cite{ErnGuermond2004}.  For
+$\beta \geq H^{-1}$ the bound exceeds this growth rate; convergence of
+PCG is still guaranteed by Theorem~\ref{prop:precond_conditioning},
+with no nontrivial bound on the rate.
 
-As might be expected, the preconditioner is relatively insensitive to perturbations of the underlying operator. In the case of a linear perturbation, we have the following:
-\begin{theorem}[Preconditioning of perturbed systems; placeholder]
+At fixed radii and a fixed patch tolerance the
+recursion~\eqref{eq:X_recursion} unrolls to
+$X_k \leq \sum_{n \geq k} ((1+\tau)\alpha/H)^{n-k} f_n$ with $f_n$ the
+forcing terms, so every $X_k$ and with it $\beta$ grow at most geometrically in
+the depth, and $\beta \lesssim q\, N^{c'}$ for a constant $c'$ set by
+$\alpha$, $\omega$, $H$, $d$ and the tolerance.  Which row of the table a configuration falls in is
+therefore a question about the size of the constants, which the theorem
+does not answer; Section~\ref{sec:experiments} measures the iteration
+counts at fixed radii as a function of the size.  The two prescriptions under which the first row
+is guaranteed for every~$N$, a radius proportional to the depth and a
+patch tolerance decreasing geometrically with the depth, are the content
+of the next corollary; they are not followed by the configurations that
+fit the memory of one device at the sizes reported here, and
+Theorem~\ref{prop:precond_conditioning} is the statement that applies
+to those configurations.
+
+\begin{corollary}[Radius proportional to the depth]\label{cor:asymptotic}
+Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, let
+\begin{equation}\label{eq:asymptotic_radius}
+  r_k \;\geq\; \alpha\bigl[\, q \ln(2\alpha\omega) + 2\ln q
+    + \ln(4 C_1 \alpha) \,\bigr],
+  \qquad
+  \ln(1/\tau_k) \;\geq\; q \ln\bigl(2\alpha H^{-1-d/2}\bigr) + 2\ln q
+    + \ln(2 C_2 / H),
+\end{equation}
+for $1 \leq k < q$.  Then $\sum_{k<q} X_k \leq 1$,
+$\kappa(\widetilde{K}_\rho^{-1} K) \leq e^2$, and
+$k(\varepsilon) \leq \tfrac{e}{2} \ln(2/\varepsilon)$ for every
+$\varepsilon \in (0,1)$.  Since $q \leq C_q \ln N$, the conditions hold
+with $r_k \simeq \alpha \ln(2\alpha\omega)\, \ln N$ and
+$\ln(1/\tau_k) \simeq \ln N$.  At these radii and tolerances the build
+of Algorithm~\ref{alg:impl_build} costs
+$\lesssim N\,(\alpha\ln(2\alpha\omega)\ln N)^{2d}\,\ln N$ operations,
+the stored hierarchy occupies
+$\lesssim N\,(\alpha\ln(2\alpha\omega)\ln N)^{d}$ values, and a solve to
+tolerance~$\varepsilon$ with a fixed number of Chebyshev steps per block
+(Corollary~\ref{cor:apply_factor}) costs
+$\lesssim N\,(\alpha\ln(2\alpha\omega)\ln N)^{d}\,\ln(1/\varepsilon)$
+operations.
+\end{corollary}
+
+The radius condition is the one under which
+\cite[Thm.~16.32]{Owhadi_Scovel_2019} bounds the localization error of
+the direct solve, with the term $\ln(1/\varepsilon)$ of that theorem's
+radius $r_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$ removed:
+the tolerance leaves the radius and the build, and enters through the
+factor $\ln(1/\varepsilon)$ of the iteration count.  The factor
+$\ln N$ in the build cost is the number of CG iterations per patch
+solve at the tolerance~\eqref{eq:asymptotic_radius}; the tolerance of
+the inner solves of the direct solve tracks the target accuracy
+instead \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+Table~\ref{tab:complexity_comparison} compares the two at the tolerance
+$\varepsilon = N^{-s}$, $s$ fixed, which tracks the discretization error:
+the logarithm counts coincide, and the two formulations differ in what
+the radius depends on and in what a change of tolerance costs.  The
+radius condition of Corollary~\ref{cor:asymptotic} is sufficient for the
+bound; the corollary makes no statement about smaller radii.
+% [VERIFY: the relation between the constant alpha of Lemma 16.30 and
+% the decay length ell of eq:energy_decay.  Both are lengths in level-k
+% mesh units set by the decay of the basis functions (Condition 16.22,
+% item 1, and Lemma 16.27 of the book); the displays above keep alpha
+% explicit and do not identify the two.]
+
+\begin{table}[htbp]
+  \centering
+  \caption{Complexity at the tolerance tracking the discretization error,
+    $\varepsilon = N^{-s}$, $s$ fixed.  The direct row is
+    \cite[Thm.~16.36]{Owhadi_Scovel_2019}; the preconditioner row is
+    Corollary~\ref{cor:asymptotic} with $c_r := \alpha\ln(2\alpha\omega)$.
+    Entries are up to the constants of the $\lesssim$ convention and
+    powers of $1+s$.}
+  \label{tab:complexity_comparison}
+  \begin{tabular}{lccc}
+    \toprule
+    & Build & Memory & Solve \\
+    \midrule
+    Direct solve, $r_k \geq \rho_{\mathrm{dir}}(N, N^{-s})$ &
+      $N\ln^{2d+1} N$ & $N\ln^{d} N$ & $N\ln^{d+1} N$ \\
+    Preconditioner, $r_k \simeq c_r \ln N$ &
+      $N(c_r\ln N)^{2d}\,\ln N$ & $N(c_r\ln N)^{d}$ &
+      $N(c_r\ln N)^{d}\,\ln N$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+A matrix-vector product with~\eqref{eq:preconditioner} requires solving
+one system per diagonal block $B^{(k)}_\rho$, and the build solves one
+principal submatrix system of $B^{(k+1)}_\rho$ per level-$k$ patch.  For
+large~$N$ these systems are solved iteratively, so a bound on their
+condition numbers is needed.
+
+\begin{corollary}[Localized block conditioning]\label{thm:localized_block_conditioning}
+Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, for
+every slot $1 \leq k \leq q$,
+\begin{equation}\label{eq:localized_block_conditioning}
+  B^{(k)} \;\preceq\; B^{(k)}_\rho \;\preceq\; (1 + X_k^2)\, B^{(k)},
+  \qquad\text{hence}\qquad
+  \kappa\bigl(B^{(k)}_\rho\bigr)
+  \;\leq\; (1+X_k^2)\, \kappa\bigl(B^{(k)}\bigr)
+  \;\leq\; (1+X_k^2)\, C_B^2\, H^{-2}.
+\end{equation}
+The level-$k$ patch systems are principal submatrices of
+$B^{(k+1)}_\rho$ and satisfy the same bound with $X_{k+1}$.
+\end{corollary}
+
+\noindent The proof is given in Subsection~\ref{sec:proof_conditioning}.
+The bound holds at every radius, tolerance and depth; the factor
+$1 + X_k^2$ is the one by which the computed slot's energy can exceed
+the exact slot's.  By Cauchy interlacing it transfers to the patch
+systems, so a CG solve of a block or a patch system to relative energy
+error~$\tau$ takes at most
+$\tfrac12 (1+X_k^2)^{1/2} C_B H^{-1} \ln(2/\tau)$ iterations.
+
+The apply phase of the preconditioner need not solve the block systems
+to a tolerance.  Replacing each block solve by a fixed linear
+approximation of the inverse multiplies the bound of
+Theorem~\ref{prop:precond_conditioning} by a constant factor.
+
+\begin{corollary}[Approximate detail solves in the apply]\label{cor:apply_factor}
+For each slot $k$ let $S_k$ be a symmetric positive definite matrix, and
+let $\widehat{M} := \Phi_\rho \operatorname{diag}(S_k) \Phi_\rho^\top$
+be the preconditioner~\eqref{eq:preconditioner} with
+$(B^{(k)}_\rho)^{-1}$ replaced by~$S_k$.  Then $\widehat{M}$ is
+symmetric positive definite and
+\begin{equation}\label{eq:apply_factor}
+  \kappa\bigl(\widehat{M} K\bigr)
+  \;\leq\; F\, \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr),
+  \qquad
+  F := \frac{\max_k \lambda_{\max}\bigl(S_k B^{(k)}_\rho\bigr)}
+            {\min_k \lambda_{\min}\bigl(S_k B^{(k)}_\rho\bigr)} .
+\end{equation}
+In particular:
+\begin{enumerate}
+  \item[(i)] exact block solves, $S_k = (B^{(k)}_\rho)^{-1}$, give
+    $F = 1$;
+  \item[(ii)] $s$ steps of the Chebyshev iteration on an interval
+    $[\lambda_-, \lambda_+]$ containing the spectrum of $B^{(k)}_\rho$,
+    with $\kappa_B := \lambda_+/\lambda_-$, give
+    $F \leq (1+\delta_s)/(1-\delta_s)$ with
+    $\delta_s := 2\bigl((\sqrt{\kappa_B}-1)/(\sqrt{\kappa_B}+1)\bigr)^{s}$,
+    whenever $\delta_s < 1$;
+  \item[(iii)] one Jacobi step, $S_k = \operatorname{diag}(B^{(k)}_\rho)^{-1}$,
+    gives, with $\widehat{S}_k := \operatorname{diag}(B^{(k)}_\rho)^{-1/2}
+    B^{(k)}_\rho \operatorname{diag}(B^{(k)}_\rho)^{-1/2}$,
+    \begin{equation}\label{eq:jacobi_factor}
+      F \;\leq\; \max_k \lambda_{\max}\bigl(\widehat{S}_k\bigr)\,
+        \max_k \kappa\bigl(B^{(k)}_\rho\bigr)
+      \;\leq\; \Bigl[ C_{\mathrm{dec}} + m_k\bigl(2 e_{k-1} + e_{k-1}^2\bigr) \Bigr]
+        \bigl(1 + X^2\bigr) C_B^2 H^{-2},
+      \qquad X := \max_k X_k,
+    \end{equation}
+    where $m_k$ is the largest number of nonzero entries in a row of
+    $B^{(k)}_\rho$, $e_{k-1}$ is the per-function relative error of the
+    computed level-$(k{-}1)$ detail functions bounded in
+    Lemma~\ref{lem:per_function}, and $C_{\mathrm{dec}}$ depends only
+    on the constants of Appendix~\ref{app:stability}.
+\end{enumerate}
+For vector-valued problems with $p$ components per node, one block
+Jacobi step with the $p \times p$ diagonal blocks satisfies
+\eqref{eq:jacobi_factor} with $C_{\mathrm{dec}}$ replaced by
+$p\,C_{\mathrm{dec}}$ and the error term multiplied by
+$p\,(1 + X_k^2)\, C_B^2 H^{-2}$.
+\end{corollary}
+
+The factor~$F$ does not compound with the depth: the detail levels enter
+the preconditioner additively through the block-diagonal $D_\rho^{-1}$,
+so an approximation made in the apply multiplies the bound once,
+whereas an inexact patch solve in the build enters the next level's
+problem and propagates through the recursion~\eqref{eq:X_recursion}.
+The bound in (iii) has two parts.  The support count $m_k$ is
+$\lesssim r^d$ for a common radius~$r$ (Lemma~\ref{lem:support}), so
+without the error term the Jacobi factor would grow with the radius;
+Lemma~\ref{lem:per_function} bounds $e_{k-1}$ by a per-function
+recursion of the same form as~\eqref{eq:X_recursion}, with the decaying
+factor $e^{-r/(2\gamma_3)}$ per level, so the product
+$m_k e_{k-1} \lesssim r^d e^{-r/(2\gamma_3)}$ is bounded uniformly in
+the radius at any fixed depth, and is bounded uniformly in the depth
+under the radius condition of Corollary~\ref{cor:asymptotic}.  The
+term $C_{\mathrm{dec}}$ is the largest scaled row sum of an exact detail
+block, bounded through the decay of its entries.  The practical variant
+in which each block is solved by CG to a fixed tolerance is a nonlinear
+map of the residual, and the corollary does not cover it; its effect is
+measured in Section~\ref{sec:experiments}.
+
+The preconditioner also serves operators other than the one it was
+built for.
+
+\begin{theorem}[Preconditioning of perturbed systems]
 \label{thm:perturbed_system}
-[Stub.  Content: the preconditioner built for a symmetric coercive form
-$a_0$ preconditions a perturbed form $a_1$, with the bound of
-Theorem~\ref{prop:precond_conditioning} multiplied by an explicit
-measure of the spectral distance between the two forms; in the
-time-stepping instance $A(\tau) = M + \tau K$ with the hierarchy built
-at a reference step $\tau_0$, the factor is
-$\max\{\tau/\tau_0,\, \tau_0/\tau\}$.  Proof in
-Section~\ref{sec:preconditioner}.]
+Let $a_0$ and $a_1$ be symmetric coercive bilinear forms on
+$\mathcal{V}^{(q)}$ with stiffness matrices $K_0$ and $K_1$, and let
+$0 < c_1 \leq c_2$ satisfy
+$c_1\, a_0(v,v) \leq a_1(v,v) \leq c_2\, a_0(v,v)$ for every
+$v \in \mathcal{V}^{(q)}$.  Let $M_0$ be a symmetric positive definite
+matrix; in particular, $M_0$ may be the
+preconditioner~\eqref{eq:preconditioner} or the preconditioner
+$\widehat{M}$ of Corollary~\ref{cor:apply_factor} built from the
+hierarchy of~$a_0$.  Then $M_0 K_1$ has real positive spectrum and
+\begin{equation}\label{eq:perturbed_bound}
+  \kappa\bigl(M_0 K_1\bigr)
+  \;\leq\; \frac{c_2}{c_1}\, \kappa\bigl(M_0 K_0\bigr).
+\end{equation}
+For $A(\tau) = M + \tau K$ with $M$ symmetric positive definite and $K$
+symmetric positive semidefinite, and $M_0$ built for $A(\tau_0)$,
+\begin{equation}\label{eq:timestep_bound}
+  \kappa\bigl(M_0 A(\tau)\bigr)
+  \;\leq\; \max\Bigl\{ \frac{\tau}{\tau_0},\, \frac{\tau_0}{\tau} \Bigr\}\,
+    \kappa\bigl(M_0 A(\tau_0)\bigr),
+  \qquad \tau > 0 .
+\end{equation}
 \end{theorem}
 
-\begin{remark}[Level-dependent radii; placeholder]\label{rem:rho_levels}
-[Stub.  Content: the construction admits a radius per level, and
-Theorem~\ref{prop:precond_conditioning} holds with $\beta$ replaced by
-the maximum over levels of its per-level value, so the smallest radius
-governs the bound.  The experiments report the configuration with
-radius $3$ at the finest level and $2$ at the coarser levels alongside
-the uniform radii.]
+The proof is given in Subsection~\ref{sec:proof_conditioning}.  In the
+time-stepping instance, an implicit integrator for
+$M\dot{u} + Ku = f$ solves a system with $A(\tau)$ at every step,
+$\tau$ the effective step coefficient.  The form
+$a_{\tau_0}(u,v) = (u,v)_{L^2(\Omega)} + \tau_0\, a(u,v)$ is symmetric,
+coercive and local, so the hierarchy built for it is within the class
+of Theorem~\ref{prop:precond_conditioning}, with constants set by
+$a_{\tau_0}$, and its blocks obey
+Corollary~\ref{thm:localized_block_conditioning} whatever operator is
+being preconditioned.  A factor-of-two change in~$\tau$ increases the
+iteration bound of Corollary~\ref{cor:iteration_count} by at most
+$\sqrt{2}$, and one build serves a range of steps.
+
+\begin{remark}[The one-shot basis and the radius $\ell \ln\ln N$]\label{rem:oneshot}
+Consider, in place of~\eqref{eq:recursive_patch}, the local problem
+posed over the full trial space.  Let $S^{(k)}_i$ be a union of mesh
+cells contained in the ball of radius $\rho h_k$ about $x^{(k)}_i$,
+containing the support of $\mu^{(k)}_i$ and such that the interior of
+$\operatorname{supp} \mu^{(k)}_j$ does not meet the boundary of
+$S^{(k)}_i$ for any~$j$, and define
+\begin{equation}\label{eq:localized_basis}
+  \psi^{(k),\mathrm{os}}_{\rho,i}
+  := \operatorname{argmin}
+  \bigl\{ \|v\|_a : v \in \mathcal{V}^{(q)},\;
+     \operatorname{supp} v \subseteq S^{(k)}_i,\;
+     \mu^{(k)}_j(v) = \delta_{ij} \text{ for every } j \text{ with }
+     \operatorname{supp} \mu^{(k)}_j \subseteq S^{(k)}_i \bigr\} ,
+\end{equation}
+the detail functions $\chi^{(k),\mathrm{os}}_{\rho,j} := \sum_m D^{(k)}_{jm}
+\psi^{(k+1),\mathrm{os}}_{\rho,m}$, and the preconditioner formed from
+them as in~\eqref{eq:preconditioner}.  Each
+problem~\eqref{eq:localized_basis} has $\simeq \rho^d H^{-d(q-k)}$
+unknowns, the fine-mesh degrees of freedom in the ball, and the
+algorithm does not compute this basis.  For it,
+\cite[Thm.~15.41]{Owhadi_Scovel_2019} gives
+\begin{equation}\label{eq:localization_error}
+  \bigl\|\psi^{(k)}_i - \psi^{(k),\mathrm{os}}_{\rho,i}\bigr\|_a
+  \;\leq\; C\,\|\psi^{(k)}_i\|_a\;e^{-\rho/(2\ell)} ,
+\end{equation}
+with $C$ depending on the operator but not on $k$ or~$\rho$, and the
+argument of Subsection~\ref{sec:proof_conditioning} applies without
+change, since each function lies in $\mathcal{V}^{(q)}$ and matches its
+level-$k$ data.  Appendix~\ref{app:oneshot} proves that in this case
+\eqref{eq:kappa_bound} holds with $\beta$ replaced by
+\begin{equation}\label{eq:beta}
+  \beta_{\mathrm{os}} \;:=\; C_\beta\, H^{-1} \rho^{d/2} \sqrt{q}\;
+    e^{-\rho/(2\ell)} ,
+\end{equation}
+where $C_\beta$ depends only on $C_B$, $d$, $\ell$ and the mesh
+regularity, so that
+\begin{equation}\label{eq:rho_iter}
+  \rho \;\geq\; \rho_{\mathrm{iter}}(N) \;:=\; 2\ell\ln\ln N + C\ell,
+\end{equation}
+with $C$ depending only on $d$, $H$, $C_\beta$ and $\ell$, gives
+$\beta_{\mathrm{os}} \leq \tfrac12$ and
+$\kappa(\widetilde{K}_\rho^{-1} K) \leq 21$.  The factor $\sqrt{q}$,
+in place of the per-level amplification of~\eqref{eq:X_recursion},
+comes from the near-orthogonality of the localization errors
+(Lemma~\ref{lem:error_interactions}): the errors of two functions at
+distance~$r$ interact with energy $\lesssim e^{-\rho/(2\ell)} e^{-r/(4\ell)}$,
+so the energy of a slot's error combination is bounded by
+$\rho^d e^{-\rho/\ell}$ times the weighted coefficient norm, in place
+of a bound carrying the slot dimension.  The same lemma bounds the
+Jacobi factor of Corollary~\ref{cor:apply_factor}(iii) for this basis
+by $c_\star (1 + \ell)^{d+1} (1 + X^2) C_B^2 H^{-2}$, uniformly in the
+radius and the depth (Lemma~\ref{lem:oneshot_rowsum}).
 \end{remark}
-
-\iffalse 
-\begin{corollary}[Conditioning as a function of the problem size]\label{cor:kappa_of_N}
-Fix $\rho \geq 1$ and set
-\begin{equation}\label{eq:bg_def}
-  b(\rho) \;:=\; \sqrt{C_q}\;C_\beta\,H^{-1}\rho^{d/2}\,e^{-\rho/(2\ell)},
-\end{equation}
-so that $\beta \leq b(\rho)\sqrt{\ln N}$.  Then, for every~$N$,
-\begin{equation}\label{eq:kappa_of_N}
-  \kappa\bigl(\widetilde{K}_\rho^{-1}K\bigr)
-  \;\leq\;
-  \bigl(1 + b(\rho)\sqrt{\ln N}\bigr)^{4}
-  \Bigl(\sum_{j=0}^{q-1} \bigl(b(\rho)\sqrt{\ln N}\bigr)^{j}\Bigr)^{2},
-\end{equation}
-and the bound of Corollary~\ref{cor:iteration_count} becomes
-\begin{equation}\label{eq:iters_of_N}
-  k(\varepsilon)
-  \;\leq\;
-  \tfrac{1}{2}\,\ln(2/\varepsilon)\;\iota(\rho, N),
-  \qquad
-  \iota(\rho, N) \;:=\;
-  \bigl(1 + b(\rho)\sqrt{\ln N}\bigr)^{2}
-  \sum_{j=0}^{q-1} \bigl(b(\rho)\sqrt{\ln N}\bigr)^{j},
-\end{equation}
-where $\iota(\rho, N) \geq 1$ is the factor by which the iteration bound
-exceeds its $\beta = 0$ value.  Both bounds are finite for every pair
-$(\rho, N)$, and $b(\rho)\sqrt{\ln N} \leq \tfrac12$ holds whenever
-$\rho \geq \rho_{\mathrm{iter}}(N)$, by Lemma~\ref{lem:threshold} and
-Definition~\ref{def:rho_iter}.
-\end{corollary}
-\begin{proof}
-Substitute $\beta \leq b(\rho)\sqrt{\ln N}$, from $q \leq C_q\ln N$,
-into~\eqref{eq:kappa_bound} and~\eqref{eq:cg_iter_bound}, using that both
-right-hand sides are increasing in~$\beta$.
-\end{proof}
-
-The right-hand side of~\eqref{eq:kappa_of_N} is the curve that the $N$-sweep
-of Section~\ref{sec:experiments} measures, through estimates of~$\kappa$
-inferred from the CG contraction rates, fitting~$b(\rho)$.
-\fi
 
 \subsection{Construction of the Preconditioner}
 \label{sec:implementation}
@@ -895,27 +1243,42 @@ On an unstructured mesh, the sparsity patterns remain computable from the mesh c
 
 \section{Proofs of the Main Results}
 \label{sec:preconditioner}
-% ==============================================================================
-% TODO(constants): $C$ currently denotes both the block-conditioning constant
-% of Theorem~\ref{thm:block_conditioning} (depending on $C_\mu$, $H$) and the
-% localization constant of Theorem~\ref{thm:localization_error} (depending on
-% the operator).  The proof of Lemma~\ref{lem:F_norm} multiplies the two.
-% Separate the symbols across Sections 2--4 before the constant-tracking
-% claims can be checked.
 
+This section proves Theorem~\ref{prop:precond_conditioning} and its
+corollaries, Theorem~\ref{thm:perturbed_system}, and the construction
+results of Subsection~\ref{sec:implementation}.  The conditioning
+argument has two parts.  The structural part uses only the measurement
+matching~\eqref{eq:measurement_matching}: the computed change of basis
+is the exact one times a perturbation of the identity, and the
+perturbation is strictly block lower triangular in the slot partition,
+hence nilpotent.  The quantitative part bounds the slot-wise norms of
+the perturbation by the per-level error recursion of
+\cite[Lemma~16.30]{Owhadi_Scovel_2019}, extended by the error of the
+inexact patch solves.  The two parts combine into the two bounds of the
+theorem.
 
-This section proves Theorem~\ref{prop:precond_conditioning} and Corollary~\ref{thm:localized_block_conditioning}.
-The argument has four main parts.  The condition number of the preconditioned operator is first rewritten, by congruence, as the ratio of the extreme values of a generalized Rayleigh quotient. The localized change of basis is then written as the product of the exact change of basis and a perturbation of the identity.  The upper extreme value of the generalized Rayleigh quotient is bounded by a decorrelation result bounding the size of the energy interactions between localization errors. The lower extreme value is bounded through the inverse of the perturbed operator. We prove the perturbation is nilpotent, so this inverse can be written in closed form and bounded by the earlier decorrelation result. The resulting bound is a closed-form analytical expression in $\rho$ and~$N$. 
+Throughout this section, $\varphi_i$ denotes a member of the
+multiresolution basis~\eqref{eq:combined_basis}, $\varphi_{\rho,i}$ its
+computed counterpart, and $\delta_i := \varphi_{\rho,i} - \varphi_i$ the
+error; for the level-$k$ functions we write
+$\delta^{(k)}_i := \psi^{(k)}_{\rho,i} - \psi^{(k)}_i$ and
+\begin{equation}\label{eq:eps_k_def}
+  \epsilon_k := \Bigl( \sum_{i=1}^{n_k} \|\delta^{(k)}_i\|_a^2 \Bigr)^{1/2},
+  \qquad \epsilon_q = 0,
+\end{equation}
+the aggregate level-$k$ error of \cite[Eq.~(16.113)]{Owhadi_Scovel_2019}.
+We use the constants of Appendix~\ref{app:stability} in the following
+form: $\|D^{(k)}\|_2 \leq C_W$ and $\|A^{(k)}\|_2 \leq C_A H^{-2k}$ for
+every~$k$ \cite[Lemma~16.25, items 2 and 6]{Owhadi_Scovel_2019}, where
+$A^{(k)}_{ij} := a(\psi^{(k)}_i, \psi^{(k)}_j)$ is the exact level-$k$
+stiffness matrix, with $C_W \geq 1$; $n_k \leq c_n H^{-dk}$
+(Subsection~\ref{sec:background}); and $C_B$ is the constant
+of~\eqref{eq:block_conditioning}.  Distances between nodes of a
+level~$k$ are measured in the pseudometric $d^{(k)}$.
 
-Throughout this section, $\varphi_i$ denotes a member of the multiresolution
-basis~\eqref{eq:combined_basis}, $\varphi_{\rho,i}$ its localized counterpart,
-and $\delta_i := \varphi_{\rho,i} - \varphi_i$ the localization error, so that
-$\|\delta_i\|_a \leq C\,\|\varphi_i\|_a\,e^{-\rho/(2\ell)}$ by
-\eqref{eq:localization_error}; we assume without loss of generality $C \geq 1$.  Distances between nodes of a
-level $k$ are measured in units of that level's mesh width.
-\subsection{Proof of Conditioning Bound}
-The condition number of the preconditioned operator is, by definition, the ratio of its
-extreme eigenvalues,
+\subsection{Proof of the conditioning bounds}\label{sec:proof_conditioning}
+The condition number of the preconditioned operator is, by definition,
+the ratio of its extreme eigenvalues,
 \[
   \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
   \;:=\;
@@ -939,9 +1302,14 @@ $D_\rho^{1/2}$ preserves the spectrum and yields a symmetric matrix:
 The matrix $S_\rho$ is congruent to $G_\rho$ via $D_\rho^{-1/2}$, and
 congruence preserves positive definiteness, so $S_\rho$ is symmetric
 positive definite.  The preconditioned operator, though not itself
-symmetric, therefore has the same spectrum as the SPD $S_{\rho}$. In particular its eigenvalues are real and positive, and by the Rayleigh--Ritz theorem~\cite{golub2013matrix} its extreme eigenvalues are the extreme
-values of the Rayleigh quotient $u^\top S_\rho\, u / u^\top u$.  The change of variables
-$u := D_\rho^{1/2} w$ is a bijection of nonzero vectors in $\mathbb{R}^N$, so the set of quotient values, and with it the extrema, is unchanged, and we write
+symmetric, therefore has the same spectrum as the SPD $S_{\rho}$.  In
+particular its eigenvalues are real and positive, and by the
+Rayleigh--Ritz theorem~\cite{golub2013matrix} its extreme eigenvalues
+are the extreme values of the Rayleigh quotient
+$u^\top S_\rho\, u / u^\top u$.  The change of variables
+$u := D_\rho^{1/2} w$ is a bijection of nonzero vectors in
+$\mathbb{R}^N$, so the set of quotient values, and with it the extrema,
+is unchanged, and we write
 \[
   \frac{u^\top S_\rho\, u}{u^\top u}
   = \frac{w^\top G_\rho\, w}{w^\top D_\rho\, w}
@@ -953,9 +1321,9 @@ Therefore
   = \frac{\max_{w \neq 0} R(w)}{\min_{w \neq 0} R(w)} .
 \end{equation}
 
-Recall that $D$ was defined as the block diagonal matrix of the exact transformed matrices, and define the norm
-\\ $\|w\|_D^2 := w^\top D\, w$.
-Since $\Phi^\top K \Phi = D$,
+Recall that $D$ was defined as the block diagonal matrix of the exact
+transformed matrices, and define the norm
+$\|w\|_D^2 := w^\top D\, w$.  Since $\Phi^\top K \Phi = D$,
 \begin{equation}\label{eq:isometry}
   \|\Phi w\|_K = \|w\|_D \qquad \forall w \in \mathbb{R}^N .
 \end{equation}
@@ -964,9 +1332,9 @@ multiplicative perturbation of~$\Phi$:
 \begin{equation}\label{eq:F_def}
   \Phi_\rho = \Phi\,(I + F_\rho),
   \qquad
-  F_\rho := \Phi^{-1}(\Phi_\rho - \Phi) ;
+  F_\rho := \Phi^{-1}(\Phi_\rho - \Phi) .
 \end{equation}
-The numerator of $R$ may be rewritten using ~\eqref{eq:isometry}:
+The numerator of $R$ may be rewritten using~\eqref{eq:isometry}:
 \begin{equation}\label{eq:numerator_identity}
   w^\top G_\rho\, w = \|\Phi_\rho w\|_K^2
   = \|\Phi(I + F_\rho) w\|_K^2
@@ -975,160 +1343,41 @@ The numerator of $R$ may be rewritten using ~\eqref{eq:isometry}:
 For the denominator, partition the coordinates of $w$ into $q$ slots in
 the order of~\eqref{eq:combined_basis}, slot~1 holding the level-1
 coefficients and slot $k \geq 2$ the level-$(k-1)$ detail coefficients,
-and write $\hat{w}_k$ for the vector whose entries match those of $w$ in slot $k$ and are zero elsewhere.  $D$ is
-block diagonal, so
+and write $\hat{w}_k$ for the vector whose entries match those of $w$
+in slot $k$ and are zero elsewhere.  $D$ is block diagonal, so
 \begin{equation}\label{eq:slot_orthogonality}
   \|w\|_D^2 = \sum_{k=1}^q \|\hat{w}_k\|_D^2 .
 \end{equation}
 Each diagonal block of $D_\rho$ is the corresponding diagonal block
-of~$G_\rho$, so \eqref{eq:numerator_identity} applied to each $\hat{w}_k$
-gives
+of~$G_\rho$, so \eqref{eq:numerator_identity} applied to each
+$\hat{w}_k$ gives
 \begin{equation}\label{eq:denominator_identity}
   w^\top D_\rho\, w
   = \sum_k \hat{w}_k^\top G_\rho\, \hat{w}_k
   = \sum_k \|(I + F_\rho)\, \hat{w}_k\|_D^2 .
 \end{equation}
 Write $\sigma_+$ and $\sigma_-$ for the largest and smallest values of
-$\|(I + F_\rho)\, v\|_D / \|v\|_D$ over $v \neq 0$.  Bounds on the
-condition number now follow from bounds on $\sigma_+$ and $\sigma_-$ and
-from a comparison of $w^\top D_\rho\, w$ with $\|w\|_D^2$.
-
-The norm of $F_\rho$ is controlled by the pairwise energy interactions of
-the localization errors, which the next lemma bounds.
-
-\begin{lemma}[Near-orthogonality of localization errors]\label{lem:error_interactions}
-Let $i, j$ be indices at the same level and let
-$r = \operatorname{dist}(i,j)$.  Then
-\begin{equation}\label{eq:error_interaction}
-  |a(\delta_i, \delta_j)|
-  \;\leq\;
-  2\sqrt{e}\,C^2\,\|\varphi_i\|_a\,\|\varphi_j\|_a\;
-  e^{-\rho/(2\ell)}\,
-  \min\bigl\{e^{-\rho/(2\ell)},\; e^{-r/(4\ell)}\bigr\}.
+$\|(I + F_\rho)\, v\|_D / \|v\|_D$ over $v \neq 0$, and
+\begin{equation}\label{eq:b_k_def}
+  b_k := \sup_{\hat{w}_k \neq 0}
+    \frac{\|F_\rho\, \hat{w}_k\|_D}{\|\hat{w}_k\|_D},
+  \qquad 1 \leq k \leq q,
 \end{equation}
-Consequently, for any coefficient vector $w$ supported on a single level,
-\begin{equation}\label{eq:almost_orth}
-  \Bigl\|\sum_i w_i\,\delta_i\Bigr\|_K^2
-  \;\leq\;
-  C_{\mathrm{o}}\;\rho^d\;e^{-\rho/\ell}
-  \sum_i w_i^2\,\|\varphi_i\|_a^2,
+for the slot-wise norms of the perturbation.  Bounds on the condition
+number follow from bounds on $\sigma_+$ and $\sigma_-$ and from a
+comparison of $w^\top D_\rho\, w$ with $\|w\|_D^2$.
+
+\paragraph{Structure.}
+The measurement matching~\eqref{eq:measurement_matching} states that
+every computed function lies in the feasible set of the exact problem
+it approximates,
+\begin{equation}\label{eq:own_level_data}
+  \psi^{(k)}_{\rho,i} \in \mathcal{A}^{(k)}_{i},
+  \qquad 1 \leq i \leq n_k,\ 1 \leq k \leq q .
 \end{equation}
-where $C_{\mathrm{o}}$ depends only on $C$, $d$, $\ell$ and the
-mesh-regularity constant, and not on $N$, $\rho$, or the level index~$k$.
-\end{lemma}
-
-\begin{proof}
-The patch of a localized function at level~$k$ is contained in a ball of
-radius $\rho$ about a point within distance $c_\star$ of its node
-(Section~\ref{sec:background}); absorbing this offset into the
-constants, we treat the patch of $\varphi_{\rho,i}$ as contained in
-$B(x_i, \rho)$.
-
-For any pair, Cauchy--Schwarz and the localization bound give
-$$
-|a(\delta_i,\delta_j)| \leq \|\delta_i\|_a\|\delta_j\|_a
- \leq C^2\,\|\varphi_i\|_a\|\varphi_j\|_a\,e^{-\rho/\ell},
-$$
-which is~\eqref{eq:error_interaction} when $r \leq 2\rho$, where the minimum equals
-$e^{-\rho/(2\ell)}$.
-
-For $r > 2\rho$, let $S = B(x_i, r/2) \cap \Omega$.  The patch of
-$\varphi_{\rho,j}$ lies in $B(x_j, \rho)$, disjoint from~$S$, so $\varphi_{\rho,j}$
-vanishes on~$S$ and
-$\|\delta_j\|_{a,S} = \|\varphi_j\|_{a,S}
- \leq \sqrt{e}\,e^{-r/(4\ell)}\,\|\varphi_j\|_a$
-by Theorem~\ref{thm:energy_decay}, since $S \subset B(x_j, r/2)^c$.
-Symmetrically, the patch of $\varphi_{\rho,i}$ lies in
-$B(x_i,\rho) \subset S$, so $\varphi_{\rho,i}$ vanishes on~$S^c$ and
-$\|\delta_i\|_{a,S^c} = \|\varphi_i\|_{a,S^c}
- \leq \sqrt{e}\,e^{-r/(4\ell)}\,\|\varphi_i\|_a$.  Splitting the form over $S$
-and $S^c$ and applying Cauchy--Schwarz on each piece,
-\[
-  |a(\delta_i,\delta_j)|
-  \;\leq\;
-  \|\delta_i\|_a\,\|\delta_j\|_{a,S}
-  \;+\;
-  \|\delta_i\|_{a,S^c}\,\|\delta_j\|_a
-  \;\leq\;
-  2\sqrt{e}\,C\,\|\varphi_i\|_a\,\|\varphi_j\|_a\;
-  e^{-\rho/(2\ell)}\,e^{-r/(4\ell)},
-\]
-which, using $C \geq 1$, is~\eqref{eq:error_interaction} for $r > 2\rho$.
-
-For~\eqref{eq:almost_orth}, set
-$M_{ij} = a(\delta_i,\delta_j)/(\|\varphi_i\|_a\|\varphi_j\|_a)$ and
-$\widetilde{w}_i = w_i\,\|\varphi_i\|_a$, so that
-$$\|\sum_i w_i\delta_i\|_K^2 = \widetilde{w}^\top M\,\widetilde{w}
- \leq \|M\|\,\|\widetilde{w}\|^2.$$
-Since $M$ is symmetric, its spectral
-norm is bounded by the maximal row sum, which we split by distance.  By
-shape regularity and the correspondence of functionals with degrees of
-freedom (Section~\ref{sec:background:oaw}), a node has
-$\lesssim \rho^d$ same-level neighbours within distance $2\rho$ and
-$\lesssim r^{d-1}$ at distance approximately~$r$.  Near pairs,
-$r \leq 2\rho$: each term is bounded by $2\sqrt{e}\,C^2\,e^{-\rho/\ell}$,
-contributing $\lesssim \rho^d\,e^{-\rho/\ell}$.  Far pairs,
-$r > 2\rho$: the tail sum is bounded by
-\[
-  2\sqrt{e}\,C^2\,e^{-\rho/(2\ell)}
-  \sum_{r > 2\rho} c_\star\, r^{d-1}\,e^{-r/(4\ell)}
-  \;\lesssim\;
-  \ell\,\rho^{d-1}\,e^{-\rho/\ell},
-\]
-which is of lower order.  Hence
-$\|M\| \leq C_{\mathrm{o}}\,\rho^d\,e^{-\rho/\ell}$.
-\end{proof}
-
-Summed over the slots, the bound~\eqref{eq:almost_orth} controls the norm
-of the perturbation:
-
-\begin{lemma}[Norm of the perturbation]\label{lem:F_norm}
-With $\beta$ as in~\eqref{eq:beta},
-\[
-  \|F_\rho\|_D
-  \;:=\; \sup_{w \neq 0} \frac{\|F_\rho w\|_D}{\|w\|_D}
-  \;\leq\; \beta .
-\]
-\end{lemma}
-
-\begin{proof}
-By~\eqref{eq:F_def}, $\Phi F_\rho = \Phi_\rho - \Phi =: \Delta_\rho$, the
-matrix whose columns are the localization errors~$\delta_i$.
-By~\eqref{eq:isometry},
-$\|F_\rho w\|_D = \|\Phi F_\rho w\|_K = \|\Delta_\rho w\|_K$.  Split
-$\Delta_\rho w$ by slot and apply the triangle inequality and
-Cauchy--Schwarz over the $q$ slots:
-\[
-  \|\Delta_\rho w\|_K^2
-  \;\leq\;
-  q \sum_{k=1}^{q} \Bigl\|\sum_i \bigl(\hat{w}_k\bigr)_i\,
-    \delta_i\Bigr\|_K^2 .
-\]
-Each slot term is bounded by Lemma~\ref{lem:error_interactions},
-inequality~\eqref{eq:almost_orth}. Note that a termwise Cauchy--Schwarz estimate would introduce a factor of the slot dimension in
-place of the factor $\rho^d$, inflating the estimate by a factor of $\sqrt{N}$. The block conditioning bound~\eqref{eq:block_conditioning} transforms the weighted Euclidean norm to the $D$-norm: within one slot,
-\[
-  \sum_i w_i^2 \|\varphi_i\|_a^2
-  \;\leq\; \kappa\bigl(B^{(k)}\bigr)\, \hat{w}_k^\top D\, \hat{w}_k
-  \;\leq\; C_B^2 H^{-2} \|\hat{w}_k\|_D^2 ,
-\]
-since $\|\varphi_i\|_a^2$ is a diagonal entry of~$B^{(k)}$, where $C_B$
-denotes the constant of~\eqref{eq:block_conditioning}.
-With~\eqref{eq:slot_orthogonality},
-\[
-  \|\Delta_\rho w\|_K^2
-  \;\leq\;
-  q\; C_{\mathrm{o}}\,\rho^d e^{-\rho/\ell}\; C_B^2 H^{-2}
-  \sum_{k} \|\hat{w}_k\|_D^2
-  \;=\;
-  \bigl(C_\beta\, H^{-1} \rho^{d/2} \sqrt{q}\,
-  e^{-\rho/(2\ell)}\bigr)^2 \|w\|_D^2
-\]
-with $C_\beta := C_B\sqrt{C_{\mathrm{o}}}$.
-\end{proof}
-
-The denominator of $R$ must also be bounded from below.  Each localized
-block dominates the corresponding exact block:
+This holds for every choice of the radii and every $Z^{(k)}$
+in~\eqref{eq:R_structure}, and it is the only property of the computed
+basis used in the three lemmas that follow.
 
 \begin{lemma}[Block domination]\label{lem:domination}
 For every level $k$ and every coefficient vector~$c$,
@@ -1141,31 +1390,28 @@ For every level $k$ and every coefficient vector~$c$,
 \end{lemma}
 
 \begin{proof}
-Every localized basis function lies in the feasible set of its global
-problem,
-\begin{equation}\label{eq:own_level_data}
-  \mathcal{A}^{(k)}_{\rho,i} \subseteq \mathcal{A}^{(k)}_{i}.
-\end{equation}
 Fix a level~$k$ and coefficients~$c$, and set
 $v = \sum_i c_i \psi^{(k)}_i$,
 $v_\rho = \sum_i c_i \psi^{(k)}_{\rho,i}$.  By linearity
 and~\eqref{eq:own_level_data} both satisfy
-$\mu^{(k)}_j(v) = \mu^{(k)}_j(v_\rho) = c_j$ for every~$j$.  The function
-$v$ lies in $\mathcal{V}^{(k)} = (\mathcal{N}^{(k)})^{\perp_a}$, and any
-function with the same measurement values differs from $v$ by an element
-$z \in \mathcal{N}^{(k)}$, so
-$\|v+z\|_a^2 = \|v\|_a^2 + \|z\|_a^2 \geq \|v\|_a^2$.  Applying this with
-$v + z = v_\rho$ gives
-$c^\top B^{(k)}_\rho c = \|v_\rho\|_a^2 \geq \|v\|_a^2 = c^\top B^{(k)} c$.
-For the detail blocks, \eqref{eq:detail_basis}
+$\mu^{(k)}_j(v) = \mu^{(k)}_j(v_\rho) = c_j$ for every~$j$.  Let
+$\mathcal{N}^{(k)} := \{z \in \mathcal{V}^{(q)} : \mu^{(k)}_j(z) = 0
+\ \forall j\}$ be the common kernel of the level-$k$ functionals.  By
+first-order optimality in~\eqref{eq:psi_k_def}, each $\psi^{(k)}_i$ is
+$a$-orthogonal to $\mathcal{N}^{(k)}$, so
+$\mathcal{V}^{(k)} = (\mathcal{N}^{(k)})^{\perp_a}$, and any function
+with the same measurement values as $v$ differs from $v$ by an element
+$z \in \mathcal{N}^{(k)}$, whence
+$\|v+z\|_a^2 = \|v\|_a^2 + \|z\|_a^2 \geq \|v\|_a^2$.  Applying this
+with $v + z = v_\rho$ gives
+$c^\top B^{(k)}_\rho c = \|v_\rho\|_a^2 \geq \|v\|_a^2 = c^\top B^{(k)} c$
+for the first slot.  For the detail blocks, \eqref{eq:detail_basis}
 and~\eqref{eq:localized_detail_basis} write the two combinations as
-level-$k$ combinations with coefficient vector $D^{(k-1)\top} c$, and the
-same comparison applies.  Summing over slots
+level-$k$ combinations with coefficient vector $D^{(k-1)\top} c$, and
+the same comparison applies.  Summing over slots
 with~\eqref{eq:slot_orthogonality} gives the second inequality
 of~\eqref{eq:domination}.
 \end{proof}
-
-The bounds on $\sigma_-$ follow from the nilpotence of $F_\rho$, which is established by the following two lemmas:
 
 \begin{lemma}[Annihilation and the common kernel]\label{lem:annihilation}
 For every level~$k$,
@@ -1173,7 +1419,7 @@ For every level~$k$,
   \mu^{(l)}_j\bigl(\delta^{(k)}_i\bigr) = 0
   \qquad \forall\, l \leq k,\ \forall j ,
 \end{equation}
-where $\delta^{(k)}_i = \psi^{(k)}_{\rho,i} - \psi^{(k)}_i$, and
+and
 \begin{equation}\label{eq:kernel_identification}
   \mathcal{N}^{(k)}
   = \operatorname{span}\bigl\{\chi^{(m)}_i : m \geq k\bigr\}
@@ -1186,8 +1432,8 @@ where $\delta^{(k)}_i = \psi^{(k)}_{\rho,i} - \psi^{(k)}_i$, and
 At $l = k$, subtract the biorthogonality~\eqref{eq:dual_basis}
 from~\eqref{eq:own_level_data}.  For $l < k$, iterate the
 nesting~\eqref{eq:nesting_maps} to
-$\mu^{(l)} = C^{(l)} \cdots C^{(k-1)} \mu^{(k)}$ and evaluate at the error:
-a matrix product applied to the zero vector.
+$\mu^{(l)} = C^{(l)} \cdots C^{(k-1)} \mu^{(k)}$ and evaluate at the
+error: a matrix product applied to the zero vector.
 
 For~\eqref{eq:kernel_identification}: the common kernels decrease,
 $\mathcal{N}^{(k)} \supseteq \mathcal{N}^{(m)}$ for $m \geq k$, and
@@ -1201,9 +1447,8 @@ superscript~$m$ occupies slot $m+1$.
 \end{proof}
 
 \begin{lemma}[Strict block triangularity and nilpotency]\label{lem:nilpotent}
-In the slot partition, 
-$$(F_\rho)_{jk} = 0 \text{ for } j \leq l.$$
-Consequently
+In the slot partition, the block $(j, k)$ of $F_\rho$ vanishes for
+$j \leq k$.  Consequently
 \begin{equation}\label{eq:nilpotency}
   F_\rho^{\,q} = 0,
   \qquad
@@ -1214,25 +1459,26 @@ Consequently
 \begin{proof}
 The definition~\eqref{eq:F_def} holds column by column: $\Phi f = \delta$
 with $f$ a column of $F_\rho$ and $\delta$ the corresponding column
-of~$\Delta_\rho$.  A slot-1 column of $\Delta_\rho$ is $\delta^{(1)}_i$,
-and a slot-$k$ column with $k \geq 2$ is
+of~$\Delta_\rho := \Phi_\rho - \Phi$.  A slot-1 column of $\Delta_\rho$
+is $\delta^{(1)}_i$, and a slot-$k$ column with $k \geq 2$ is
 $\sum_m D^{(k-1)}_{im} \delta^{(k)}_m$, by~\eqref{eq:detail_basis}
 and~\eqref{eq:localized_detail_basis}.  By Lemma~\ref{lem:annihilation}
 each is annihilated by the level-$k$ functionals, so each lies in
 $\mathcal{N}^{(k)}$, the span of the columns of $\Phi$ in slots $k+1$
-through~$q$~\eqref{eq:kernel_identification}; there is therefore a vector
-$g$, zero in slots $1$ through~$k$, with $\Phi g = \delta$, and
+through~$q$~\eqref{eq:kernel_identification}; there is therefore a
+vector $g$, zero in slots $1$ through~$k$, with $\Phi g = \delta$, and
 invertibility of $\Phi$ forces $f = g$.  Hence the slot-$k$ columns of
 $F_\rho$ vanish in slots $1$ through~$k$.
 
-For~\eqref{eq:nilpotency}, let $U_k \subset \mathbb{R}^N$ denote the span
-of the coordinate vectors of slots $k, \ldots, q$, so that
+For~\eqref{eq:nilpotency}, let $U_k \subset \mathbb{R}^N$ denote the
+span of the coordinate vectors of slots $k, \ldots, q$, so that
 $\mathbb{R}^N = U_1 \supset U_2 \supset \cdots \supset U_{q+1} = \{0\}$.
 A vector supported in slot~$t$ is mapped by $F_\rho$ to a combination of
-its slot-$t$ columns, each supported in slots $t+1$ through~$q$; a vector
-in $U_k$ is a sum of slot components with $t \geq k$, each mapped into
-$U_{t+1} \subseteq U_{k+1}$.  Hence $F_\rho(U_k) \subseteq U_{k+1}$, and
-$q$ applications send $U_1$ to $U_{q+1} = \{0\}$.  Write $T := \sum_{j=0}^{q-1} (-F_\rho)^j$.  Then
+its slot-$t$ columns, each supported in slots $t+1$ through~$q$; a
+vector in $U_k$ is a sum of slot components with $t \geq k$, each mapped
+into $U_{t+1} \subseteq U_{k+1}$.  Hence $F_\rho(U_k) \subseteq U_{k+1}$,
+and $q$ applications send $U_1$ to $U_{q+1} = \{0\}$.  Write
+$T := \sum_{j=0}^{q-1} (-F_\rho)^j$.  Then
 \[
   (I + F_\rho)\, T
   = \sum_{j=0}^{q-1} (-F_\rho)^j - \sum_{j=1}^{q} (-F_\rho)^j
@@ -1244,14 +1490,125 @@ $T\,(I + F_\rho) = I$.  Hence $I + F_\rho$ is invertible with
 inverse~$T$, which is~\eqref{eq:nilpotency}.
 \end{proof}
 
+\paragraph{Errors.}
+The slot norms $b_k$ are controlled by the aggregate level errors.
 
+\begin{lemma}[Slot error]\label{lem:slot_error}
+For $1 \leq k \leq q$, $b_k \leq C_W\, C_B^{1/2}\, H^{k-1}\, \epsilon_k$.
+\end{lemma}
+
+\begin{proof}
+By~\eqref{eq:F_def} and~\eqref{eq:isometry},
+$\|F_\rho \hat{w}_k\|_D = \|\Delta_\rho \hat{w}_k\|_K$.  For $k = 1$,
+$\Delta_\rho \hat{w}_1$ is the coefficient vector of
+$\sum_i w_i \delta^{(1)}_i$, whose energy is at most
+$\sum_i |w_i| \|\delta^{(1)}_i\|_a \leq |w|\, \epsilon_1$ by
+Cauchy--Schwarz, while
+$\|\hat{w}_1\|_D^2 = w^\top B^{(1)} w \geq C_B^{-1} |w|^2$
+by~\eqref{eq:block_conditioning}.  For $k \geq 2$,
+$\Delta_\rho \hat{w}_k$ is the coefficient vector of
+$\sum_j w_j (\chi^{(k-1)}_{\rho,j} - \chi^{(k-1)}_j)
+ = \sum_m (D^{(k-1)\top} w)_m\, \delta^{(k)}_m$, whose energy is at
+most $|D^{(k-1)\top} w|\, \epsilon_k \leq C_W |w|\, \epsilon_k$, while
+$\|\hat{w}_k\|_D^2 = w^\top B^{(k)} w \geq C_B^{-1} H^{-2(k-1)} |w|^2$.
+Taking the ratio gives the claim, with $C_W \geq 1$ covering $k = 1$.
+\end{proof}
+
+\begin{lemma}[Inexact patch solves]\label{lem:patch_error}
+Let $\epsilon^\ast_k$ be the aggregate error~\eqref{eq:eps_k_def} of the
+exact minimizers $\psi^{(k),\ast}_{\rho,i}$ of~\eqref{eq:recursive_patch}
+over the computed level-$(k{+}1)$ functions.  Under~\eqref{eq:tau_def},
+\begin{equation}\label{eq:patch_error}
+  \epsilon_k \;\leq\; (1 + \tau_k)\, \epsilon^\ast_k
+    + \tau_k\, (c_n C_A)^{1/2} H^{-(1+d/2)k} .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Write $e_i := \psi^{(k)}_{\rho,i} - \psi^{(k),\ast}_{\rho,i}$, so that
+$\|e_i\|_a \leq \tau_k \|\psi^{(k),\ast}_{\rho,i}\|_a$.  By Minkowski's
+inequality in $\ell^2(I^{(k)})$,
+$\epsilon_k \leq \epsilon^\ast_k + (\sum_i \|e_i\|_a^2)^{1/2}
+ \leq \epsilon^\ast_k + \tau_k (\sum_i \|\psi^{(k),\ast}_{\rho,i}\|_a^2)^{1/2}$,
+and again by Minkowski
+$(\sum_i \|\psi^{(k),\ast}_{\rho,i}\|_a^2)^{1/2}
+ \leq (\sum_i \|\psi^{(k)}_i\|_a^2)^{1/2} + \epsilon^\ast_k
+ = (\operatorname{tr} A^{(k)})^{1/2} + \epsilon^\ast_k$.  Finally
+$\operatorname{tr} A^{(k)} \leq n_k \|A^{(k)}\|_2
+ \leq c_n C_A H^{-(d+2)k}$.
+\end{proof}
+
+\begin{lemma}[Per-level recursion]\label{lem:recursion}
+Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, for
+$1 \leq k < q$,
+\begin{equation}\label{eq:book_recursion}
+  \epsilon^\ast_k \;\leq\; \alpha\, \epsilon_{k+1}
+    + \alpha\, e^{-r_k/\alpha}\, \omega^{k+1},
+\end{equation}
+with $\alpha, \omega \geq 1$ depending only on $C_\varphi$, $H$,
+$\kappa$, $\gamma$ and~$d$.
+\end{lemma}
+
+\begin{proof}
+This is \cite[Lemma~16.30]{Owhadi_Scovel_2019}, whose localized
+problem (16.8) is~\eqref{eq:recursive_patch} with the same patch and
+the same data, and whose constants may be taken at least~$1$
+\cite[proof of Thm.~16.32]{Owhadi_Scovel_2019}.  The lemma is stated
+there for exact patch solves at every level; its proof uses the
+computed level-$(k{+}1)$ functions only through three properties, each
+of which holds for inexact patch solves at the levels below.  First,
+the computed level-$(k{+}1)$ functions satisfy the measurement
+matching~\eqref{eq:measurement_matching}, so that
+$\psi^{(k),\ast}_{\rho,i}$ minimizes $\|\psi - \psi^{(k)}_i\|_a$ over
+the feasible set of~\eqref{eq:recursive_patch}
+\cite[Eq.~(16.125)]{Owhadi_Scovel_2019}, and so that the competitor
+$\sum_{j \in \mathcal{P}^{(k)}_i} R^{(k)}_{\mathrm{ex},ij}\,
+\psi^{(k+1)}_{\rho,j}$, built from the exact nesting
+matrix~\eqref{eq:nesting_R}, is feasible
+\cite[Eq.~(16.128)]{Owhadi_Scovel_2019}.  Second, the error of that
+competitor is bounded by
+$\|R^{(k)}_{\mathrm{ex}}\|_2\, \epsilon_{k+1}$ plus
+$\|R^{(k),\mathrm{tail}}_{\mathrm{ex}}\|_2$ times the aggregate energy
+of the computed level-$(k{+}1)$ functions, which is at most
+$\epsilon_{k+1} + (\operatorname{tr} A^{(k+1)})^{1/2}$
+\cite[Eqs.~(16.138)--(16.140)]{Owhadi_Scovel_2019}.  Third,
+$\|R^{(k)}_{\mathrm{ex}}\|_2 \leq C H^{-2}$ and
+$\|R^{(k),\mathrm{tail}}_{\mathrm{ex}}\|_2 \leq \kappa_2 e^{-r_k/\gamma_2}$
+are properties of the exact hierarchy
+\cite[Lemmas~16.27 and 16.28]{Owhadi_Scovel_2019}.  None of the three
+depends on how the level-$(k{+}1)$ coefficients were computed.
+\end{proof}
 
 \begin{proof}[Proof of Theorem~\textup{\ref{prop:precond_conditioning}}]
-By the triangle inequality and Lemma~\ref{lem:F_norm},
-$\sigma_+ \leq 1 + \|F_\rho\|_D \leq 1 + \beta$.  The substitution
-$u = (I+F_\rho)v$ identifies $\sigma_- = \|(I+F_\rho)^{-1}\|_D^{-1}$, and
-applying the triangle inequality and submultiplicativity termwise to the
-finite sum of~\eqref{eq:nilpotency},
+Positive definiteness of $\widetilde{K}_\rho^{-1}$ follows from the
+invertibility of $\Phi_\rho$ (Subsection~\ref{subsec:loc}) and of
+$D_\rho$.  Set $C_1 := C_W C_B^{1/2}$ and $C_2 := C_1 (c_n C_A)^{1/2}$.
+We claim $b_k \leq C_1 H^{k-1} \epsilon_k \leq X_k$ for every $k$.  The
+first inequality is Lemma~\ref{lem:slot_error}; the second holds at
+$k = q$ since $\epsilon_q = 0$, and if it holds at $k+1$ then by
+Lemmas~\ref{lem:patch_error} and~\ref{lem:recursion}
+\[
+  C_1 H^{k-1} \epsilon_k
+  \;\leq\; (1+\tau_k)\Bigl[ \frac{\alpha}{H}\, C_1 H^{k} \epsilon_{k+1}
+    + C_1 \alpha\, \omega^{k+1} H^{k-1} e^{-r_k/\alpha} \Bigr]
+    + C_2 H^{-1-dk/2} \tau_k
+  \;\leq\; X_k ,
+\]
+by $C_1 H^k \epsilon_{k+1} \leq X_{k+1}$.
+
+For~\eqref{eq:kappa_bound}: by the triangle inequality over the slots,
+\eqref{eq:b_k_def}, Cauchy--Schwarz and~\eqref{eq:slot_orthogonality},
+\[
+  \|F_\rho w\|_D \;\leq\; \sum_{k=1}^{q-1} \|F_\rho \hat{w}_k\|_D
+  \;\leq\; \sum_{k=1}^{q-1} b_k \|\hat{w}_k\|_D
+  \;\leq\; \Bigl(\sum_{k=1}^{q-1} b_k^2\Bigr)^{1/2} \|w\|_D
+  \;\leq\; \beta\, \|w\|_D ,
+\]
+the slot $q$ contributing nothing since $b_q = 0$.  Hence
+$\sigma_+ \leq 1 + \beta$.  The substitution $u = (I+F_\rho)v$
+identifies $\sigma_- = \|(I+F_\rho)^{-1}\|_D^{-1}$, and applying the
+triangle inequality and submultiplicativity termwise to the finite sum
+of~\eqref{eq:nilpotency},
 \[
   \bigl\|(I+F_\rho)^{-1}\bigr\|_D
   \;\leq\; \sum_{j=0}^{q-1} \|F_\rho\|_D^{\,j}
@@ -1265,37 +1622,356 @@ By~\eqref{eq:denominator_identity}, the definition of $\sigma_+$ applied
 to each term, and~\eqref{eq:slot_orthogonality},
 $w^\top D_\rho\, w \leq \sigma_+^2 \|w\|_D^2$;
 Lemma~\ref{lem:domination} gives $w^\top D_\rho\, w \geq \|w\|_D^2$.
-Hence
-\[
-  R(w) \;\leq\; \sigma_+^2,
-  \qquad
-  R(w) \;\geq\; \frac{\sigma_-^2}{\sigma_+^2},
-\]
-and by~\eqref{eq:rayleigh},
-$\kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
- \leq \sigma_+^4 / \sigma_-^2
+Hence $R(w) \leq \sigma_+^2$ and $R(w) \geq \sigma_-^2/\sigma_+^2$,
+and by~\eqref{eq:rayleigh}
+$\kappa(\widetilde{K}_\rho^{-1} K) \leq \sigma_+^4 / \sigma_-^2
  \leq (1+\beta)^4 \bigl(\sum_{j=0}^{q-1}\beta^{\,j}\bigr)^2$.
+
+For~\eqref{eq:kappa_arsinh}, pass to coordinates in which the exact
+blocks are the identity.  Set
+$\widetilde{F} := D^{1/2} F_\rho D^{-1/2}$ and
+$T := I + \widetilde{F}$.  Since $D$ is block diagonal,
+$\widetilde{F}$ is strictly block lower triangular with the same slot
+partition, and $\|\widetilde{F} \hat{x}_k\|_2 / \|\hat{x}_k\|_2
+= \|F_\rho \hat{w}_k\|_D / \|\hat{w}_k\|_D$ for $x = D^{1/2} w$, so
+$L_k := \widetilde{F}_{>k,k}$, the block column~$k$ of $\widetilde{F}$
+below the diagonal, has $\|L_k\|_2 = b_k$.
+By~\eqref{eq:numerator_identity}, $G_\rho = D^{1/2} T^\top T D^{1/2}$,
+and by~\eqref{eq:denominator_identity},
+$D_\rho = D^{1/2}\, \Delta\, D^{1/2}$ with
+$\Delta := \operatorname{blockdiag}(T^\top T)$, whose block~$k$ is
+$I + L_k^\top L_k$.  The matrix $D_\rho^{-1} G_\rho$ is similar to
+$\Delta^{-1} T^\top T$ and hence to $U^\top U$ with
+$U := T \Delta^{-1/2}$, so
+$\kappa(\widetilde{K}_\rho^{-1} K) = \kappa_2(U)^2$, where
+$\kappa_2(U) := \|U\|_2 \|U^{-1}\|_2$.  For $1 \leq k < q$ let $U_k$
+agree with the identity except in block column~$k$, where it agrees
+with~$U$.  For $i < j$, $(U_i - I)(U_j - I) = 0$, because the only
+nonzero block column of $U_j - I$ is column~$j$, and its block row~$i$
+vanishes since $U - I$ is strictly block lower triangular; expanding
+the product therefore gives $U_1 U_2 \cdots U_{q-1} = I + \sum_k (U_k - I)
+= U$.  Writing $J_k := (I + L_k^\top L_k)^{-1/2}$, the action of $U_k$
+on the slots $k$ and $> k$ is the block matrix
+$\bigl(\begin{smallmatrix} J_k & 0 \\ L_k J_k & I \end{smallmatrix}\bigr)$,
+and $U_k^\top U_k$ restricted to these slots is
+$\bigl(\begin{smallmatrix} I & J_k L_k^\top \\ L_k J_k & I \end{smallmatrix}\bigr)$,
+since $J_k (I + L_k^\top L_k) J_k = I$.  Its extreme eigenvalues are
+$1 \pm s_k$ with $s_k := \|L_k J_k\|_2$; by a singular value
+decomposition $L_k = P \Sigma Q^\top$, $L_k J_k = P \Sigma (I + \Sigma^2)^{-1/2} Q^\top$,
+so $s_k = b_k / (1 + b_k^2)^{1/2}$.  Hence
+$\kappa_2(U_k)^2 = (1 + s_k)/(1 - s_k)
+ = \bigl((1+b_k^2)^{1/2} + b_k\bigr)^2 = e^{2 \operatorname{arsinh} b_k}$.
+Submultiplicativity of the norm and of the norm of the inverse gives
+$\kappa_2(U) \leq \prod_{k<q} \kappa_2(U_k)$, so
+$\kappa(\widetilde{K}_\rho^{-1} K)
+ \leq \exp(2 \sum_{k<q} \operatorname{arsinh} b_k)
+ \leq \exp(2 \sum_{k<q} \operatorname{arsinh} X_k)$, as $\operatorname{arsinh}$
+is increasing.
 \end{proof}
 
-
-
-
-It remains to prove Corollary~\ref{thm:localized_block_conditioning}.
+\begin{proof}[Proof of Corollary~\textup{\ref{cor:iteration_count}}]
+The contraction factor $2((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1))^m$ is at
+most $2 e^{-2m/\sqrt{\kappa}}$, which is below $\varepsilon$ once
+$m \geq \tfrac12 \sqrt{\kappa}\, \ln(2/\varepsilon)$;
+substitute~\eqref{eq:kappa_arsinh} and~\eqref{eq:kappa_bound}.  One
+application of~\eqref{eq:preconditioner} with exact block solves costs
+$\lesssim N\rho^d$ operations by Proposition~\ref{prop:cost}.
+\end{proof}
 
 \begin{proof}[Proof of Corollary~\textup{\ref{thm:localized_block_conditioning}}]
-By~\eqref{eq:denominator_identity} applied to a single slot and the
-definition of $\sigma_+$,
-$c^\top B^{(k)}_\rho c = \|(I+F_\rho)\hat{c}_k\|_D^2
-\leq \sigma_+^2\, c^\top B^{(k)} c$, and Lemma~\ref{lem:domination}
-gives the matching lower bound
-$c^\top B^{(k)}_\rho c \geq c^\top B^{(k)} c$.  Hence
-$B^{(k)} \preceq B^{(k)}_\rho \preceq \sigma_+^2 B^{(k)}$, so
-$\kappa(B^{(k)}_\rho) \leq \sigma_+^2\, \kappa(B^{(k)})$;
-$\sigma_+ \leq 1 + \|F_\rho\|_D \leq 1 + \beta$ by
-Lemma~\ref{lem:F_norm}, and \eqref{eq:block_conditioning}
-bounds $\kappa(B^{(k)})$.
+By~\eqref{eq:denominator_identity} applied to a single slot,
+$c^\top B^{(k)}_\rho c = \|(I+F_\rho)\hat{c}_k\|_D^2$.  By
+Lemma~\ref{lem:nilpotent}, $F_\rho \hat{c}_k$ is supported in slots
+$k+1$ through~$q$, so it is $D$-orthogonal to $\hat{c}_k$
+by~\eqref{eq:slot_orthogonality}, and
+\[
+  \|(I+F_\rho)\hat{c}_k\|_D^2
+  = \|\hat{c}_k\|_D^2 + \|F_\rho \hat{c}_k\|_D^2
+  \;\in\; \bigl[\, 1,\; 1 + b_k^2 \,\bigr] \cdot c^\top B^{(k)} c .
+\]
+Hence $B^{(k)} \preceq B^{(k)}_\rho \preceq (1 + b_k^2) B^{(k)}$,
+$b_k \leq X_k$ by the proof of Theorem~\ref{prop:precond_conditioning},
+and \eqref{eq:block_conditioning} bounds $\kappa(B^{(k)})$.  The
+level-$k$ patch system is the principal submatrix of $B^{(k+1)}_\rho$
+on the detail indices of the patch, and the eigenvalues of a principal
+submatrix of a symmetric matrix lie between the extreme eigenvalues of
+the full matrix.
 \end{proof}
 
+\begin{proof}[Proof of Corollary~\textup{\ref{cor:apply_factor}}]
+Set $\widehat{D} := \operatorname{diag}(S_k^{-1})$.  The argument
+leading to~\eqref{eq:rayleigh} applies with $D_\rho$ replaced
+by~$\widehat{D}$: $\widehat{M} K$ is similar to
+$\widehat{D}^{-1} G_\rho$, hence to the SPD matrix
+$\widehat{D}^{-1/2} G_\rho \widehat{D}^{-1/2}$, and its condition number
+is the ratio of the extreme values of
+$\widehat{R}(w) := w^\top G_\rho w / w^\top \widehat{D} w$.  The
+eigenvalues of $S_k B^{(k)}_\rho$ are those of the pencil
+$(B^{(k)}_\rho, S_k^{-1})$, so for every slot vector
+$\lambda_{\min}(S_k B^{(k)}_\rho)\, \hat{w}_k^\top S_k^{-1} \hat{w}_k
+ \leq \hat{w}_k^\top B^{(k)}_\rho \hat{w}_k
+ \leq \lambda_{\max}(S_k B^{(k)}_\rho)\, \hat{w}_k^\top S_k^{-1} \hat{w}_k$.
+Summing over the slots, with $\lambda_+ := \max_k \lambda_{\max}(S_k B^{(k)}_\rho)$
+and $\lambda_- := \min_k \lambda_{\min}(S_k B^{(k)}_\rho)$,
+$\lambda_+^{-1}\, w^\top D_\rho w \leq w^\top \widehat{D} w
+ \leq \lambda_-^{-1}\, w^\top D_\rho w$, so
+$\lambda_- R(w) \leq \widehat{R}(w) \leq \lambda_+ R(w)$ for every~$w$,
+and the ratio of the extreme values of $\widehat{R}$ is at most
+$(\lambda_+/\lambda_-)$ times that of~$R$, which
+is~\eqref{eq:apply_factor}.
+
+(i) is immediate.  For (ii), $s$ steps of the Chebyshev iteration on
+$[\lambda_-, \lambda_+]$ from a zero initial guess apply the polynomial
+$p_s(\lambda) = (1 - r_s(\lambda))/\lambda$ to the right-hand side, where
+$r_s$ is the scaled and shifted Chebyshev polynomial of degree $s$ with
+$r_s(0) = 1$ and
+$\max_{[\lambda_-, \lambda_+]} |r_s| \leq 2((\sqrt{\kappa_B}-1)/(\sqrt{\kappa_B}+1))^s
+ = \delta_s$ \cite[\S12.3]{saad2003iterative}.  Thus
+$S_k = p_s(B^{(k)}_\rho)$ is symmetric, the eigenvalues of
+$S_k B^{(k)}_\rho$ are the values $1 - r_s(\lambda)$ at the eigenvalues
+$\lambda$ of $B^{(k)}_\rho$, all in $[1 - \delta_s, 1 + \delta_s]$, and
+$S_k$ is positive definite when $\delta_s < 1$.  For (iii), with
+$\Lambda := \operatorname{diag}(B^{(k)}_\rho)$, the eigenvalues of
+$S_k B^{(k)}_\rho = \Lambda^{-1} B^{(k)}_\rho$ are those of
+$\widehat{S}_k$; $\lambda_{\max}(\Lambda) \leq \lambda_{\max}(B^{(k)}_\rho)$
+since diagonal entries are Rayleigh quotients, so
+$\lambda_{\min}(\widehat{S}_k) \geq \lambda_{\min}(B^{(k)}_\rho)/\lambda_{\max}(\Lambda)
+ \geq 1/\kappa(B^{(k)}_\rho)$, which gives the first inequality
+of~\eqref{eq:jacobi_factor}.  The second is proved after
+Lemma~\ref{lem:per_function} below.
+\end{proof}
+
+\begin{lemma}[Supports and row counts]\label{lem:support}
+Let $\bar{r} := \max_m r_m$.  The computed function $\psi^{(k)}_{\rho,i}$
+is supported in the ball of radius $s_k h_k$ about $x^{(k)}_i$ with
+$s_k \leq (\bar{r} + c_\star)/(1-H)$, and the number $m_k$ of nonzero
+entries in a row of $B^{(k)}_\rho$ satisfies
+$m_k \leq \kappa^2 (2 H s_k + c_\star)^d$, where $\kappa$ is the
+constant of \cite[Cond.~16.22]{Owhadi_Scovel_2019}; in particular
+$m_k \lesssim \bar{r}^{\,d}$.
+\end{lemma}
+
+\begin{proof}
+By~\eqref{eq:recursive_patch}, $\psi^{(k)}_{\rho,i}$ is a combination of
+computed level-$(k{+}1)$ functions whose parents lie within distance
+$r_k$ of~$i$, hence whose nodes lie within $(r_k + c_\star) h_k$ of
+$x^{(k)}_i$; each is supported within $s_{k+1} h_{k+1} = H s_{k+1} h_k$
+of its node.  Hence $s_k \leq r_k + c_\star + H s_{k+1}$, with
+$s_q \leq c_\star$ for the finite-element basis, and induction gives
+the bound on~$s_k$.  An entry of $B^{(k)}_\rho$ at $(i,j)$ is nonzero
+only if the supports of $\chi^{(k-1)}_{\rho,i}$ and
+$\chi^{(k-1)}_{\rho,j}$ meet; each is contained in a ball of radius
+$(s_k + c_\star) h_k$ about a level-$k$ node within $c_\star h_{k-1}$
+of the node of its parent, so the parents of $i$ and $j$ are within
+$d^{(k-1)}$-distance $2H s_k + c_\star$.  By
+\cite[Cond.~16.22, item 3]{Owhadi_Scovel_2019} there are at most
+$\kappa (2 H s_k + c_\star)^d$ such parents, and by item~4 each has at
+most $\kappa$ detail indices.
+\end{proof}
+
+\begin{lemma}[Per-function error recursion]\label{lem:per_function}
+Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, let
+$\delta_k := \max_i H^{k} \|\delta^{(k)}_i\|_a$, so that $\delta_q = 0$.
+Then, for $1 \leq k < q$,
+\begin{equation}\label{eq:per_function_recursion}
+  \delta_k \;\leq\; (1+\tau_k)\, H^{-1} \Bigl[ C_R\, \delta_{k+1}
+    + C_T\, C_A^{1/2}\, e^{-r_k/(2\gamma_3)} \Bigr]
+    + C_A^{1/2}\, \tau_k ,
+\end{equation}
+where $C_R := \sup_{k,i} \sum_j |R^{(k)}_{\mathrm{ex},ij}|$ is the
+largest absolute row sum of an exact nesting matrix, and $C_T$,
+$\gamma_3$ depend only on $C_\varphi$, $H$, $\kappa$, $\gamma$, $d$.
+Consequently the computed detail functions satisfy
+\begin{equation}\label{eq:detail_relative_error}
+  e_k := \max_j
+  \frac{\|\chi^{(k)}_{\rho,j} - \chi^{(k)}_j\|_a}{\|\chi^{(k)}_j\|_a}
+  \;\leq\; C_D\, C_B^{1/2}\, H^{-1}\, \delta_{k+1},
+  \qquad C_D := \max_j \sum_m |D^{(k)}_{jm}| .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+By \cite[Eq.~(16.104) in the proof of Lemma~16.27]{Owhadi_Scovel_2019},
+$|R^{(k)}_{\mathrm{ex},ij}| \leq \kappa_3 e^{-d^{(k)}(i, j^{(k)})/\gamma_3}$
+with $\kappa_3, \gamma_3$ depending only on $C_\varphi$, $H$, $\kappa$,
+$\gamma$, $d$.  Grouping the level-$(k{+}1)$ indices by parent, at most
+$\kappa$ per parent, and using the ball growth of
+\cite[Cond.~16.22, item 3]{Owhadi_Scovel_2019},
+\[
+  \sum_{j:\, d^{(k)}(i, j^{(k)}) > r}
+    |R^{(k)}_{\mathrm{ex},ij}|
+  \;\leq\; \kappa \kappa_3 \sum_{l:\, d^{(k)}(i,l) > r}
+    e^{-d^{(k)}(i,l)/\gamma_3}
+  \;\leq\; \kappa \kappa_3\, e^{-r/(2\gamma_3)}
+    \sum_{n \geq 0} \kappa (n+1)^d e^{-n/(2\gamma_3)}
+  \;=:\; C_T\, e^{-r/(2\gamma_3)} ,
+\]
+and the same sum without the restriction on the distance is bounded,
+giving $C_R < \infty$ with the same dependence.
+
+Fix $k < q$ and $i$.  As in the proof of Lemma~\ref{lem:recursion},
+$\psi^{(k),\ast}_{\rho,i}$ minimizes $\|\psi - \psi^{(k)}_i\|_a$ over
+the feasible set of~\eqref{eq:recursive_patch}, and the competitor
+$\psi^{c}_i := \sum_{j \in \mathcal{P}^{(k)}_i} R^{(k)}_{\mathrm{ex},ij}
+\psi^{(k+1)}_{\rho,j}$ is feasible: it is supported in the patch, and
+by~\eqref{eq:measurement_matching} its level-$k$ data are
+$\mu^{(k)}_l(\psi^c_i) = \sum_{j \in \mathcal{P}^{(k)}_i}
+R^{(k)}_{\mathrm{ex},ij} C^{(k)}_{lj}$; for $d^{(k)}(i,l) \leq r_k$ every
+$j$ with $C^{(k)}_{lj} \neq 0$ has parent $l$ and lies in the patch, so
+the sum equals $(R^{(k)}_{\mathrm{ex}} C^{(k)\top})_{il} = \delta_{il}$,
+while for $d^{(k)}(i,l) > r_k$ no $j$ in the patch has parent $l$, so
+the sum vanishes.  Since
+$\psi^{(k)}_i = \sum_j R^{(k)}_{\mathrm{ex},ij} \psi^{(k+1)}_j$
+by~\eqref{eq:nesting_R},
+\[
+  \psi^c_i - \psi^{(k)}_i
+  = \sum_{j \in \mathcal{P}^{(k)}_i} R^{(k)}_{\mathrm{ex},ij}\, \delta^{(k+1)}_j
+  - \sum_{j \notin \mathcal{P}^{(k)}_i} R^{(k)}_{\mathrm{ex},ij}\, \psi^{(k+1)}_j ,
+\]
+and with $\|\delta^{(k+1)}_j\|_a \leq H^{-(k+1)} \delta_{k+1}$ and
+$\|\psi^{(k+1)}_j\|_a \leq \|A^{(k+1)}\|_2^{1/2} \leq C_A^{1/2} H^{-(k+1)}$,
+\[
+  \|\psi^{(k),\ast}_{\rho,i} - \psi^{(k)}_i\|_a
+  \;\leq\; \|\psi^c_i - \psi^{(k)}_i\|_a
+  \;\leq\; H^{-(k+1)} \bigl[ C_R\, \delta_{k+1}
+    + C_T\, C_A^{1/2}\, e^{-r_k/(2\gamma_3)} \bigr] .
+\]
+The computed function differs from the exact patch minimizer by
+$e_i$ with $\|e_i\|_a \leq \tau_k \|\psi^{(k),\ast}_{\rho,i}\|_a
+ \leq \tau_k (\|\psi^{(k)}_i\|_a + \|\psi^{(k),\ast}_{\rho,i} - \psi^{(k)}_i\|_a)$,
+so
+$\|\delta^{(k)}_i\|_a \leq (1+\tau_k) \|\psi^{(k),\ast}_{\rho,i} - \psi^{(k)}_i\|_a
+ + \tau_k C_A^{1/2} H^{-k}$; multiplying by $H^k$ and taking the
+maximum over~$i$ gives~\eqref{eq:per_function_recursion}.
+For~\eqref{eq:detail_relative_error},
+$\chi^{(k)}_{\rho,j} - \chi^{(k)}_j = \sum_m D^{(k)}_{jm} \delta^{(k+1)}_m$
+has energy at most $C_D H^{-(k+1)} \delta_{k+1}$, while
+$\|\chi^{(k)}_j\|_a^2 = B^{(k+1)}_{jj} \geq \lambda_{\min}(B^{(k+1)})
+ \geq C_B^{-1} H^{-2k}$ by~\eqref{eq:block_conditioning}.
+\end{proof}
+
+\begin{proof}[Proof of~\eqref{eq:jacobi_factor}, second inequality]
+Since $\widehat{S}_k$ is symmetric, $\lambda_{\max}(\widehat{S}_k)$ is at
+most its largest absolute row sum.  Write $\eta_i := \chi^{(k-1)}_{\rho,i}
+- \chi^{(k-1)}_i$, so $\|\eta_i\|_a \leq e_{k-1} \|\chi^{(k-1)}_i\|_a$,
+and note $B^{(k)}_{\rho,ii} \geq B^{(k)}_{ii} = \|\chi^{(k-1)}_i\|_a^2$
+by Lemma~\ref{lem:domination}.  For the $m_k$ indices $j$ with
+$B^{(k)}_{\rho,ij} \neq 0$,
+\[
+  \frac{|B^{(k)}_{\rho,ij}|}{(B^{(k)}_{\rho,ii} B^{(k)}_{\rho,jj})^{1/2}}
+  \;\leq\;
+  \frac{|a(\chi^{(k-1)}_i, \chi^{(k-1)}_j)|
+    + |a(\eta_i, \chi^{(k-1)}_j)| + |a(\chi^{(k-1)}_i, \eta_j)| + |a(\eta_i, \eta_j)|}
+       {\|\chi^{(k-1)}_i\|_a \|\chi^{(k-1)}_j\|_a}
+  \;\leq\;
+  \frac{|B^{(k)}_{ij}|}{\|\chi^{(k-1)}_i\|_a \|\chi^{(k-1)}_j\|_a}
+  + 2 e_{k-1} + e_{k-1}^2
+\]
+by Cauchy--Schwarz.  The first term summed over all $j$ is at most
+$\|B^{(k)}\|_2 \lambda_{\min}(B^{(k)})^{-1} \sum_j |B^{(k)}_{ij}| / \|B^{(k)}\|_2
+ \leq C_B^2 H^{-2} \sum_j c\, e^{-d^{(k-1)}(i^{(k-1)}, j^{(k-1)})/\gamma}$
+by~\eqref{eq:block_conditioning} and
+\cite[Eq.~(16.97)]{Owhadi_Scovel_2019}, which is bounded by a constant
+$C_{\mathrm{dec}}$ through the ball growth and the bounded number of
+details per parent of \cite[Cond.~16.22]{Owhadi_Scovel_2019}, as in the
+proof of Lemma~\ref{lem:per_function}.  The remaining terms contribute
+at most $m_k (2 e_{k-1} + e_{k-1}^2)$.  For block Jacobi with
+$p \times p$ diagonal blocks $\Lambda_{II}$, the same argument applies
+to $\widehat{S}_k = \Lambda^{-1/2} B^{(k)}_\rho \Lambda^{-1/2}$ with the
+block Schur bound $\|\widehat{S}_k\|_2 \leq \max_I \sum_J \|\widehat{S}_{k,IJ}\|_2$,
+with $\|\Lambda_{II}^{-1/2} B_{IJ} \Lambda_{JJ}^{-1/2}\|_2
+ \leq p \max_{i \in I, j \in J} |B_{ij}| / \lambda_{\min}(\Lambda)$ and
+$\lambda_{\min}(\Lambda_{II}) \geq \lambda_{\min}(B^{(k)}_\rho)
+ \geq \lambda_{\min}(B^{(k)})$, which multiplies the exact term by $p$
+and the error term by $p\, \|B^{(k)}_\rho\|_2 / \lambda_{\min}(B^{(k)})
+ \leq p (1 + X_k^2) C_B^2 H^{-2}$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\textup{\ref{thm:perturbed_system}}]
+$M_0 K_1$ is similar to $M_0^{1/2} K_1 M_0^{1/2}$, which is symmetric
+positive definite, so its spectrum is real and positive and its extreme
+eigenvalues are the extreme values of
+$x^\top K_1 x / x^\top M_0^{-1} x$.  The hypothesis gives
+$c_1\, x^\top K_0 x \leq x^\top K_1 x \leq c_2\, x^\top K_0 x$ for every
+$x$, hence $\lambda_{\max}(M_0 K_1) \leq c_2 \lambda_{\max}(M_0 K_0)$ and
+$\lambda_{\min}(M_0 K_1) \geq c_1 \lambda_{\min}(M_0 K_0)$, which
+is~\eqref{eq:perturbed_bound}.  For~\eqref{eq:timestep_bound}, if
+$\tau \geq \tau_0$ then $A(\tau_0) \preceq A(\tau) \preceq (\tau/\tau_0) A(\tau_0)$,
+the second inequality being $(1 - \tau/\tau_0) M \preceq 0$; if
+$\tau \leq \tau_0$ then $(\tau/\tau_0) A(\tau_0) \preceq A(\tau) \preceq A(\tau_0)$,
+the first being $(1 - \tau/\tau_0) M \succeq 0$.  In either case
+\eqref{eq:perturbed_bound} applies with
+$c_2/c_1 = \max\{\tau/\tau_0, \tau_0/\tau\}$.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\textup{\ref{cor:asymptotic}}]
+The second condition of~\eqref{eq:asymptotic_radius} gives $\tau_k \leq 1$,
+so $1 + \tau_k \leq 2$ and~\eqref{eq:X_recursion} unrolls to
+$X_k \leq \sum_{n=k}^{q-1} (2\alpha/H)^{n-k} g_n$ with
+$g_n := 2 C_1 \alpha\, \omega^{n+1} H^{n-1} e^{-r_n/\alpha}
+ + C_2 H^{-1-dn/2} \tau_n$.  For the first part of $g_n$,
+$(2\alpha/H)^{n-k} \omega^{n+1} H^{n-1} = (2\alpha)^{n-k} \omega^{n+1} H^{k-1}
+ \leq (2\alpha\omega)^q$; for the second,
+$(2\alpha/H)^{n-k} H^{-1-dn/2} \leq (2\alpha)^q H^{-1-(1+d/2)q}$.  With
+common lower bounds $r$ and $\tau$ for the radii and tolerances,
+\[
+  \sum_{k=1}^{q-1} X_k
+  \;\leq\; q^2 \Bigl[ 2 C_1 \alpha\, (2\alpha\omega)^q e^{-r/\alpha}
+    + C_2 H^{-1} (2\alpha H^{-1-d/2})^q\, \tau \Bigr]
+  \;\leq\; \tfrac12 + \tfrac12 ,
+\]
+each bracket term being at most $\tfrac12$ under the corresponding
+condition of~\eqref{eq:asymptotic_radius}.  Then
+$\kappa \leq \exp(2 \sum_k \operatorname{arsinh} X_k)
+ \leq \exp(2 \sum_k X_k) \leq e^2$, and
+Corollary~\ref{cor:iteration_count} gives the iteration bound.  The
+conditions hold with $r_k \simeq \alpha \ln(2\alpha\omega)\, q$ and
+$\ln(1/\tau_k) \simeq q$ since $q \leq C_q \ln N$ and the additive terms
+are of lower order.
+
+For the costs, each patch holds at most $\kappa^2 r_k^d$ indices
+\cite[Cond.~16.22, items 3 and 4]{Owhadi_Scovel_2019}, so a patch system
+has $\lesssim r^{2d}$ entries and one CG iteration costs that many
+operations.  To reach~\eqref{eq:tau_def}: the patch minimizer is
+$\psi^{(k),\ast}_{\rho,i} = \psi_{0,i} + \zeta_i$ with
+$\psi_{0,i} := \sum_j C^{(k)\dagger}_{ij} \psi^{(k+1)}_{\rho,j}$ and
+$\zeta_i$ the correction in the detail coordinates~\eqref{eq:R_structure},
+$a$-orthogonal to $\psi^{(k),\ast}_{\rho,i}$ by optimality, so
+$\|\zeta_i\|_a \leq \|\psi_{0,i}\|_a$.  CG from a zero initial guess on
+the patch system, whose energy norm is the energy of the corresponding
+combination of computed detail functions, reduces the energy error from
+$\|\zeta_i\|_a$ by the factor $2((\sqrt{\kappa_P}-1)/(\sqrt{\kappa_P}+1))^n$
+after $n$ iterations, with $\kappa_P \leq 2 C_B^2 H^{-2}$ by
+Corollary~\ref{thm:localized_block_conditioning} and $X_{k+1} \leq 1$.
+Hence $n \geq \tfrac12 \sqrt{\kappa_P}\, \ln\bigl(2\|\psi_{0,i}\|_a /
+(\tau_k \|\psi^{(k),\ast}_{\rho,i}\|_a)\bigr)$ iterations suffice.
+The ratio is bounded by a constant times $H^{-(k+1)}$:
+$\|\psi^{(k),\ast}_{\rho,i}\|_a \geq \|\psi^{(k)}_i\|_a \geq 1/\|\mu^{(k)}_i\|_\ast
+ \geq C_\varphi^{-1}$ by Lemma~\ref{lem:domination}, the duality
+$1 = \mu^{(k)}_i(\psi^{(k)}_i)$, and the dual-norm bound of
+\cite[Cond.~14.14, item 1]{Owhadi_Scovel_2019}; and
+$\|\psi_{0,i}\|_a \leq \max_i \sum_j |C^{(k)\dagger}_{ij}|\,
+ (C_A^{1/2} H^{-(k+1)} + \epsilon_{k+1})$ with
+$\epsilon_{k+1} \leq X_{k+1}/(C_1 H^k) \leq H^{-k}/C_1$.  So each patch
+takes $\lesssim \ln(1/\tau_k) + k \lesssim \ln N$ CG iterations, and the
+patch solves of level~$k$ cost $\lesssim n_k r^{2d} \ln N$.  The
+coarsening product $R^{(k)} A^{(k+1)}_\rho R^{(k)\top}$ costs
+$\lesssim n_k r^{2d}$: a row of $R^{(k)}$ has $\lesssim r^d$ entries, a
+row of $A^{(k+1)}_\rho$ has $\lesssim r^d$ entries by
+Lemma~\ref{lem:support}, and each of the $\lesssim r^d$ output entries of a
+row is one product with a factor row.  Summing over the levels with
+$n_k \lesssim N H^{d(q-k)}$ gives the build cost; the stored factors
+and blocks hold $\lesssim r^d$ values per row, hence
+$\lesssim N r^d$ in total.  For the solve, take $s$ Chebyshev steps per
+block with $\kappa_B := 2 C_B^2 H^{-2}$ in
+Corollary~\ref{cor:apply_factor}(ii); $s$ depending only on $C_B$ and
+$H$ gives $\delta_s \leq \tfrac13$, $F \leq 2$ and
+$\kappa(\widehat{M} K) \leq 2e^2$, so the iteration count is
+$\lesssim \ln(1/\varepsilon)$, and each application costs
+$\lesssim N r^d$ for the factor products and $\lesssim s N r^d$ for the
+block steps.  Substituting $r \simeq \alpha\ln(2\alpha\omega) \ln N$
+gives the displayed costs.
+\end{proof}
 
 \subsection{Proofs of the Construction Results}
 \label{sec:construction}
@@ -1402,238 +2078,6 @@ operations and block CG with the same iteration bound on
 $\lesssim N\rho^d$ total nonzeros.
 \end{proof}
 
-\iffalse % disabled by the author in main_curr (2026-10-16 state); carried over
-\subsection{Cost scaling with localization}
-\label{sec:preconditioner:rho}
-
-Corollary~\ref{cor:iteration_count} bounds the outer iteration count, which
-grows only logarithmically as $\rho$ decreases toward
-$\rho_{\mathrm{iter}}(N)$.  Combined with the arithmetic complexity of the
-build and of a single CG iteration, both polynomial in~$\rho$, this produces
-an asymmetry between the cost of constructing the preconditioner and the cost
-of using it.
-
-The patch solves inside the build, and the block solves inside each
-application, are inner CG iterations; their iteration counts are governed
-by the conditioning of the localized blocks.
-Theorem~\ref{thm:localized_block_conditioning_dir} bounds this
-conditioning only under the hypothesis
-$\rho \geq \rho_{\mathrm{dir}}(N, \varepsilon)$; the corollary that
-follows holds for every $\rho \geq 1$:
-
-\begin{Theorem}[Localized block conditioning]\label{thm:localized_block_conditioning}
-For every $\rho \geq 1$ and every $k \in \{1, \ldots, q\}$,
-\begin{equation}\label{eq:localized_block_conditioning}
-  \kappa(B^{(k)}_\rho)
-  \;\leq\; (1+\beta)^2\, \kappa(B^{(k)})
-  \;\leq\; (1+\beta)^2\, C_B^2 H^{-2} .
-\end{equation}
-\end{Theorem}
-
-\begin{proof}
-By~\eqref{eq:denominator_identity} applied to a single slot and the
-definition of $\sigma_+$,
-$c^\top B^{(k)}_\rho c = \|(I+F_\rho)\hat{c}_k\|_D^2
-\leq \sigma_+^2\, c^\top B^{(k)} c$, and Lemma~\ref{lem:domination} gives
-the matching lower bound $c^\top B^{(k)}_\rho c \geq c^\top B^{(k)} c$.
-Hence $B^{(k)} \preceq B^{(k)}_\rho \preceq \sigma_+^2 B^{(k)}$, so
-$\kappa(B^{(k)}_\rho) \leq \sigma_+^2 \kappa(B^{(k)})$, and
-Theorem~\ref{thm:block_conditioning} bounds $\kappa(B^{(k)})$.
-\end{proof}
-
-\begin{proposition}[Cost scaling with $\rho$]\label{prop:cost_scaling_rho}
-Constructing the localized factorization at radius~$\rho$ and applying it
-across $N_{\mathrm{steps}}$ solves takes time, per degree of freedom,
-\[
-T(\rho) = \underbrace{c_{\mathrm{bld}}\,(2\rho+1)^{2d}}_{\text{build}}
-   + N_{\mathrm{steps}}\;
-     \underbrace{\iota(\rho, N)\;c_{\mathrm{apl}}\,(2\rho+1)^d}_{\text{solve}},
-\]
-where $c_{\mathrm{bld}}, c_{\mathrm{apl}} > 0$ are implementation constants,
-the build term covers both the coarsening triple products and the patch
-solves, and $\iota(\rho, N) \geq 1$ is the iteration multiplier
-of~\eqref{eq:iters_of_N}.
-\end{proposition}
-
-\begin{proof}
-Each $R^{(k)}$ has $(2\rho+1)^d$ nonzeros per row, so the coarsening triple
-product $R^\top A R$ costs $(2\rho+1)^{2d}$ per output row: in the dominant
-product $R^\top(AR)$, each of the $(2\rho+1)^d$ nonzeros per row of~$R$ meets
-$(2\rho+1)^d$ entries per row of~$AR$.
-
-Each patch problem (Algorithm~\ref{alg:impl_build}, step~3) is a
-system in a principal submatrix of a detail block $B^{(k)}_\rho$ with
-$(2\rho+1)^d$ degrees of freedom.
-Corollary~\ref{thm:localized_block_conditioning} bounds
-$\kappa(B^{(k)}_\rho)$ by $(1+\beta)^2 C_B^2 H^{-2}$ uniformly in $k$, and
-Cauchy interlacing transfers the bound to principal submatrices, so the
-inner CG solve reaches relative tolerance~$\tau$ in
-$\lesssim (1+\beta)\ln(2/\tau)$ iterations.
-
-One inner iteration costs the number of nonzeros of the patch matrix:
-$\lesssim \rho^d$ at the finest level, where the stencil width is
-$\lesssim 1$, and $\lesssim \rho^{2d}$ at coarser levels, where it is
-$\lesssim \rho$ (Proposition~\ref{prop:stencil_width}).  Weighted by the
-geometrically decaying level sizes, the patch solves contribute
-$\lesssim (2\rho+1)^{2d}$ per degree of freedom, absorbed into
-$c_{\mathrm{bld}}$.
-
-Per solve, the outer iteration count exceeds its $\rho \to \infty$ value by
-at most $\iota(\rho, N)$, by~\eqref{eq:iters_of_N}.  Each outer
-iteration costs $(2\rho+1)^d$ for the $B^{(k)}_\rho$ applications.
-\end{proof}
-
-The build is dominated by the triple product, of cost $\lesssim \rho^{2d}$ per degree of freedom, while
-the total solve cost is
-$\tfrac{1}{2}\,c_{\mathrm{apl}}\,(2\rho+1)^{d}\,\ln(2/\varepsilon)\,
-\iota(\rho, N)$ per degree of freedom and solve, by
-Corollary~\ref{cor:kappa_of_N}.  The build and memory terms decrease
-unconditionally with the radius: in three dimensions, reducing $\rho = 3$ to
-$\rho = 2$ divides the build cost by $(7/5)^{6} \approx 7.5$ and the
-per-iteration and memory costs by $(7/5)^{3} \approx 2.7$, with no iteration
-factor attached to either.  The solve time additionally carries
-$\iota(\rho, N)$, so its reduction is conditional, and the $\rho$-sweep of
-Section~\ref{sec:experiments} measures the realized trade.  The gains end
-once $\rho$ falls below a small multiple of the decay length~$\ell$, the
-scale at which $\beta$ approaches one
-(Figure~\ref{fig:cost_vs_rho_stacked_bar}); by
-Remark~\ref{rem:consequences} this threshold moves with the contrast while
-the form of the trade does not.  The corresponding memory model is
-$\lesssim N\rho^d$ for the stored factors and blocks, a working set
-$\lesssim \rho^d$ per patch during the build, and
-$\lesssim N$ for the vectors of the iteration;
-Section~\ref{sec:implementation} describes an implementation attaining these
-scalings.
-
-\begin{corollary}[Complexity at the radius $\rho_{\mathrm{iter}}(N)$]\label{cor:complexity}
-Take $\rho = \rho_{\mathrm{iter}}(N)$, so that
-$\rho \lesssim \ell\ln\ln N$ by~\eqref{eq:rho_iter_growth}.  Then the
-build costs $\lesssim N\,(\ell\ln\ln N)^{2d}$ operations, the
-stored hierarchy occupies $\lesssim N\,(\ell\ln\ln N)^{d}$
-memory, and a solve to energy-norm tolerance~$\varepsilon$ costs
-$\lesssim N\ln(2/\varepsilon)\,(\ell\ln\ln N)^{d}$ operations.
-At a tolerance tracking the discretization error, $\varepsilon = N^{-s}$ with
-$s$ fixed, the solve costs
-$\lesssim s\,N\ln N\,(\ell\ln\ln N)^{d}$.
-\end{corollary}
-
-\begin{proof}
-Substituting the radius into the per-degree-of-freedom costs of
-Proposition~\ref{prop:cost_scaling_rho} gives the build and per-iteration
-costs, and the memory bound restates the model above at this radius.  With
-$\beta \leq \tfrac12$, Corollary~\ref{cor:iteration_count} bounds the
-iteration count by a fixed multiple of $\ln(2/\varepsilon)$.
-\end{proof}
-
-For comparison, at the tolerance tracking the discretization error the direct
-solve requires
-$\rho_{\mathrm{dir}}(N, N^{-s}) = c_{\mathrm{dir}}\,\ell\,(1+s)\ln N$
-by~\eqref{eq:rho_dir}.  Table~\ref{tab:complexity_comparison} evaluates the
-cost model at the two radii.  The rows differ also in the inner tolerance: at
-an accuracy-driven radius the inner tolerances must track the target
-accuracy, contributing $\lesssim s\ln N$ inner iterations and one further
-factor $\ln N$ to the direct solve's build and per-solve costs, whereas under
-the preconditioner formulation the inner tolerance is fixed
-(Section~\ref{sec:experiments}).  With that accounting the
-direct row coincides with \cite[Thm.~16.36]{Owhadi_Scovel_2019}, and every
-ratio between the two rows is a power of $\ln N/\ln\ln N$.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Complexity at the tolerance tracking the discretization error,
-    $\varepsilon = N^{-s}$.  Both rows use the cost model of
-    Proposition~\ref{prop:cost_scaling_rho}, at the radius and with the inner
-    iteration counts each formulation requires: $\lesssim s\ln N$ inner
-    iterations for the direct solve, $\lesssim \ln(2/\tau)$ at fixed $\tau$
-    for the preconditioner.  The direct row matches
-    \cite[Thm.~16.36]{Owhadi_Scovel_2019}.  Entries are up to the constants of the $\lesssim$
-    convention and powers of $1+s$.}
-  \label{tab:complexity_comparison}
-  \begin{tabular}{lccc}
-    \toprule
-    & Build & Memory & Solve \\
-    \midrule
-    Direct solve, $\rho = \rho_{\mathrm{dir}}(N, N^{-s})$ &
-      $N(\ell\ln N)^{2d}\,\ln N$ & $N(\ell\ln N)^{d}$ &
-      $N(\ell\ln N)^{d}\,\ln N$ \\
-    Preconditioner, $\rho = \rho_{\mathrm{iter}}(N)$ &
-      $N(\ell\ln\ln N)^{2d}$ & $N(\ell\ln\ln N)^{d}$ &
-      $N\ln N\,(\ell\ln\ln N)^{d}$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-  \centering
-  % \includegraphics[width=\textwidth]{figures/cost_vs_rho_stacked_bar.pdf}
-  \caption{Stacked bar of build cost $+$ $N \times$ solve cost as a function of
-    $\rho$.}
-  \label{fig:cost_vs_rho_stacked_bar}
-\end{figure}
-
-\subsection{A frozen hierarchy for time-dependent systems}
-\label{sec:preconditioner:frozen}
-
-Consider the semidiscrete system $M\dot{u} + Ku = f$ with SPD mass matrix~$M$.  An implicit integrator solves a system with
-$A(\tau) = M + \tau K$ at each step, where $\tau$ is the effective step
-coefficient: $\tau = \Delta t$ for backward Euler, $\tau = \gamma\,\Delta t$
-for an SDIRK stage.  We build the hierarchy once, for a reference operator
-$A(\tau_0)$, and reuse it as a preconditioner for $A(\tau)$ at every step.
-The form $a_{\tau_0}(u,v) = (u, v)_{L^2(\Omega)} + \tau_0\, a(u,v)$ is
-symmetric, coercive and local, hence within the class analyzed above, with
-continuity constants controlled by $\|M\| + \tau_0\|K\|$ and
-$\lambda_{\min}(M)$.  The results of this section apply to the hierarchy
-built for $A(\tau_0)$, with the corresponding constants.  In particular the
-stored blocks obey Corollary~\ref{thm:localized_block_conditioning}, and
-since the inner systems of the apply phase are these blocks whatever operator
-is being preconditioned, the inner iteration counts are bounded independently
-of the step size.
-
-\begin{corollary}[Frozen-hierarchy preconditioning]\label{cor:frozen_precond}
-Let $M \succ 0$, $K \succeq 0$, and $A(\tau) = M + \tau K$ for $\tau > 0$;
-fix $\tau_0 > 0$.  Then:
-\begin{enumerate}
-  \item $\kappa\bigl(A(\tau_0)^{-1} A(\tau)\bigr) \leq
-    \max\{\tau/\tau_0,\, \tau_0/\tau\}$ for every $\tau > 0$, independently
-    of $\kappa(K)$ and of the coefficient field;
-  \item if $\widetilde{K}_\rho^{-1}$ is the
-    preconditioner~\eqref{eq:preconditioner} built for $A(\tau_0)$, and
-    $\kappa_0 = \kappa_0(\tau_0)$ is the bound~\eqref{eq:kappa_bound} for
-    $A(\tau_0)$, then for every $\tau > 0$
-    \[
-      \kappa\bigl(\widetilde{K}_\rho^{-1} A(\tau)\bigr)
-      \;\leq\;
-      \kappa_0 \,
-      \max\Bigl\{ \frac{\tau}{\tau_0},\, \frac{\tau_0}{\tau} \Bigr\},
-    \]
-    and the preconditioned operator has real, positive spectrum for every
-    $\rho$ and $\tau$.
-\end{enumerate}
-\end{corollary}
-
-The proof is in Appendix~\ref{app:proofs}.  A factor-of-two change in $\tau$
-increases the iteration bound of Corollary~\ref{cor:iteration_count} by at
-most $\sqrt{2}$, and a single build serves a range of steps: given a
-threshold~$\theta$, rebuild when
-$\max\{\tau/\tau_0, \tau_0/\tau\} > \theta$, and choosing $\tau_0$ at the
-geometric mean of the anticipated step range minimizes the number of
-rebuilds.
-
-\begin{remark}[Comparison with direct time-stepping]\label{rem:frozen_comparison}
-Prior time-stepping uses of the factorization apply it directly, so the
-localization error of order $e^{-\rho/(2\ell)}$ is committed at every step.
-Owhadi and Zhang cover a geometric sequence of $s$ step sizes with $s+1$
-hierarchies built at accuracy-driven radii \cite{owhadi_tpde}; Chen et al.\
-integrate the coarse-grained model itself and report a deformation time shift
-growing linearly over the integration, increased by sparsification and not
-removed by their nonlinear post-processing \cite[Fig.~18]{chen2021}.  Under
-the preconditioner formulation the hierarchy enters only through
-$\widetilde{K}_\rho^{-1}$, so each step may be solved to the prescribed tolerance, and
-Corollary~\ref{cor:frozen_precond} covers the step range from a single build.
-Section~\ref{sec:experiments} reports the resulting integrators.
-\end{remark}
-
-\fi
 
 
 \section{Numerical experiments}
