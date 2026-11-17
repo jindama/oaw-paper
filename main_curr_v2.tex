@@ -206,85 +206,79 @@ Appendix~\ref{app:oneshot} proves the one-shot remark, and
 Appendix~\ref{app:stability} restates the stability conditions.
 \section{Background}
 \label{sec:background}
+% CLAIMS:
+% 1. Notation and the constant conventions.
+% 2. The exact hierarchy: measurements, gamblets, details, the block-diagonal
+%    stiffness matrix, uniform block conditioning, exponential decay.
+% 3. The computed hierarchy: patches, the patch problem over computed
+%    children, R = C-dagger + Z D, the preconditioner.
+% 4. Every computed function matches its measurements, for any Z.
+% 5. The direct use needs radii and inner tolerances that track epsilon.
 
-We establish the notation required to state the main results and review some of the relevant work of~\cite{Owhadi_Scovel_2019}, to which we refer the reader for a complete treatment of OAW theory. We write $a \lesssim b$ if $a \leq C\,b$ with a constant $C$ depending only on the operator, the mesh regularity, $d$ and $H$, and not on $N$, $\rho$ or the level $k$; $a \simeq b$ means $a \lesssim b \lesssim a$, and $c_\star$ denotes a generic constant of the same kind, whose value may differ between occurrences. The decay length $\ell$ is always displayed explicitly and is never absorbed into such constants. 
-%primitive objects
+We fix the notation and review the results of~\cite{Owhadi_Scovel_2019}
+that the analysis uses.  We write $a \lesssim b$ if $a \leq C\,b$ with a
+constant $C$ that depends only on the operator, the mesh regularity, $d$
+and $H$, and not on $N$, $\rho$ or the level~$k$; $a \simeq b$ means
+$a \lesssim b \lesssim a$, and $c_\star$ denotes a generic constant of
+the same kind.  The decay length $\ell$ of~\eqref{eq:energy_decay} is
+displayed explicitly and is not absorbed into these constants.
+
 \subsection{Exact Basis Construction}
-We retain the setting and notation of~\eqref{eq:general_problem} and ~\eqref{eq:linear_system}. Fix an integer $q > 1$ and let $\mathcal{V}^{(q)}
-\subset \mathcal{V}$ be a conforming finite-element trial space of dimension
-$n_q := N$ on a mesh of width~$h_q$, with respect to which the stiffness matrix of~$a$ is~$K$. We introduce a nested hierarchy of sets of linearly
-independent \emph{measurement functionals} $\{\mu^{(k)}_j\}_{j=1}^{n_k} \subset (\mathcal{V}^{(q)})^*$,
-$k = 1,\ldots,q$
+Let $\mathcal{V}^{(q)} \subset \mathcal{V}$, $q > 1$, be the
+finite-element trial space of~\eqref{eq:linear_system}, of dimension
+$n_q := N$ on a mesh of width~$h_q$.  Let
+$\{\mu^{(k)}_j\}_{j=1}^{n_k} \subset (\mathcal{V}^{(q)})^*$,
+$k = 1,\ldots,q$, be linearly independent \emph{measurement
+functionals} with nested spans,
 \begin{equation}\label{eq:measurement_nesting}
   \mathcal{V}^{(k)*} := \operatorname{span}\{\mu^{(k)}_j\}_{j=1}^{n_k}
   \;\subset\; \mathcal{V}^{(k+1)*}.
 \end{equation}
-The nesting is encoded by matrices $C^{(k)} \in \mathbb{R}^{n_k \times n_{k+1}}$, $1 \leq k < q$,
+The nesting is encoded by matrices $C^{(k)} \in \mathbb{R}^{n_k \times n_{k+1}}$,
 \begin{equation}\label{eq:nesting_maps}
   \mu^{(k)}_i = \sum_{j=1}^{n_{k+1}} C^{(k)}_{ij}\,\mu^{(k+1)}_j,
-  \qquad 1 \leq i \leq n_k,
+  \qquad 1 \leq i \leq n_k,\ 1 \leq k < q,
 \end{equation}
-and we fix a parameterization $D^{(k)} \in \mathbb{R}^{d_k \times n_{k+1}}$, $1 \leq k < q$,
-$d_k := n_{k+1} - n_k$, of the right kernel of~$C^{(k)}$:
+and we fix matrices $D^{(k)} \in \mathbb{R}^{d_k \times n_{k+1}}$,
+$d_k := n_{k+1} - n_k$, whose rows span the right kernel of~$C^{(k)}$:
 \begin{equation}\label{eq:kernel_D}
   C^{(k)}\, D^{(k)\top} = 0,
   \qquad \operatorname{rank} D^{(k)} = d_k.
 \end{equation}
-In this convention level~$q$ is the finest (trial-space) mesh, and we assume the coarser spaces are obtained via uniform coarsening with coarsening ratio $H \in (0,1)$; $h_{k-1} = \frac{h_{k}}{H}$. Throughout, the level-$k$ functionals $\mu^{(k)}_j$ are assumed to be in
-one-to-one correspondence with the degrees of freedom of a shape-regular FEM
-mesh of width $h_k \propto H^k$. Each functional is associated with a node~$x^{(k)}_j$ and supported on a union of $c_\star$ cells about this node (this ensures sparsity of the linear systems).
-This gives $n_k \propto  h_k^{-d}$, so each coarsening step reduces the
-dimension by the factor $H^{d}$ and $q \leq C_q(H,d) \ln N$. \footnote{We further assume throughout that the hierarchy satisfies the stability conditions of~\cite{Owhadi_Scovel_2019}, restated here in Appendix~\ref{app:stability}.  These have been verified for three families of
-measurement functionals: normalized cell indicators (Haar prewavelets),
-local polynomials, and subsampled
-Dirac deltas with regularity $s > d/2$~\cite[\S14.8, Thms.~16.38--16.39]{Owhadi_Scovel_2019}.} 
+Level~$q$ is the finest.  Each level-$k$ functional is associated with a
+node $x^{(k)}_j$ of a shape-regular mesh of width $h_k \propto H^k$,
+$H \in (0,1)$, and is supported on $c_\star$ cells about it.  Hence
+$n_k \propto h_k^{-d}$ and $q \leq C_q \ln N$.
 
-% The exact basis
-The measurement functionals are used to define a multi-resolution basis of the trial space
-$\mathcal{V}^{(q)}$ organized by the levels of the measurement
-hierarchy as follows:
-For $1 \leq i \leq n_k$,
-define the affine feasible set
+For $1 \leq i \leq n_k$, the level-$k$ basis function is the unique
+minimizer of the energy norm over an affine set,
 \begin{equation}\label{eq:constraint_set}
   \mathcal{A}^{(k)}_i
   := \{v \in \mathcal{V}^{(q)} : \mu^{(k)}_j(v) = \delta_{ij},\;
        1 \leq j \leq n_k\},
 \end{equation}
-the level-$k$ basis function is
 \begin{equation}\label{eq:psi_k_def}
-    \psi^{(k)}_i = \operatorname{argmin}_{f \in \mathcal{A}^{(k)}_i} \lVert f\rVert_a \, .
+    \psi^{(k)}_i = \operatorname{argmin}_{v \in \mathcal{A}^{(k)}_i} \lVert v\rVert_a .
 \end{equation}
-$\mathcal{A}^{(k)}_i$ is nonempty and affine and the energy norm is
-strictly convex, so a unique minimizer exists.  \footnote{These functions
-are also called \emph{gamblets}, after the game-theoretic derivation
-in~\cite{owhadi2017}.}  $\mathcal{V}^{(k)} := \operatorname{span}\{\psi^{(k)}_i\}_{i=1}^{n_k}$ is the level $k$ \emph{coarse space}.~\eqref{eq:measurement_nesting} implies the nesting,
-$\mathcal{V}^{(k)} \subset \mathcal{V}^{(k+1)}$
-\footnote{See Appendix~\ref{app:oaw} for a proof}. We then define the level-$k$ \emph{detail space} $\mathcal{W}^{(k)}$ to be the
-$a$-orthogonal complement of $\mathcal{V}^{(k)}$ in
-$\mathcal{V}^{(k+1)}$, of dimension $d_k = n_{k+1} - n_k$.  
-A decomposition for the trial space is then obtained recursively:
-
+These functions are also called \emph{gamblets}~\cite{owhadi2017}.  The
+\emph{coarse spaces}
+$\mathcal{V}^{(k)} := \operatorname{span}\{\psi^{(k)}_i\}_{i=1}^{n_k}$
+are nested by~\eqref{eq:measurement_nesting} (Appendix~\ref{app:oaw}).
+The \emph{detail space} $\mathcal{W}^{(k)}$ is the $a$-orthogonal
+complement of $\mathcal{V}^{(k)}$ in $\mathcal{V}^{(k+1)}$, so that
 \begin{equation}\label{eq:scale_decomposition}
   \mathcal{V}^{(k+1)} = \mathcal{V}^{(k)} \oplus_a \mathcal{W}^{(k)},
   \qquad
   \mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}
   \oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)} ,
 \end{equation}
-Bases for the $\mathcal{W}^{(k)}$ (termed \emph{detail functions}) can be defined
-recursively as\footnote{See Appendix~\ref{app:oaw} for a proof that these
-form bases of the detail spaces.}
+and the \emph{detail functions}
 \begin{equation}\label{eq:detail_basis}
   \chi^{(k)}_j = \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,\psi^{(k+1)}_m,
-  \qquad 1 \leq j \leq d_k .
+  \qquad 1 \leq j \leq d_k ,
 \end{equation}
-%In particular, the detail functions are $a$-orthogonal to the coarse
-%space $\mathcal{V}^{(k)}$: by first-order optimality
-%in~\eqref{eq:psi_k_def}, $a(\psi^{(k)}_i, v) = 0$ for every trial
-%function $v$ whose level-$k$ measurements vanish, and the level-$k$
-%measurements of the $\chi^{(k)}_j$ vanish by~\eqref{eq:nesting_maps}
-%and~\eqref{eq:kernel_D}.
-
-By~\eqref{eq:scale_decomposition}, the $n_1 + d_1 + \cdots + d_{q-1} = n_q$ functions
+form a basis of $\mathcal{W}^{(k)}$ (Appendix~\ref{app:oaw}).  The
+$n_q$ functions
 \begin{equation}\label{eq:combined_basis}
   \varphi_i :=
   \begin{cases}
@@ -293,179 +287,167 @@ By~\eqref{eq:scale_decomposition}, the $n_1 + d_1 + \cdots + d_{q-1} = n_q$ func
   \end{cases}
 \end{equation}
 form a basis of $\mathcal{V}^{(q)}$, ordered from the coarsest scale to
-the finest.  We denote by $\Phi$ the invertible matrix whose $i$-th
-column holds the coefficients of $\varphi_i$ in the fine-mesh finite-element basis. % Block diagonalization and the exact inverse
-The components of the stiffness matrix of~$a$ in this basis are
-$G_{ij} = a(\varphi_i, \varphi_j)$, i.e. $G = \Phi^\top K \Phi$. By $a$-orthogonality of the summands in~\eqref{eq:scale_decomposition},
-$G$ is \emph{block diagonal}:
+the finest.  Let $\Phi$ be the matrix whose $i$-th column holds the
+coefficients of $\varphi_i$ in the finite-element basis.  The stiffness
+matrix in this basis is block diagonal by~\eqref{eq:scale_decomposition},
 \begin{equation}\label{eq:block_diagonal}
-  G = \operatorname{diag}\bigl(B^{(1)}, B^{(2)}, \ldots, B^{(q)}\bigr) =: \mathcal{B},
+  \Phi^\top K \Phi = \operatorname{diag}\bigl(B^{(1)}, \ldots, B^{(q)}\bigr) =: \mathcal{B},
 \end{equation}
 with $B^{(1)}_{ij} = a(\psi^{(1)}_i, \psi^{(1)}_j)$ and
-$B^{(k)}_{ij} = a(\chi^{(k-1)}_i, \chi^{(k-1)}_j)$ for $k \geq 2$.  The
-blocks are uniformly well conditioned
-\cite[Thm.~14.17]{Owhadi_Scovel_2019}:
+$B^{(k)}_{ij} = a(\chi^{(k-1)}_i, \chi^{(k-1)}_j)$ for $k \geq 2$.  We
+call the diagonal blocks \emph{slots}; slot $k \geq 2$ holds the
+level-$(k{-}1)$ details.  The blocks are uniformly well conditioned
+\cite[Thm.~14.17]{Owhadi_Scovel_2019},
 \begin{equation}\label{eq:block_conditioning}
   C_B^{-1}\, H^{-2(k-1)}
   \;\leq\; \lambda_{\min}\bigl(B^{(k)}\bigr)
   \;\leq\; \lambda_{\max}\bigl(B^{(k)}\bigr)
   \;\leq\; C_B\,H^{-2k},
 \end{equation}
-where $C_B$ depends on $a$ but not on $N$ or the mesh (Appendix~\ref{app:stability}), so that
-$\kappa(B^{(k)}) \leq C_B^2 H^{-2}$ for every $k$.  Since $\Phi$ is invertible,
+so $\kappa(B^{(k)}) \leq C_B^2 H^{-2}$, with $C_B$ independent of $N$
+and the level (Appendix~\ref{app:stability}).  Hence
 \begin{equation}\label{eq:exact_inverse_formula}
-  K^{-1} = \Phi\, G^{-1}\, \Phi^\top
-         = \Phi \operatorname{diag}\bigl(B^{(k)\,-1}\bigr) \Phi^\top .
+  K^{-1} = \Phi \operatorname{diag}\bigl(B^{(k)\,-1}\bigr) \Phi^\top ,
 \end{equation}
-Applying the inverse through~\eqref{eq:exact_inverse_formula} is then a
-restriction by $\Phi^\top$, one independent, well conditioned solve per diagonal block,
-and a prolongation by~$\Phi$.  
+a restriction by $\Phi^\top$, one well-conditioned solve per block, and
+a prolongation by~$\Phi$.
 
-
-The energy of $\psi^{(k)}_i$ decays exponentially with the distance from
-the node $x^{(k)}_i$ of its sole nonzero measurement: writing
-$\|v\|_{a,S}$ for the energy of $v$ restricted to a region $S$ and
-$B(x, r)$ for the ball of radius $r$,
+The energy of $\psi^{(k)}_i$ decays exponentially away from its node:
+with $\|v\|_{a,S}$ the energy of $v$ on a region $S$ and $B(x,r)$ the
+ball of radius~$r$,
 \begin{equation}\label{eq:energy_decay}
   \|\psi^{(k)}_i\|_{a,\,\Omega \setminus B(x^{(k)}_i,\, r h_k)}
   \;\leq\; \sqrt{e}\, e^{-r/(2\ell)}\, \|\psi^{(k)}_i\|_a ,
   \qquad r \geq 0,
 \end{equation}
-\cite[Thm.~15.41]{Owhadi_Scovel_2019}; the same holds for the detail
-functions $\chi^{(k)}_j$ (Theorem~\ref{thm:energy_decay} in
-Appendix~\ref{app:oaw}).  The \emph{decay length} $\ell$ is a length in
-level-$k$ mesh units, depending on the operator only through its
-continuity and coercivity constants and on the mesh regularity, and not
-on $N$, the level or the mesh width.  For the model problem
-$-\nabla\cdot(a\nabla u)$ it grows at worst like the square root of the
+\cite[Thm.~15.41]{Owhadi_Scovel_2019}, and the same holds for the
+detail functions (Theorem~\ref{thm:energy_decay}).  The \emph{decay
+length} $\ell$, in level-$k$ mesh units, depends on the operator only
+through its continuity and coercivity constants and on the mesh
+regularity, and not on $N$ or the level.  For
+$-\nabla\cdot(a\nabla u)$ it grows at most like the square root of the
 contrast of~$a$~\cite{owhadi2017}.
 % TODO: verify whether the book states the worst-case ell-contrast
 % formula; if yes, swap the owhadi2017 citation.
 
 \subsection{Recursive localized construction}\label{subsec:loc}
-The basis functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ are globally
-supported, so the change of basis $\Phi$ and the blocks $B^{(k)}$ are
-dense, and the exact construction is infeasible for large~$N$.  The
-construction analyzed in this paper computes, at every level, functions
-supported near their nodes, each from a local problem posed over the
-functions already computed at the next finer level.
+The functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ are globally supported,
+so $\Phi$ and the blocks $B^{(k)}$ are dense.  The algorithm analyzed
+here computes, level by level, functions supported near their nodes,
+each from a patch problem posed over the functions computed at the next
+finer level.
 
-Localization is measured in the hierarchy of pseudometrics
-$d^{(k)}(i,j) := |x^{(k)}_i - x^{(k)}_j| / h_k$ on the index sets
-$I^{(k)} := \{1, \ldots, n_k\}$, together with a \emph{parent map}
-$I^{(k+1)} \to I^{(k)}$, $j \mapsto j^{(k)}$, which assigns to every
-level-$(k{+}1)$ index a level-$k$ index whose node lies within $c_\star$
-level-$k$ mesh widths of $x^{(k+1)}_j$; the detail indices
-$1 \leq m \leq d_k$ carry a parent $m^{(k)} \in I^{(k)}$ in the same way.
-The nesting and detail maps are \emph{cellular}:
-$C^{(k)}_{ij} = 0$ unless $j^{(k)} = i$, and $D^{(k)}_{mj} = 0$ unless
-$j^{(k)} = m^{(k)}$ \cite[Cond.~16.2]{Owhadi_Scovel_2019}.  For the
-selection maps of first-order elements (Subsection~\ref{sec:implementation})
-this holds with the parent of a level-$(k{+}1)$ node its nearest
-level-$k$ node.  The stability and locality conditions under which the
-results of Section~\ref{sec:results} hold are those of
-\cite[Conds.~14.15, 16.2, 16.22]{Owhadi_Scovel_2019}, restated in
-Appendix~\ref{app:stability}; they are satisfied by the three measurement
-families of Subsection~\ref{sec:background}.
+Distances at level $k$ are measured by
+$d^{(k)}(i,j) := |x^{(k)}_i - x^{(k)}_j| / h_k$ on
+$I^{(k)} := \{1, \ldots, n_k\}$.  A \emph{parent map}
+$j \mapsto j^{(k)}$ assigns to each level-$(k{+}1)$ index a level-$k$
+index whose node lies within $c_\star h_k$ of $x^{(k+1)}_j$, and each
+detail index $m$ carries a parent $m^{(k)}$ in the same way.  The maps
+are \emph{cellular}: $C^{(k)}_{ij} = 0$ unless $j^{(k)} = i$, and
+$D^{(k)}_{mj} = 0$ unless $j^{(k)} = m^{(k)}$
+\cite[Cond.~16.2]{Owhadi_Scovel_2019}.  The results of
+Section~\ref{sec:results} hold under the stability and locality
+conditions \cite[Conds.~14.15, 16.2, 16.22]{Owhadi_Scovel_2019},
+restated in Appendix~\ref{app:stability}.  These are verified for
+normalized cell indicators (Haar prewavelets), local polynomials, and
+subsampled Dirac deltas with regularity $s > d/2$
+\cite[\S14.8, Thms.~16.38--16.39]{Owhadi_Scovel_2019}.
+% [VERIFY: the implementation uses nodal selections (point values) with
+% first-order elements, s = 1; in d = 3 this is outside s > d/2.  State
+% which family the experiments realize and whether the conditions hold.]
 
-Fix radii $r_k \geq 1$, $1 \leq k < q$, measured in level-$k$ mesh
-units, and write $\rho$ for the family $(r_1, \ldots, r_{q-1})$; when
-the radii coincide, $\rho$ also denotes their common value.  The
-\emph{patch} of the level-$k$ index~$i$ is the set of level-$(k{+}1)$
-indices
+Fix radii $r_k \geq 1$, $1 \leq k < q$, in level-$k$ mesh units, and
+write $\rho$ for the family $(r_1, \ldots, r_{q-1})$, or for the common
+value when the radii coincide.  The \emph{patch} of the level-$k$
+index~$i$ is
 \begin{equation}\label{eq:patch_def}
   \mathcal{P}^{(k)}_i := \bigl\{\, j \in I^{(k+1)} :
     d^{(k)}\bigl(i, j^{(k)}\bigr) \leq r_k \,\bigr\},
 \end{equation}
 which holds $\lesssim r_k^d$ indices \cite[Cond.~16.22, items 3 and
-4]{Owhadi_Scovel_2019}.  Set $\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$; the
-finest level is exact, since the feasible set~\eqref{eq:constraint_set}
-at $k = q$ is a single function.  For $k = q-1, \ldots, 1$, given the
-computed level-$(k{+}1)$ functions, define
+4]{Owhadi_Scovel_2019}.  Set $\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$; at
+$k = q$ the feasible set of~\eqref{eq:psi_k_def} is a single function.
+For $k = q-1, \ldots, 1$ define
 \begin{equation}\label{eq:recursive_patch}
   \psi^{(k)}_{\rho,i} := \sum_{j=1}^{n_{k+1}} R^{(k)}_{ij}\,
     \psi^{(k+1)}_{\rho,j},
   \qquad
   R^{(k)}_{i,\cdot} := \operatorname{argmin}
   \Bigl\{ \Bigl\| \sum_j x_j \psi^{(k+1)}_{\rho,j} \Bigr\|_a :
-    x \in \mathbb{R}^{n_{k+1}},\;
     x_j = 0 \text{ for } j \notin \mathcal{P}^{(k)}_i,\;
     C^{(k)} x = e_i \Bigr\}.
 \end{equation}
 The feasible set is nonempty by cellularity
-\cite[Thm.~16.9]{Owhadi_Scovel_2019}, and the minimizer is unique
-because the computed level-$(k{+}1)$ functions are linearly independent
-(by the measurement matching~\eqref{eq:measurement_matching} below) and
-the energy norm is strictly convex.  By
-\cite[Thm.~16.7]{Owhadi_Scovel_2019}, the constraint $C^{(k)} x = e_i$
-may be replaced by its rows $l$ with $d^{(k)}(i, l) \leq r_k$ without
-changing the minimizer, so each problem~\eqref{eq:recursive_patch} has
-$\lesssim r_k^d$ unknowns and constraints.  The construction is that of
+\cite[Thm.~16.9]{Owhadi_Scovel_2019}, and the minimizer is unique since
+the computed level-$(k{+}1)$ functions are linearly independent
+by~\eqref{eq:measurement_matching} below.  Only the constraint rows $l$
+with $d^{(k)}(i,l) \leq r_k$ are active
+\cite[Thm.~16.7]{Owhadi_Scovel_2019}, so each problem has
+$\lesssim r_k^d$ unknowns and constraints.  This is the construction of
 \cite[\S16.2]{Owhadi_Scovel_2019}.
 
-The implementation solves~\eqref{eq:recursive_patch} in detail
-coordinates.  Fix a cellular right inverse $C^{(k)\dagger}$,
-$C^{(k)} C^{(k)\dagger\top} = I$, whose row $i$ is supported in the
-indices with parent~$i$ (for selection maps, $C^{(k)\dagger} = C^{(k)}$).
-A vector $x$ satisfies $C^{(k)} x = e_i$ if and only if
-$x^\top - C^{(k)\dagger}_{i,\cdot} = z D^{(k)}$ for a unique
-$z \in \mathbb{R}^{d_k}$, by~\eqref{eq:kernel_D}; and $x$ is supported in
-$\mathcal{P}^{(k)}_i$ if and only if $z$ is supported in the detail
-indices whose parent lies within distance $r_k$ of~$i$, since the rows
-of $D^{(k)}$ with distinct parents have disjoint supports.  Hence
+Let $C^{(k)\dagger}$ be a cellular right inverse,
+$C^{(k)} C^{(k)\dagger\top} = I$, with row $i$ supported in the indices
+with parent~$i$.  The computed factors do not depend on this choice
+(Lemma~\ref{lem:cdagger_independence}); for selection maps we take
+$C^{(k)\dagger} = C^{(k)}$.  By~\eqref{eq:kernel_D}, $C^{(k)} x = e_i$
+if and only if $x^\top = C^{(k)\dagger}_{i,\cdot} + z D^{(k)}$ for a
+unique $z \in \mathbb{R}^{d_k}$, and $x$ is supported in the patch if
+and only if $z$ is supported in the detail indices whose parent lies
+within $r_k$ of~$i$.  Hence
 \begin{equation}\label{eq:R_structure}
   R^{(k)} = C^{(k)\dagger} + Z^{(k)} D^{(k)},
 \end{equation}
-where row~$i$ of $Z^{(k)}$ is supported in the patch and solves the
-patch system of Algorithm~\ref{alg:impl_build}, step~3, a principal
-submatrix system of the computed detail block defined below.  The
-computed objects are the \emph{computed coarse spaces}
-$\mathcal{U}^{(k)} := \operatorname{span}\{\psi^{(k)}_{\rho,i}\}_{i=1}^{n_k}$,
-the \emph{computed detail functions}
+where row~$i$ of $Z^{(k)}$ solves the patch system, a principal
+submatrix system of the computed block $B^{(k+1)}_\rho$ defined below
+(Algorithm~\ref{alg:impl_build}, step~3).  The \emph{computed detail
+functions} are
 \begin{equation}\label{eq:localized_detail_basis}
   \chi^{(k)}_{\rho,j} := \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,
     \psi^{(k+1)}_{\rho,m}, \qquad 1 \leq j \leq d_k,
 \end{equation}
-and their span $\mathcal{W}^{(k)}_\rho$.  The algorithm computes the
-$\mathcal{U}^{(k)}$; the theory of Section~\ref{sec:results} bounds the
-conditioning of the preconditioner by the distance of the
-$\mathcal{U}^{(k)}$ from the $\mathcal{V}^{(k)}$.  Three properties hold
-for every choice of the radii and for every matrix $Z^{(k)}$
-in~\eqref{eq:R_structure}, in particular when the patch systems are
-solved inexactly.
+and $\mathcal{U}^{(k)} := \operatorname{span}\{\psi^{(k)}_{\rho,i}\}$
+and $\mathcal{W}^{(k)}_\rho := \operatorname{span}\{\chi^{(k)}_{\rho,j}\}$
+are the \emph{computed spaces}.  For all radii and every $Z^{(k)}$
+in~\eqref{eq:R_structure}, and so for inexact patch solves, two
+properties hold.
 \begin{enumerate}
   \item[(i)] \emph{Measurement matching.}  Since
     $C^{(k)} D^{(k)\top} = 0$, \eqref{eq:R_structure} gives
-    $R^{(k)} C^{(k)\top} = I$, and by induction from the exact finest
-    level,
+    $R^{(k)} C^{(k)\top} = I$, and by induction from the finest level
     \begin{equation}\label{eq:measurement_matching}
       \mu^{(k)}_l\bigl(\psi^{(k)}_{\rho,i}\bigr) = \delta_{il},
       \qquad 1 \leq i, l \leq n_k,
     \end{equation}
-    \cite[Eq.~(16.13)]{Owhadi_Scovel_2019}: every computed function
-    lies in the feasible set~\eqref{eq:constraint_set} of the exact
-    problem it approximates.
-  \item[(ii)] \emph{Nesting and splitting.}
-    $\mathcal{U}^{(k)} \subset \mathcal{U}^{(k+1)}$ by definition, and
+    \cite[Eq.~(16.13)]{Owhadi_Scovel_2019}.  Each computed function lies
+    in the feasible set $\mathcal{A}^{(k)}_i$ of the exact problem.
+  \item[(ii)] \emph{Splitting.}
+    $\mathcal{U}^{(k)} \subset \mathcal{U}^{(k+1)}$ and
     \begin{equation}\label{eq:computed_splitting}
       \mathcal{U}^{(k+1)} = \mathcal{U}^{(k)} \oplus \mathcal{W}^{(k)}_\rho ,
     \end{equation}
-    a direct sum that is not $a$-orthogonal in general: the rows of
-    $R^{(k)}$ and of $D^{(k)}$ together span $\mathbb{R}^{n_{k+1}}$,
-    because $a^\top C^{(k)\dagger} + b^\top D^{(k)} = 0$ gives
-    $a = 0$ on multiplication by $C^{(k)\top}$ and then $b = 0$ by the
-    rank of $D^{(k)}$, and $R^{(k)}$ differs from $C^{(k)\dagger}$ by
-    a combination of the rows of $D^{(k)}$.
-  \item[(iii)] \emph{Domination.}  A function of $\mathcal{U}^{(k)}$
-    with level-$k$ data~$c$ has energy at least that of the function
-    of $\mathcal{V}^{(k)}$ with the same data, since the latter is the
-    energy minimizer among all functions of $\mathcal{V}^{(q)}$ with
-    that data (Lemma~\ref{lem:domination}).
+    a direct sum that is not $a$-orthogonal in general.  The rows of
+    $C^{(k)\dagger}$ and $D^{(k)}$ are linearly independent (multiply a
+    vanishing combination by $C^{(k)\top}$, then use the rank of
+    $D^{(k)}$), and $R^{(k)} - C^{(k)\dagger}$ is a combination of the
+    rows of $D^{(k)}$.
 \end{enumerate}
-Figure~\ref{fig:recursive_schematic} summarizes the construction.
-Iterating~\eqref{eq:computed_splitting},
-$\mathcal{V}^{(q)} = \mathcal{U}^{(1)} \oplus \mathcal{W}^{(1)}_\rho
-\oplus \cdots \oplus \mathcal{W}^{(q-1)}_\rho$.
+Concatenating the computed functions in the order
+of~\eqref{eq:combined_basis} gives the \emph{computed basis}
+$\varphi_{\rho,i}$ with coefficient matrix $\Phi_\rho$, which is
+invertible by~\eqref{eq:computed_splitting}.
+Figure~\ref{fig:recursive_schematic} summarizes the construction.  The
+matrix $G_\rho := \Phi_\rho^\top K \Phi_\rho$ is SPD and, unlike
+$\Phi^\top K \Phi$, not block diagonal.  Its block-diagonal part
+$\mathcal{B}_\rho := \operatorname{diag}\{B^{(k)}_\rho\}_{k=1}^{q}$, with
+$B^{(1)}_{\rho,ij} = a(\psi^{(1)}_{\rho,i}, \psi^{(1)}_{\rho,j})$ and
+$B^{(k)}_{\rho,ij} = a(\chi^{(k-1)}_{\rho,i}, \chi^{(k-1)}_{\rho,j})$
+for $k \geq 2$, is SPD, and the couplings $G_\rho - \mathcal{B}_\rho$
+are not constructed.  The \emph{OAW preconditioner} is
+\begin{equation}\label{eq:preconditioner}
+  \widetilde{K}_{\rho}^{-1}
+  \;:=\; \Phi_{\rho}\,\mathcal{B}_{\rho}^{-1}\,\Phi_{\rho}^{\top}.
+\end{equation}
 
 \begin{figure}[t]
 \centering
@@ -473,56 +455,20 @@ $\mathcal{V}^{(q)} = \mathcal{U}^{(1)} \oplus \mathcal{W}^{(1)}_\rho
 \includegraphics[width=0.9\textwidth]{figures/recursive_schematic.pdf}
 \caption{The recursive construction.  At each level the exact space
 $\mathcal{V}^{(k)}$ (left) and the computed space $\mathcal{U}^{(k)}$
-(right); the finest level is exact.  Each level's patch
-problems~\eqref{eq:recursive_patch} are posed over the computed
-functions of the next finer level, and every computed function matches
-its level-$k$ data.  Theorem~\ref{prop:precond_conditioning} bounds the
-condition number of the preconditioner through the slot errors $X_k$,
-which the recursion~\eqref{eq:X_recursion} carries from the finest level
-upward.}
+(right); the finest level is exact.  The patch
+problems~\eqref{eq:recursive_patch} of level $k$ are posed over the
+computed functions of level $k+1$, and each computed function matches
+its level-$k$ measurements.  Theorem~\ref{prop:precond_conditioning}
+bounds the condition number through the slot errors $X_k$ of the
+recursion~\eqref{eq:X_recursion}.}
 \label{fig:recursive_schematic}
-\end{figure}  Concatenating the
-computed functions in the order of~\eqref{eq:combined_basis} yields the
-\emph{computed multiresolution basis} $\varphi_{\rho,i}$, and we write
-$\Phi_\rho$ for the invertible matrix whose $i$-th column holds the
-coefficients of $\varphi_{\rho,i}$ in the fine-mesh basis.  Define the
-\emph{localized} stiffness matrix
-\begin{equation}\label{eq:G_rho}
-  G_{\rho} \;=\; \Phi_{\rho}^{\top} K \, \Phi_{\rho},
-\end{equation}
-with entries $G_{\rho,ij} = a(\varphi_{\rho,i}, \varphi_{\rho,j})$.
-Inverting the congruence gives
-\begin{equation}\label{eq:exact_identity}
-  K^{-1} \;=\; \Phi_{\rho}\, G_{\rho}^{-1}\, \Phi_{\rho}^{\top}.
-\end{equation}
-Unlike~$G$, $G_\rho$ is not block diagonal; we write
-\begin{equation}\label{eq:gram_split}
-  G_\rho \;=\; \mathcal{B}_\rho + E_\rho,
-\end{equation}
-where $\mathcal{B}_\rho = \operatorname{diag}\{B^{(k)}_{\rho}\}_{k=1}^{q}$ is the
-block-diagonal part, with
-$B^{(1)}_{\rho,ij} = a(\psi^{(1)}_{\rho,i}, \psi^{(1)}_{\rho,j})$ and
-$B^{(k)}_{\rho,ij} = a(\chi^{(k-1)}_{\rho,i}, \chi^{(k-1)}_{\rho,j})$
-for $k \geq 2$, and $E_\rho := G_\rho - \mathcal{B}_\rho$ consists of the blocks
-coupling different levels.  $G_\rho$ is SPD by congruence to~$K$, and
-each $B^{(k)}_\rho$ is a principal submatrix of~$G_\rho$, so $\mathcal{B}_\rho$ is
-SPD.  The level-$k$ patch systems of~\eqref{eq:R_structure} are principal
-submatrices of $B^{(k+1)}_\rho$.  The couplings $E_{\rho}$ are not
-constructed, and the inverse is approximated as
-\begin{equation}\label{eq:preconditioner}
-  \widetilde{K}_{\rho}^{-1}
-  \;=\; \Phi_{\rho}\,\mathcal{B}_{\rho}^{-1}\,\Phi_{\rho}^{\top}.
-\end{equation}
-Constructing these factors requires time and working memory
-$\lesssim N\rho^{\alpha d}$, where $\alpha \in (1, 3)$ depends on the
-method used to solve the patch problems~\eqref{eq:recursive_patch},
-storing the factors costs space $\lesssim N\rho^d$, and the product
-$x \mapsto \widetilde{K}_{\rho}^{-1}x$ costs $\lesssim N\rho^d$
-arithmetic operations (Proposition~\ref{prop:cost}).  Used as a direct
-solver, \eqref{eq:preconditioner} yields the approximate solution
-$\hat{u}_\rho := \widetilde{K}_{\rho}^{-1} g$, which satisfies
-$\|u - \hat{u}_\rho\|_K \leq \varepsilon \|u\|_K$, where
-$\|v\|_K := (v^\top K v)^{1/2}$, provided the radii satisfy
+\end{figure}
+
+\subsection{The direct use}\label{subsec:direct}
+Used as a direct solver, \eqref{eq:preconditioner} gives
+$\hat{u}_\rho := \widetilde{K}_{\rho}^{-1} g$ with
+$\|u - \hat{u}_\rho\|_K \leq \varepsilon \|u\|_K$,
+$\|v\|_K := (v^\top K v)^{1/2}$, if the radii satisfy
 \begin{equation}\label{eq:rho_dir}
   r_k \;\geq\; \rho_{\mathrm{dir}}(N, \varepsilon)
   \;:=\; c_{\mathrm{dir}}\, \ell\,\bigl(\ln N + \ln(1/\varepsilon)\bigr)
@@ -536,11 +482,8 @@ $\simeq e^{-r_k/c_\star \ell}$ \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
 % with ell up to the constant c_dir.
 % [VERIFY: the identification of the book's rate constant rho_OS with a
 % multiple of the decay length ell of eq:energy_decay.]
-The cost of the direct use is thus set by the target precision
-$\varepsilon$, through the radius and through the accuracy of the inner
-solves.
-
-
+Both the radius and the inner accuracy depend on~$\varepsilon$, and so
+does the cost of the setup (Table~\ref{tab:complexity_comparison}).
 \section{Main results}
 \label{sec:results}
 
