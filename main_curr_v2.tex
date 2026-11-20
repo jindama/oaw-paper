@@ -890,25 +890,22 @@ radius and the depth (Lemma~\ref{lem:oneshot_rowsum}).
 % CLAIMS:
 % 1. Algorithms 1 and 2 are the method, with the build tolerance and the
 %    detail policy as inputs.
-% 2. Every sparsity pattern and every entry position follows from the index
-%    sets before any coefficient is read; values are stored in stencil order
-%    with one bit per position; the factors are stored, not the change of
-%    basis.
-% 3. A row depends on the coefficient in a ball; equal neighbourhoods give
-%    equal rows, computed once per class.
-% 4. Neither property needs a structured mesh; the implementation takes the
-%    uniform grid for simplicity.
-% 5. Patch solves by CG to the build tolerance; the detail policy; the band
-%    pipeline.
-% 6. The cost as a sum over levels.
-The algorithm computes the factors $R^{(k)}$ of~\eqref{eq:R_structure}
-level by level, from the finest down, and applies~\eqref{eq:preconditioner}
-with them.  Algorithms~\ref{alg:impl_build} and~\ref{alg:impl_apply} state
-the build and the apply in terms of the nesting and detail maps, the
-patches, products with the fine operator, a build tolerance and a detail
-policy; the recursion is that of Budninskiy et al.~\cite{budni2019}.  The
-rest of this subsection records the properties of the construction that
-make it practical, and then the instance we implement.
+% 2. The sparsity pattern of every computed matrix is determined by the
+%    index sets, the radii and H (Proposition); the factors are stored,
+%    not the change of basis.
+% 3. A row depends on the operator in a ball, and equal data give equal
+%    rows (Lemma); one representative per class.
+% 4. Patch solves by CG to the build tolerance; the detail policy; the
+%    cost as a sum over levels (Proposition).
+% 5. One remark on the realization: stencil storage with presence bits,
+%    the band pipeline, the labelled index sets this requires, and the
+%    uniform grid used in the experiments.
+Algorithm~\ref{alg:impl_build} computes the factors $R^{(k)}$
+of~\eqref{eq:R_structure} level by level, from the finest down, and
+Algorithm~\ref{alg:impl_apply} applies~\eqref{eq:preconditioner}.  Both
+are stated in terms of the nesting and detail maps, the patches, products
+with the fine stiffness matrix, a build tolerance and a detail policy.
+The recursion is that of Budninskiy et al.~\cite{budni2019}.
 
 \begin{algorithm}[t]
 \caption{OAW Build}
@@ -977,126 +974,111 @@ with dense \emph{exact nesting matrices} $R^{(k)}_{\mathrm{ex}}$.  The
 computed factors $R^{(k)}$ of~\eqref{eq:recursive_patch} replace them,
 with each row supported in its patch.
 
-\paragraph{Patterns and positions are known in advance.}
-A row of $R^{(k)}$ is supported in its patch.  The coarsened operator
-$A^{(k)} = R^{(k)} A^{(k+1)} R^{(k)\top}$ and the block
-$B^{(k+1)}_\rho = D^{(k)} A^{(k+1)} D^{(k)\top}$ are products of the factor
-with the operator one level finer, so their supports are unions of patches
-within reach of one another.
+\subsubsection{Sparsity}
+For a matrix $M$ whose rows and columns are indexed by level sets, write
+$\mathcal{S}(M)(i) := \{\, j : M_{ij} \neq 0 \,\}$ for the pattern of
+row~$i$, and for $r \geq 0$ let
+$N^{(k)}_r(i) := \{\, j \in I^{(k)} : d^{(k)}(i,j) \leq r \,\}$ be the
+level-$k$ neighbourhood of radius~$r$, which holds $\lesssim r^d$ indices
+\cite[Cond.~16.22]{Owhadi_Scovel_2019}.
 
-\begin{proposition}[Stencil width]\label{prop:stencil_width}
-Measure distances at level~$k$ in level-$k$ mesh units.  The stencil width
-of $A^{(q)} = K$ is $\lesssim 1$, and the widths $w_k$ of $A^{(k)}$ and of
-$B^{(k+1)}_\rho$ satisfy
+\begin{proposition}[Sparsity patterns]\label{prop:stencil_width}
+For $1 \leq k < q$ and every level-$k$ index~$i$,
+$\mathcal{S}(R^{(k)})(i) \subseteq \mathcal{P}^{(k)}_i$.  There are
+widths $w_q \lesssim 1$ and
 \begin{equation}\label{eq:width_recursion}
-  w_k \;\leq\; 2 r_k + H\, w_{k+1} + c_\star ,
-  \qquad\text{hence}\qquad
-  w_k \;\leq\; \frac{2\rho}{1-H} + c_\star
-  \quad\text{for every } k .
+  w_k \;:=\; 2 r_k + H\, w_{k+1} + c_\star
+  \;\leq\; \frac{2\rho}{1-H} + c_\star ,
+  \qquad 1 \leq k < q,
 \end{equation}
+such that $\mathcal{S}(A^{(k)})(i) \subseteq N^{(k)}_{w_k}(i)$ for every
+level-$k$ index~$i$, and
+$\mathcal{S}(B^{(k+1)}_\rho)(m) \subseteq
+ \{\, n : d^{(k)}(m^{(k)}, n^{(k)}) \leq w_k \,\}$ for every level-$k$
+detail index~$m$.  These inclusions hold for every coefficient field,
+every choice of the patch solutions $Z^{(k)}$ and after thresholding.
 \end{proposition}
 
-\noindent Every object of the build therefore has, before any coefficient
-is read, a candidate set of $\lesssim \rho^d$ positions per row, fixed by
-the index sets alone.  Each object is allocated once at its final size, and
-the position of an entry within its row is computed, not stored.  The
-stored form is the stencil storage of structured
-multigrid~\cite{hypre2006,dendy1982blackbox}: the values of a row in the
-order of its candidate set.  Two features of the present setting extend
-it.  The stencils widen with the radius, and thresholding (step~5) leaves
-gaps in them, so one bit per candidate position records whether the entry
-is present.%
-\footnote{TODO: on the current code branch this holds for the factors; for
-the coarsened operators and the blocks once the bit-mask storage is merged
-(\texttt{dev/TICKET\_masked\_apply.md}).}
-The change of basis $\Phi_\rho$ itself is never formed, a column of it
-at level~$k$ having $\simeq \rho^d H^{-d(q-k)}$ entries; the factors are
-stored and applied in sequence.
+The patterns of all matrices in Algorithm~\ref{alg:impl_build} are thus
+determined by the index sets, the radii and~$H$ alone, with
+$\lesssim \rho^d$ entries per row at every level.  The change of basis
+$\Phi_\rho$ is not formed: a column of it at level~$k$ has
+$\simeq \rho^d H^{-d(q-k)}$ entries, whereas the factors together hold
+$\lesssim N \rho^d$.
 
-\paragraph{Rows depend on local data.}
-\begin{lemma}[Dependency region and equal rows]\label{lem:dependency}
-Row~$i$ of $R^{(k)}$, and the rows of $B^{(k+1)}_\rho$ at the detail
-indices with parent~$i$, as computed by Algorithm~\ref{alg:impl_build},
-are functions of the coefficient field on the ball $\mathcal{D}^{(k)}_i$ of
-radius $C_H\, \rho h_k + c_\star h_k$ about $x^{(k)}_i$, where
-$C_H := (1+H)/(1-H)^2$.  Let $T$ be a bijection of the index sets of
-levels $k, \ldots, q$ that commutes with the nesting and detail maps and
-maps patches to patches, and let the coefficient field at $T$-images equal
-the field on $\mathcal{D}^{(k)}_i$, with neither $\mathcal{D}^{(k)}_i$ nor
-its image meeting $\partial\Omega$.  Then
-$R^{(k)}_{T i,\, T j} = R^{(k)}_{i j}$ for every~$j$, and likewise for the
-rows of the blocks.
+\subsubsection{Locality}
+Let $\mathcal{D}^{(k)}_i$ be the ball of radius
+$C_H\, \rho\, h_k + c_\star h_k$ about $x^{(k)}_i$, with
+$C_H := (1+H)/(1-H)^2$, and let $J^{(q)}(S)$ denote the fine indices whose
+functionals are supported in a set~$S$.  A \emph{relabelling} is a family
+of bijections $T^{(m)}$ of $I^{(m)}$, $k \leq m \leq q$, and of the
+level-$m$ detail indices, that commutes with the nesting and detail maps,
+$C^{(m)}_{T^{(m)} i,\, T^{(m+1)} j} = C^{(m)}_{ij}$ and
+$D^{(m)}_{T^{(m)} m',\, T^{(m+1)} j} = D^{(m)}_{m' j}$, and maps patches to
+patches, $T^{(m+1)}(\mathcal{P}^{(m)}_i) = \mathcal{P}^{(m)}_{T^{(m)} i}$.
+
+\begin{lemma}[Locality and equivariance]\label{lem:dependency}
+Let $1 \leq k < q$ and let $i$ be a level-$k$ index.
+\begin{enumerate}
+  \item[(i)] Row~$i$ of $R^{(k)}$, and the rows of $B^{(k+1)}_\rho$ at the
+    detail indices with parent~$i$, as computed by
+    Algorithm~\ref{alg:impl_build}, are functions of the entries
+    $K_{ab}$, $a, b \in J^{(q)}(\mathcal{D}^{(k)}_i)$.
+  \item[(ii)] Let $T$ be a relabelling with
+    $K_{T^{(q)} a,\, T^{(q)} b} = K_{ab}$ for all
+    $a, b \in J^{(q)}(\mathcal{D}^{(k)}_i)$, and let neither
+    $\mathcal{D}^{(k)}_i$ nor its image under~$T$ meet $\partial\Omega$.
+    Then $R^{(k)}_{T^{(k)} i,\, T^{(k+1)} j} = R^{(k)}_{ij}$ for every~$j$,
+    and the corresponding rows of $B^{(k+1)}_\rho$ coincide.
+\end{enumerate}
 \end{lemma}
 
-\noindent The equality holds for the computed rows, not only the exact
-ones: CG from a zero initial guess commutes with the relabelling, and
-equal values threshold alike.  For a coefficient of period~$P$, an integer
-multiple of~$h_k$, the interior rows of level~$k$ fall into at most
-$(P/h_k)^d$ classes, and the rows whose balls meet the boundary add
-$\lesssim \rho\, n_k^{(d-1)/d}$ more; the classes are identified from the
-coefficient before any solve.  One representative per class is computed,
-so the patch-solve work and the stored value tables scale with the number
-of classes rather than with~$n_k$, as for constant- and
-periodic-coefficient stencils.  A coefficient without such structure has
-one row per class, and nothing changes.
+Part~(ii) concerns the computed rows: the conjugate gradient iteration
+from a zero initial guess commutes with a permutation of the unknowns, and
+equal entries are thresholded alike.  The relation
+$i \sim T^{(k)} i$ of~(ii) partitions the level-$k$ indices into classes,
+determined by the coefficient field before any patch problem is solved,
+and Algorithm~\ref{alg:impl_build} solves one patch problem per class.
+For a field of period~$P$, an integer multiple of~$h_k$, the interior
+indices of level~$k$ fall into at most $(P/h_k)^d$ classes, and the
+indices whose balls meet $\partial\Omega$ add $\lesssim \rho\,
+n_k^{(d-1)/d}$ further classes.  For a field without such structure every
+class is a singleton.
 
-\paragraph{Neither property requires a structured mesh.}
-They require degrees of freedom labelled so that a row's candidate set,
-and a column's position within it, follow from the labels through tables
-whose size does not grow with~$N$.  A uniform refinement of an unstructured
-base mesh has this form, with a label consisting of a base entity and
-local coordinates and one table per base entity; so do the index trees
-of~\cite{owhadi2017} and meshes assembled from structured regions with
-adjacency tables only at their interfaces.  For simplicity the
-implementation described below takes the uniform grid, where the tables
-are empty.
-
-\paragraph{Patch solves.}
-The patch systems are principal submatrices of $B^{(k+1)}_\rho$, hence
-uniformly conditioned by Corollary~\ref{thm:localized_block_conditioning},
-with $\kappa_k := (1 + X_{k+1}^2)\, C_B^2 H^{-2}$, and CG from a zero
-initial guess reaches the relative residual tolerance
-$\tau_{\mathrm{build}}$ within
+\subsubsection{Patch solves and detail policy}
+The level-$k$ patch systems are principal submatrices of
+$B^{(k+1)}_\rho$, hence by Corollary~\ref{thm:localized_block_conditioning}
+their condition numbers are at most
+$\kappa_k := (1 + X_{k+1}^2)\, C_B^2 H^{-2}$, and CG from a zero initial
+guess reaches the relative residual tolerance $\tau_{\mathrm{build}}$
+within
 \begin{equation}\label{eq:patch_iters}
   \iota_k \;\leq\; \tfrac12\, \sqrt{\kappa_k}\,
     \ln\bigl( 2\sqrt{\kappa_k} / \tau_{\mathrm{build}} \bigr)
 \end{equation}
 iterations~\cite{saad2003iterative}, independently of the level, the
-radii and~$N$ for bounded $X_{k+1}$.  The build tolerance sets the patch
-tolerance of Theorem~\ref{prop:precond_conditioning}: the energy error of
-the computed correction relative to the exact correction is at most
-$\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$, and the proof of
+radii and~$N$ for bounded $X_{k+1}$.  The build tolerance determines the
+patch tolerance of Theorem~\ref{prop:precond_conditioning}: the energy
+error of the computed correction relative to the exact correction is at
+most $\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$, and the proof of
 Corollary~\ref{cor:asymptotic} bounds the energy of the exact correction
 by a constant times $H^{-(k+1)}$ times that of the patch minimizer, so
 $\tau_k \lesssim H^{-(k+1)} \sqrt{\kappa_k}\, \tau_{\mathrm{build}}$.
 % [VERIFY: the conversion from the relative residual tolerance to the
 % per-function relative energy error tau_k of eq:tau_def; the factor
 % H^{-(k+1)} is taken from the proof of Corollary cor:asymptotic.]
-The systems are independent and are solved concurrently in batches
-of~$m$; the batch size sets the working memory of this step.
+The patch systems of a level are independent and are solved concurrently
+in batches of~$m$.
 
-\paragraph{Detail policy.}
 Under the solve policy, step~2 stores $B^{(k+1)}_\rho$ and the apply
 solves it by CG to $\tau_{\mathrm{apply}}$.  Under the block-Jacobi policy
 of Corollary~\ref{cor:apply_factor}(iii), step~2 computes only its nodal
-diagonal blocks, step~3 gathers the patch systems from $A^{(k+1)}$, and
-nothing else of the level survives the build.
-
-\paragraph{Band pipeline.}
-Since every object is read only within the width
-bound~\eqref{eq:width_recursion}, the build runs as a pipeline over bands
-of rows: a band of $A^{(k)}$ together with its halo suffices to extract the
-rows of $B^{(k)}_\rho$ it contains and to run the level-$(k{-}1)$ patch
-solves that read it, after which the band is released.  No coarsened
-operator and no finest factor is held whole, and the working memory is one
-band and one batch beside the stored hierarchy.  This is segmental
-refinement~\cite{brandt1994segmental,adams2016segmental} and temporal
-blocking~\cite{wonnacott2002timeskewing} applied to the setup rather than
-to the solve.
+diagonal blocks, step~3 gathers the patch systems from $A^{(k+1)}$, and no
+other part of the block is stored.
 
 \begin{proposition}[Cost]\label{prop:cost}
-With radii $r_k$, the identity class map, and $\iota_k$ the CG iteration
-count of a level-$k$ patch solve~\eqref{eq:patch_iters},
+With radii $r_k$, singleton classes, and $\iota_k$ the CG iteration count
+of a level-$k$ patch solve~\eqref{eq:patch_iters},
 Algorithm~\ref{alg:impl_build} performs
 \begin{equation}\label{eq:build_cost}
   \lesssim\; \sum_{k=1}^{q-1} n_k\, r_k^{2d}\, (1 + \iota_k)
@@ -1104,13 +1086,11 @@ Algorithm~\ref{alg:impl_build} performs
     \ln\bigl(2\sqrt{\kappa_k}/\tau_{\mathrm{build}}\bigr)
 \end{equation}
 operations, the first term of each summand for the coarsening product and
-the second for the patch solves, within working memory of one band of
-$\lesssim n_k \rho^d$ values and one batch of $\lesssim m \rho^{2d}$
-values.  The output holds $\lesssim \sum_k n_k r_k^d$ values for the
-factors, $\lesssim n_{k+1} r_k^d$ values for the block of each level with
-the solve policy and $n_{k+1} p^2$ values for each level with the
-block-Jacobi policy, in total $\lesssim N \rho^d$ values and one bit per
-candidate position.  One application of Algorithm~\ref{alg:impl_apply}
+the second for the patch solves.  The output holds
+$\lesssim \sum_k n_k r_k^d$ values for the factors, $\lesssim n_{k+1} r_k^d$
+values for the block of each level with the solve policy and
+$n_{k+1} p^2$ values for each level with the block-Jacobi policy, in total
+$\lesssim N \rho^d$.  One application of Algorithm~\ref{alg:impl_apply}
 performs $\lesssim N \rho^d$ operations for the factor products and, per
 detail level, $\lesssim n_{k+1} r_k^d\, \iota'_k$ operations under the
 solve policy, with
@@ -1118,22 +1098,52 @@ $\iota'_k \leq \tfrac12 \sqrt{\kappa_k} \ln(2\sqrt{\kappa_k}/\tau_{\mathrm{apply
 or $n_{k+1} p^2$ operations under the block-Jacobi policy.
 \end{proposition}
 
-\noindent The count $r_k^{2d}$ per patch is that of the coarse levels; at
-the finest level the stencil of $K$ has width $\lesssim 1$ and a patch
-iteration costs $\lesssim r_{q-1}^d$.  These are the counts of a multigrid
-setup and cycle with stencils of width~$\rho$; Section~\ref{sec:experiments}
-measures the constants.
+The count $r_k^{2d}$ per patch is that of the coarse levels; at the finest
+level the stencil of $K$ has width $\lesssim 1$ and a patch iteration costs
+$\lesssim r_{q-1}^d$.  Section~\ref{sec:experiments} measures the
+constants.
 
-\paragraph{The implemented instance.}
-The experiments use the uniform hexahedral grid on a box with
-$H = \tfrac12$, first-order elements, point-value measurements, and
-max-norm boxes of radius $r_k h_k$ as patches, which contain the ball of
-radius $r_k$ and lie in the ball of radius $\sqrt{d}\, r_k$.  Labels are
-grid coordinates, and the nesting and detail maps are selections: $C^{(k)}$
-selects the level-$(k{+}1)$ nodes at coarse positions and $D^{(k)}$ the
-remaining ones, so products with them and their transposes are gathers and
-scatters at computed positions.  Within the box of radius~$r$ about
-node~$x$, clipped to the grid with per-axis offsets
+\begin{remark}[Realization]\label{rem:realization}
+Proposition~\ref{prop:stencil_width} permits the matrices of
+Algorithm~\ref{alg:impl_build} to be stored as in the stencil format of
+structured multigrid~\cite{hypre2006,dendy1982blackbox}: the values of a
+row in a fixed order of its neighbourhood $N^{(k)}_{w_k}(i)$, together
+with one bit per position indicating whether the entry survived
+thresholding, and no column indices.%
+% [TODO: on the current code branch the index-free storage holds for the
+% factors; for A^(k) and B^(k)_rho once the bit-mask storage is merged
+% (dev/TICKET_masked_apply.md).]
+\ Under Lemma~\ref{lem:dependency} the value tables hold one row per
+class, as constant- and periodic-coefficient stencils do for
+translation-invariant operators.  By the width
+bound~\eqref{eq:width_recursion}, the computation of
+$B^{(k)}_\rho$ and of the level-$(k{-}1)$ patch problems from a band of
+rows of $A^{(k)}$ requires only that band and a halo of width~$w_k$, so
+Algorithm~\ref{alg:impl_build} may proceed band by band through the
+levels and release each band after its last use, in the manner of
+segmental refinement~\cite{brandt1994segmental,adams2016segmental} and
+of temporal blocking~\cite{wonnacott2002timeskewing}; the working memory
+is then one band and one batch of patch systems in addition to the
+output.
+
+What this requires of the discretization is that the level index sets be
+labelled so that $N^{(k)}_r(i)$, and the position of an index within it,
+are computable from the labels with tables whose size is independent
+of~$N$.  Uniform refinements of an unstructured base mesh have this
+property, with labels consisting of a base entity and local coordinates
+and one table per base entity; so do the index trees of~\cite{owhadi2017}
+and meshes assembled from structured regions with adjacency tables at
+their interfaces.
+
+The experiments of Section~\ref{sec:experiments} use the uniform
+hexahedral grid on a box with $H = \tfrac12$, first-order elements,
+point-value measurements, and the max-norm box of radius $r_k h_k$ about
+$x^{(k)}_i$ as the patch, which contains the ball of radius $r_k$ and is
+contained in the ball of radius $\sqrt{d}\, r_k$.  Labels are grid
+coordinates, $C^{(k)}$ selects the level-$(k{+}1)$ nodes at coarse
+positions and $D^{(k)}$ the remaining ones, and the classes of
+Lemma~\ref{lem:dependency} are lattice translations.  Within the box of
+radius~$r$ about node~$x$, clipped to the grid with per-axis offsets
 $l_a := \max(x_a - r,\, 0)$ and extents
 $b_a := \min(x_a + r,\, n_a - 1) - l_a + 1$, the column at
 coordinates~$y$ occupies position
@@ -1142,11 +1152,11 @@ coordinates~$y$ occupies position
   \prod_{a' > a} b_{a'} ,
 \end{equation}
 and the position determines~$y$ by the corresponding mixed-radix
-decomposition (Figure~\ref{fig:stencil_vs_csr}).  The classes of
-Lemma~\ref{lem:dependency} are lattice translations.  Vector-valued
-problems with $p$ components per node carry $p \times p$ blocks throughout,
-with $C^{(k)}$ and $D^{(k)}$ Kronecker products of selections; the
-elasticity experiments use $p = d$.
+decomposition (Figure~\ref{fig:stencil_vs_csr}).  Vector-valued problems
+with $p$ components per node carry $p \times p$ blocks throughout, with
+$C^{(k)}$ and $D^{(k)}$ Kronecker products of selections; the elasticity
+experiments use $p = d$.
+\end{remark}
 
 \begin{figure}[t]
 \centering
@@ -1160,6 +1170,7 @@ position by~\eqref{eq:slot_map}, $\mathrm{slot}(x,y) = (y_1 - l_1)\, b_2 +
 (y_2 - l_2)$ in two dimensions.}
 \label{fig:stencil_vs_csr}
 \end{figure}
+
 \section{Proofs of the Main Results}
 \label{sec:preconditioner}
 
@@ -1832,7 +1843,7 @@ gives the displayed costs.
 
 \subsection{Proofs of the Construction Results}
 \label{sec:construction}
-% CLAIMS: stencil width; dependency region and equal rows; cost.
+% CLAIMS: sparsity patterns; locality and equivariance; cost.
 
 The setting is that of Subsection~\ref{sec:implementation}.  For
 first-order elements the nesting and detail maps are selections: the
@@ -1842,57 +1853,56 @@ $C^{(k)}_{ij} = \delta_{j,\pi(i)}$ with $\pi(i) = x^{(k)}_i/H$, and
 $D^{(k)}$ selects the remaining nodes.
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:stencil_width}}]
-Row~$i$ of $R^{(k)}$ consists of the patch solution, supported in
-$\mathcal{P}^{(k)}_i$, and the row of the right inverse $C^{(k)\dagger}$, a
-selection row, so it is supported within distance $r_k + c_\star$ of
-node~$i$ at level~$k$.  An entry
-$A^{(k)}_{ij} = (R^{(k)} A^{(k+1)} R^{(k)\top})_{ij}$ requires a
-level-$(k{+}1)$ entry coupling the two patches, so it vanishes unless
-$\operatorname{dist}(i,j) \leq 2 r_k + H w_{k+1} + c_\star$, the factor~$H$
-converting level-$(k{+}1)$ units to level-$k$ units.  The recursion
-$w_k \leq 2 r_k + H\,w_{k+1} + c_\star$ with $w_q \lesssim 1$ has the fixed
-point $2\rho/(1-H) + c_\star$, approached geometrically.  The argument for
-$B^{(k+1)}_\rho = D^{(k)} A^{(k+1)} D^{(k)\top}$ is the same, the detail
-maps having support width $\lesssim 1$.
+Row~$i$ of $R^{(k)}$ is $C^{(k)\dagger}_{i,\cdot} + Z^{(k)}_{i,\cdot}
+D^{(k)}$ by~\eqref{eq:R_structure}; the first term is supported in the
+indices with parent~$i$ and the second in the patch, so
+$\mathcal{S}(R^{(k)})(i) \subseteq \mathcal{P}^{(k)}_i$ for every
+$Z^{(k)}$.  An entry $A^{(k)}_{ij} = (R^{(k)} A^{(k+1)} R^{(k)\top})_{ij}$
+is a sum over level-$(k{+}1)$ pairs $(a,b)$ with $a \in \mathcal{P}^{(k)}_i$,
+$b \in \mathcal{P}^{(k)}_j$ and $A^{(k+1)}_{ab} \neq 0$; the patches lie
+within $r_k + c_\star$ of their nodes and $d^{(k+1)}(a,b) \leq w_{k+1}$,
+which is $H w_{k+1}$ in level-$k$ units, so the entry vanishes unless
+$d^{(k)}(i,j) \leq 2 r_k + H w_{k+1} + c_\star = w_k$.  The same count
+applies to $B^{(k+1)}_\rho = D^{(k)} A^{(k+1)} D^{(k)\top}$, the detail
+maps having support width $\lesssim 1$, and thresholding only removes
+entries.  Induction from $w_q \lesssim 1$ gives
+$w_k \leq 2\rho/(1-H) + c_\star$.
 \end{proof}
 
 \begin{proof}[Proof of Lemma~\textup{\ref{lem:dependency}}]
-The patch system of row~$i$ reads entries of $A^{(k+1)}$ and
-$B^{(k+1)}_\rho$ at nodes within $r_k h_k + c_\star h_{k+1}$ of
-$x^{(k)}_i$.  An entry of $A^{(m)}$ or $B^{(m)}_\rho$ reads the rows of
-$R^{(m)}$ at its two index nodes, which lie within the stencil width
-$2\rho h_m/(1-H) + c_\star h_m$ of each other
-(Proposition~\ref{prop:stencil_width}), and entries of $A^{(m+1)}$ within
-the row supports; at the finest level the entries are quadrature
-evaluations of the field over single cells.  Thresholding removes entries
-and cannot enlarge the region read.  Summing the reaches over the levels
-gives a geometric series with ratio~$H$ and total
-$C_H\, \rho h_k + c_\star h_k$.
+(i) The patch system of row~$i$ reads entries of $A^{(k+1)}$ and
+$B^{(k+1)}_\rho$ at indices within $r_k h_k + c_\star h_{k+1}$ of
+$x^{(k)}_i$.  An entry of $A^{(m)}$ or $B^{(m)}_\rho$ is a sum of products
+of entries of $A^{(m+1)}$ with entries of two rows of $R^{(m)}$ whose
+indices lie within $w_m h_m$ of each other
+(Proposition~\ref{prop:stencil_width}), and at $m = q$ the entries of
+$A^{(q)} = K$ are the data.  Summing the reaches over the levels gives a
+geometric series with ratio~$H$ and total $C_H\, \rho\, h_k + c_\star h_k$,
+and every entry of $K$ read has both indices in
+$J^{(q)}(\mathcal{D}^{(k)}_i)$.
 
-For the equality of rows, consider for $k \leq m \leq q$ the claim that
-every entry of $A^{(m)}$ and of $B^{(m)}_\rho$, and every row of
-$R^{(m)}$, read by the computation of row~$i$ satisfies
-$X_{T a,\, T b} = X_{a b}$, respectively
-$R^{(m)}_{T a,\, T b} = R^{(m)}_{a b}$.  By the first part, every node
-these objects involve lies in $\mathcal{D}^{(k)}_i$, where the field at
-$T$-images equals the field.  At $m = q$ the entries of $A^{(q)} = K$ are
-quadrature evaluations of the field over single cells, so the claim holds.
-For the step from $m{+}1$ to $m$, the patch systems of rows $a$ and $T a$
-are images of one another under~$T$: $T$ maps patches to patches and
-commutes with $C^{(m)\dagger}$ and $D^{(m)}$, and the matrix and
-right-hand-side entries correspond by the claim at level $m{+}1$.  CG from
-a zero initial guess commutes with the permutation~$T$, so the computed
-solutions correspond under~$T$ and the assembled rows of $R^{(m)}$
-satisfy the claim.  The entries of $A^{(m)}$ and $B^{(m)}_\rho$ are sums of
-products of corresponding entries, so they satisfy the identity, and
-equal values threshold equally.  At $m = k$ the claim for row~$i$ is the
-assertion.
+(ii) For $k \leq m \leq q$ consider the claim: every entry of $A^{(m)}$
+and of $B^{(m)}_\rho$, and every row of $R^{(m)}$, read by the
+computation of row~$i$ satisfies $X_{T a,\, T b} = X_{a b}$, respectively
+$R^{(m)}_{T a,\, T b} = R^{(m)}_{a b}$, with $T$ the relabelling of the
+appropriate levels.  By~(i) the indices involved lie in
+$J^{(q)}(\mathcal{D}^{(k)}_i)$ and their images under~$T$, where the
+hypothesis gives the claim at $m = q$.  For the step from $m{+}1$ to~$m$:
+$T$ maps patches to patches and commutes with $C^{(m)\dagger}$ and
+$D^{(m)}$, so the patch systems of rows $a$ and $T a$, matrix and
+right-hand side, correspond entrywise under~$T$ by the claim at level
+$m{+}1$; CG from a zero initial guess commutes with the permutation of the
+unknowns, so the computed solutions correspond and the assembled rows of
+$R^{(m)}$ satisfy the claim.  The entries of $A^{(m)}$ and $B^{(m)}_\rho$
+are sums of products of corresponding entries and so satisfy the
+identity, and equal values are thresholded alike.  At $m = k$ the claim
+for row~$i$ is the assertion.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:cost}}]
-Each row of $R^{(k)}$ holds $\lesssim r_k^d$ values (the box of radius
-$r_k + c_\star$), each row of $B^{(k+1)}_\rho$ holds $\lesssim r_k^d$
-values (Proposition~\ref{prop:stencil_width}), and the level sizes decay
+Each row of $R^{(k)}$ holds $\lesssim r_k^d$ values and each row of
+$B^{(k+1)}_\rho$ holds $\lesssim r_k^d$ values
+(Proposition~\ref{prop:stencil_width}), and the level sizes decay
 geometrically, so the stored values total $\lesssim N\rho^d$; a diagonal
 holds one $p \times p$ block per detail degree of freedom.  At level~$k$
 the build solves $n_k$ patch systems: each holds $\lesssim r_k^{2d}$
@@ -1902,14 +1912,13 @@ product computes row~$i$ of $A^{(k)}$ in $\lesssim r_k^{2d}$ operations:
 the intermediate $R^{(k)}_{i,\cdot} A^{(k+1)}$ combines $\lesssim r_k^d$
 rows of width $\lesssim r_k^d$, and each of the $\lesssim r_k^d$ output
 entries is one product with a factor row.  Summing over the levels with
-$n_k \simeq N H^{d(q-k)}$ gives~\eqref{eq:build_cost}.  A band of
-$A^{(k)}$ holds $\lesssim n_k \rho^d$ values and a batch holds $m$ systems
-of $\lesssim \rho^{2d}$ entries.  One application is two factor products
-at $\lesssim N\rho^d$ operations and, per detail level, either a CG solve
-on $\lesssim n_{k+1} r_k^d$ nonzeros with the iteration bound of
-Corollary~\ref{thm:localized_block_conditioning} at the tolerance
-$\tau_{\mathrm{apply}}$, or one block-Jacobi scaling.
+$n_k \simeq N H^{d(q-k)}$ gives~\eqref{eq:build_cost}.  One application
+is two factor products at $\lesssim N\rho^d$ operations and, per detail
+level, either a CG solve on $\lesssim n_{k+1} r_k^d$ nonzeros with the
+iteration bound of Corollary~\ref{thm:localized_block_conditioning} at
+the tolerance $\tau_{\mathrm{apply}}$, or one block-Jacobi scaling.
 \end{proof}
+
 \section{Numerical experiments}
 \label{sec:experiments}
 % CLAIMS:
