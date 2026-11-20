@@ -458,12 +458,9 @@ where $X_q := 0$ and, for $k = q-1, \ldots, 1$,
     + C_1\, \alpha\, \omega^{k+1} H^{k-1} e^{-r_k/\alpha} \Bigr]
     + C_2\, H^{-1 - dk/2}\, \tau_k .
 \end{equation}
-Here $\alpha \geq 1$ and $\omega \geq 1$ are the constants of
-\cite[Lemma~16.30]{Owhadi_Scovel_2019} (denoted $\alpha$ and $\beta$
-there), which depend only on the constants $C_\varphi$, $H$,
-$C_{\mathrm{nb}}$, $\gamma$ and $d$ of Appendix~\ref{app:stability},
-and $C_1$, $C_2$ depend only on $C_\varphi$, $H$ and~$d$.  None depends
-on $N$, the radii, the tolerances or the depth.
+The constants $\alpha, \omega \geq 1$ and $C_1, C_2$ depend only on the
+constants of Appendix~\ref{app:stability}, $H$ and~$d$, and not on $N$,
+the radii, the tolerances or the depth.
 \end{theorem}
 
 The number $X_k$ bounds the energy of the error in slot $k$ of the
@@ -1297,7 +1294,8 @@ $C_{\mathrm{nb}}$, $\gamma$ and~$d$.
 \begin{proof}
 This is \cite[Lemma~16.30]{Owhadi_Scovel_2019}, whose localized
 problem (16.8) is~\eqref{eq:recursive_patch} with the same patch and
-the same data, and whose constants may be taken at least~$1$
+the same data; $\alpha$ and $\omega$ are its two constants (the second
+is written $\beta$ there), which may be taken at least~$1$
 \cite[proof of Thm.~16.32]{Owhadi_Scovel_2019}.  The lemma is stated
 there for exact patch solves at every level; its proof uses the
 computed level-$(k{+}1)$ functions only through three properties, each
