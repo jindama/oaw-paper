@@ -333,7 +333,7 @@ indices whose parent lies within $r_k$ of~$i$.  Hence
 \end{equation}
 where row~$i$ of $Z^{(k)}$ solves the patch system, a principal
 submatrix system of the computed block $B^{(k+1)}_\rho$ defined below
-(Algorithm~\ref{alg:impl_build}, step~3).  The \emph{computed detail
+(Algorithm~\ref{alg:impl_build}, step~2).  The \emph{computed detail
 functions} are
 \begin{equation}\label{eq:localized_detail_basis}
   \chi^{(k)}_{\rho,j} := \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,
@@ -778,57 +778,42 @@ with the fine stiffness matrix, a build tolerance and a detail policy.
 The recursion is that of Budninskiy et al.~\cite{budni2019}.
 
 \begin{algorithm}[t]
-\caption{OAW Build}
+\caption{Build}
 \label{alg:impl_build}
-\textbf{Input:} quadrature access to $a(\cdot,\cdot)$ on the fine mesh;
-nesting maps $\{C^{(k)}\}$; detail maps $\{D^{(k)}\}$; radii
-$\{r_k\}$; build tolerance $\tau_{\mathrm{build}}$; detail policy
-per level (solve or block-Jacobi); batch size~$m$\\[4pt]
-\textbf{for} $k = q-1, q-2, \ldots, 1$ \textbf{do}
+\textbf{Input:} $K$ (by products), $\{C^{(k)}\}$, $\{D^{(k)}\}$, radii
+$\{r_k\}$, tolerance $\tau_{\mathrm{build}}$, detail policy per level.
+Set $A^{(q)} := K$.\\[2pt]
+\textbf{for} $k = q-1, \ldots, 1$:
 \begin{enumerate}
-  \item[1.] Enumerate the level-$k$ sparsity patterns and the patch
-    index sets $\mathcal{P}^{(k)}_i$ by grid arithmetic; allocate the
-    outputs.
-  \item[2.] If the level-$(k{+}1)$ policy is solve:
-    $B^{(k+1)}_\rho \gets D^{(k)}\,A^{(k+1)}\,D^{(k)\top}$ at the
-    precomputed positions ($A^{(q)} = K$, applied by quadrature).  If it
-    is block-Jacobi: compute only the diagonal of $B^{(k+1)}_\rho$ (the
-    $p \times p$ diagonal blocks for vector-valued problems).
-  \item[3.] \textbf{for} batches of $m$ nodes, one representative
-    per translation class, \textbf{do}: gather the patch system
-    $[B^{(k+1)}_\rho]_{\mathcal{P}^{(k)}_i} =
-     [D^{(k)}\,A^{(k+1)}\,D^{(k)\top}]_{\mathcal{P}^{(k)}_i}$ and solve
+  \item[1.] $B^{(k+1)}_\rho \gets D^{(k)} A^{(k+1)} D^{(k)\top}$
+    (its nodal diagonal blocks only, under the block-Jacobi policy).
+  \item[2.] \textbf{for} each $i$, one per class:
     $[B^{(k+1)}_\rho]_{\mathcal{P}^{(k)}_i}\, z_i =
-     -[D^{(k)}\,A^{(k+1)}\,C^{(k)\dagger\top} e_i]_{\mathcal{P}^{(k)}_i}$
-    by CG to relative residual tolerance~$\tau_{\mathrm{build}}$.
-  \item[4.] $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)}\,D^{(k)}$, written
-    as a value table at the precomputed positions.
-  \item[5.] $A^{(k)} \gets R^{(k)}\,A^{(k+1)}\,R^{(k)\top}$ at the
-    precomputed positions; threshold small entries; release $A^{(k+1)}$.
+     -[D^{(k)} A^{(k+1)} C^{(k)\dagger\top} e_i]_{\mathcal{P}^{(k)}_i}$
+    by CG to $\tau_{\mathrm{build}}$.
+  \item[3.] $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)} D^{(k)}$.
+  \item[4.] $A^{(k)} \gets R^{(k)} A^{(k+1)} R^{(k)\top}$, thresholded;
+    release $A^{(k+1)}$.
 \end{enumerate}
-\textbf{end for.}  \textbf{Output:} $\{R^{(k)}\}$; for each
-level, $B^{(k)}_\rho$ (solve) or its diagonal (block-Jacobi); $A^{(1)}$.
+\textbf{Output:} $\{R^{(k)}\}$; $B^{(k)}_\rho$ or its diagonal blocks;
+$A^{(1)}$.
 \end{algorithm}
 
 \begin{algorithm}[t]
-\caption{OAW Apply (one preconditioner application)}
+\caption{Apply}
 \label{alg:impl_apply}
-\textbf{Input:} the output of Algorithm~\ref{alg:impl_build}; residual
-$g$; detail policy per level; apply tolerance $\tau_{\mathrm{apply}}$\\[4pt]
+\textbf{Input:} the output of Algorithm~\ref{alg:impl_build}; $g$;
+tolerance $\tau_{\mathrm{apply}}$.
 \begin{enumerate}
-  \item[1.] Descent: $y^{(q)} \gets g$; \textbf{for}
-    $k = q-1, \ldots, 1$: $w^{(k+1)} \gets D^{(k)} y^{(k+1)}$ and
-    $y^{(k)} \gets R^{(k)} y^{(k+1)}$; set $w^{(1)} \gets y^{(1)}$.
-  \item[2.] Coarsest solve: $A^{(1)} c^{(1)} = w^{(1)}$, by a direct
-    factorization computed once when $A^{(1)}$ is small and by CG to
-    relative residual tolerance~$\tau_{\mathrm{apply}}$ otherwise.
-    Detail levels, for $1 \leq k \leq q-1$: if the policy is solve,
-    $B^{(k+1)}_\rho\, c^{(k+1)} = w^{(k+1)}$ by CG to relative residual
-    tolerance~$\tau_{\mathrm{apply}}$; if it is block-Jacobi,
-    $c^{(k+1)} \gets \xi \operatorname{diag}(B^{(k+1)}_\rho)^{-1} w^{(k+1)}$
-    (the $p \times p$ diagonal blocks for vector-valued problems).
-  \item[3.] Ascent: $t^{(1)} \gets c^{(1)}$; \textbf{for}
-    $k = 1, \ldots, q-1$:
+  \item[1.] $y^{(q)} \gets g$; \textbf{for} $k = q-1, \ldots, 1$:
+    $w^{(k+1)} \gets D^{(k)} y^{(k+1)}$, $y^{(k)} \gets R^{(k)} y^{(k+1)}$;
+    $w^{(1)} \gets y^{(1)}$.
+  \item[2.] $c^{(1)} \gets (A^{(1)})^{-1} w^{(1)}$; \textbf{for}
+    $k = 1, \ldots, q-1$: $c^{(k+1)} \gets (B^{(k+1)}_\rho)^{-1} w^{(k+1)}$
+    by CG to $\tau_{\mathrm{apply}}$, or
+    $\xi \operatorname{diag}(B^{(k+1)}_\rho)^{-1} w^{(k+1)}$ under the
+    block-Jacobi policy.
+  \item[3.] $t^{(1)} \gets c^{(1)}$; \textbf{for} $k = 1, \ldots, q-1$:
     $t^{(k+1)} \gets R^{(k)\top} t^{(k)} + D^{(k)\top} c^{(k+1)}$.
 \end{enumerate}
 \textbf{Output:} $\hat{u}_\rho = t^{(q)}$.
@@ -940,10 +925,10 @@ $\tau_k \lesssim H^{-(k+1)} \sqrt{\kappa_k}\, \tau_{\mathrm{build}}$.
 The patch systems of a level are independent and are solved concurrently
 in batches of~$m$.
 
-Under the solve policy, step~2 stores $B^{(k+1)}_\rho$ and the apply
+Under the solve policy, step~1 stores $B^{(k+1)}_\rho$ and the apply
 solves it by CG to $\tau_{\mathrm{apply}}$.  Under the block-Jacobi policy
-of Corollary~\ref{cor:apply_factor}(iii), step~2 computes only its nodal
-diagonal blocks, step~3 gathers the patch systems from $A^{(k+1)}$, and no
+of Corollary~\ref{cor:apply_factor}(iii), step~1 computes only its nodal
+diagonal blocks, step~2 gathers the patch systems from $A^{(k+1)}$, and no
 other part of the block is stored.
 
 \begin{proposition}[Cost]\label{prop:cost}
