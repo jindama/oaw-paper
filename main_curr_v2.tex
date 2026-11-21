@@ -108,66 +108,43 @@ that give the optimal rate minimize the energy under interpolation
 constraints and are globally supported~\cite{brannick2019role}.
 Implementations therefore use heuristic coarse spaces, such as smoothed
 aggregation~\cite{saad2003iterative} or energy minimization under an
-imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}, with parameters
-tuned per problem, in particular for coefficients that vary over many
+imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}. Choosing these spaces often requires problem-specific parameters
+tuning, especially for for coefficients that vary over many
 length scales and orders of magnitude.
 
 The operator-adapted wavelet (OAW) factorization of Owhadi and
 Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the energy-minimizing
-principle level by level.  The resulting basis makes the operator block diagonal
-with one uniformly well-conditioned block per length scale. The basis
+principle to recursively obtain resulting basis makes the operator block diagonal
+with one uniformly well-conditioned block per length scale. These basis
 functions decay exponentially in space, so approximating them by functions supported patches of radius~$\rho$ gives an approximate factorization of
 $K^{-1}$ with sparse factors and an accuracy bound for $L^\infty$
-coefficients. Achieving a relative energy-norm error of $\varepsilon$ the  requires 
+coefficients. A relative energy-norm error of $\varepsilon$ may be guaranteed by taking 
 $ \rho \propto\ln(N/\varepsilon)$ and solving the block systems to relative error ~$\varepsilon$, and a
-higher accuracy or a change of the operator requires a new factorization ~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.  Existing implementations
-store the fine-scale stiffness matrix, the change of basis and
-factorizations of the diagonal blocks.
+higher accuracy or a change of the operator requires a new factorization ~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.  
 % [VERIFY: the sizes reached by published OAW implementations, with
 % citations.]
-Owhadi~\cite{owhadi2017} notes that the hierarchy may serve as a
-preconditioner, but does not pursue this notion further. Sik et
-al.~\cite{sik2025hfm} precondition small to medium sized two-dimensional electromagnetic
-problem with a stored factorization, but do not provide an analysis.
+
+Owhadi~\cite{owhadi2017}notes that the hierarchy may serve as a
+preconditioner, but does not pursue this notion further.
 % BP: related work beyond the OAW line (robust multigrid and domain
 %     decomposition for heterogeneous coefficients; hierarchical
 %     factorizations) -- content TODO.
-
-We prove a bound on the condition number of the preconditioned system
-for the hierarchy that the algorithm computes, with recursive
-localization and inexact patch solves, at any radii, patch tolerances
-and depth (Theorem~\ref{prop:precond_conditioning}).  The iteration
-reaches the target accuracy, so the setup does not depend on it; radii
-proportional to $\ln N$ and patch tolerances decreasing as a power
-of~$N$ bound the condition number independently of~$N$
-(Corollary~\ref{cor:asymptotic}).  Replacing the detail-level solves of
-the apply phase by block-Jacobi scaling multiplies the bound by one
-factor, which does not compound over the levels
-(Corollary~\ref{cor:apply_factor}), and a hierarchy built for
-one operator preconditions a spectrally equivalent one
-(Subsection~\ref{sec:main_bounds}).  We give a construction in
-which every sparsity pattern follows from the mesh, no matrix indices are
-stored, and the patch problems are solved iteratively
+We prove a bound on the condition number of the system preconditioned by an approximate OAW factorization as a function of the approximation parameters(Theorem~\ref{prop:precond_conditioning}). Patch radii
+proportional to $\ln N$ suffice to bound the condition number independently of~$N$
+(Corollary~\ref{cor:asymptotic}), though we also quantify the~$N$-dependence of the bound's degradation if this fails. We also quantify the degradation incurred by replacing the diagonal block solves in the preconditioner by block-Jacobi scaling
+(Corollary~\ref{cor:apply_factor}). Because the factorization functions as a preconditioner rather than a direct inverse, a hierarchy built for one operator also accelerates inversion of a perturbed system
+(Subsection~\ref{sec:main_bounds}). We give a memory-efficient construction of the factorization that takes advantage of fixed sparsity patterns and symmetries in the operator to avoid index storage and control memory growth in 3D problems with scalar and vector degrees of freedom.
 (Subsection~\ref{sec:implementation}), and we measure it on
 three-dimensional diffusion and linear elasticity problems on one GPU,
-against algebraic multigrid (Section~\ref{sec:experiments}).
+against algebraic multigrid baselines (Section~\ref{sec:experiments}).
 
-The argument rests on one observation: the computed basis functions
-match their measurements for any solution of the patch problems, exact
-or inexact.  The perturbation relating the computed change of basis to
-the exact one is therefore strictly block lower triangular, hence
-nilpotent, and the condition number is bounded by a product over the
-levels of factors that depend on the blockwise norms of the
-perturbation, which the per-level error recursion
-of~\cite[Lemma~16.33]{Owhadi_Scovel_2019} controls.
+The key technical observation underlying our estimates is the observation that both the exact and approximate basis functions satisfy the same set of linear constraints on their associated mesh. The perturbation relating the computed change of basis to the exact one is therefore strictly block lower triangular, hence nilpotent, and the condition number is bounded by a product of factors that depend on the blockwise norms of the perturbation.
 
-Section~\ref{sec:background} defines the exact and the computed
-hierarchies, Section~\ref{sec:results} states the results and the
-construction, Section~\ref{sec:preconditioner} proves them,
-Section~\ref{sec:experiments} reports the experiments and
-Section~\ref{sec:conclusions} the limitations.  The appendices restate
-the conditions of~\cite{Owhadi_Scovel_2019} that the theorems assume and
-prove the remarks.
+The rest of the paper is structured as follows. Section~\ref{sec:background} reviews the definitions and properties of the OAW
+hierarchy,. Section~\ref{sec:results} states the conditioning bounds and the properties of the construction algorithm, and these are proved in Section~\ref{sec:preconditioner}. We report numerical experiments in
+Section~\ref{sec:experiments}.
+Section~\ref{sec:conclusions} the limitations.  The appendices address
+some technical conditions that are necessary for the argument but inessential to understanding the contribution.
 \section{Background}
 \label{sec:background}
 % CLAIMS:
@@ -274,7 +251,7 @@ operator only through its continuity and coercivity constants
 \cite[Ch.~15]{Owhadi_Scovel_2019}, and are globally supported, so
 $\Phi$ and the blocks are dense.
 
-\subsection{The computed hierarchy}\label{subsec:loc}
+\subsection{The approximate hierarchy}\label{subsec:loc}
 The algorithm computes, level by level, functions supported near their
 nodes, each from a patch problem posed over the functions computed at
 the next finer level \cite[\S16.2]{Owhadi_Scovel_2019}.
