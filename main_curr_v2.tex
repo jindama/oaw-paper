@@ -101,7 +101,7 @@ positive definite (SPD) linear system
 Large systems of this kind are solved by the preconditioned conjugate
 gradient method (CG).  On a quasi-uniform mesh $\kappa(K)$ grows as
 $N^{2/d}$ with a prefactor that depends on the coefficient
-contrast~\cite{ErnGuermond2004}.  Multigrid preconditioners reach
+contrast~\cite{ErnGuermond2004}.  Multigrid preconditioners can reach
 near-linear cost with coarse spaces chosen by heuristics, such as
 smoothed aggregation~\cite{saad2003iterative} or energy minimization
 under an imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}; the
@@ -112,24 +112,21 @@ length scales and orders of magnitude.
 
 The operator-adapted wavelet (OAW) factorization of Owhadi and
 Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the energy-minimizing
-principle level by level.  Its basis makes the operator block diagonal
-with one uniformly well-conditioned block per length scale, and its basis
-functions decay exponentially away from their nodes, so that restricting
-them to patches of radius~$\rho$ gives an approximate factorization of
+principle level by level.  The resulting basis makes the operator block diagonal
+with one uniformly well-conditioned block per length scale. The basis
+functions decay exponentially in space, so approximating them by functions supported patches of radius~$\rho$ gives an approximate factorization of
 $K^{-1}$ with sparse factors and an accuracy bound for $L^\infty$
-coefficients.  Used as a direct solver, the factorization must reach the
-target accuracy~$\varepsilon$ itself: the radius grows like
-$\ln(N/\varepsilon)$ and the inner solves track~$\varepsilon$, and a
-higher accuracy or a change of the operator requires a new
-setup~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.  Existing implementations
+coefficients. Achieving a relative energy-norm error of $\varepsilon$ the  requires 
+$ \rho \propto\ln(N/\varepsilon)$ and solving the block systems to relative error ~$\varepsilon$, and a
+higher accuracy or a change of the operator requires a new factorization ~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.  Existing implementations
 store the fine-scale stiffness matrix, the change of basis and
 factorizations of the diagonal blocks.
 % [VERIFY: the sizes reached by published OAW implementations, with
 % citations.]
-Owhadi~\cite{owhadi2017} notes that the hierarchy can serve as a
-preconditioner and does not analyze or implement this use; Sik et
-al.~\cite{sik2025hfm} precondition a two-dimensional electromagnetic
-problem with a stored factorization, without analysis.
+Owhadi~\cite{owhadi2017} notes that the hierarchy may serve as a
+preconditioner, but does not pursue this notion further. Sik et
+al.~\cite{sik2025hfm} precondition small to medium sized two-dimensional electromagnetic
+problem with a stored factorization, but do not provide an analysis.
 % BP: related work beyond the OAW line (robust multigrid and domain
 %     decomposition for heterogeneous coefficients; hierarchical
 %     factorizations) -- content TODO.
