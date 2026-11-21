@@ -262,9 +262,9 @@ of~\eqref{eq:psi_k_def} and the further constraint that it vanish
 outside the ball of radius $\rho_k h_k$ about $x^{(k)}_i$.  It differs from
 $\psi^{(k)}_i$ in energy by at most a constant multiple of
 $e^{-\rho_k/\ell}\,\|\psi^{(k)}_i\|_a$
-\cite[Thm.~15.41]{Owhadi_Scovel_2019}, where the decay length $\ell$,
-measured in level-$k$ mesh widths, depends on the operator only through
-its continuity and coercivity constants.
+\cite[Thm.~15.41]{Owhadi_Scovel_2019}, where $\ell$ depends only on the
+continuity and coercivity constants of $a(\cdot,\cdot)$; the
+corresponding decay length at level~$k$ is $\ell h_k$.
 
 Posed over
 $\mathcal{V}^{(q)}$, however, a level-$k$ problem has as many unknowns as the
@@ -300,10 +300,10 @@ are $\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$ and, for $k = q-1, \ldots, 1$, are def
   R^{(k)}_{i,\cdot} &:= \operatorname{argmin}
   \Bigl\{ \Bigl\| \sum_j x_j \psi^{(k+1)}_{\rho,j} \Bigr\|_a :
     x_j = 0 \text{ for } j \notin \mathcal{P}^{(k)}_i,\;
-    C^{(k)} x = e_i \Bigr\} ,
+    C^{(k)} x = e_i \Bigr\} .
   \end{aligned}
 \end{equation}
-a convex problem with nonempty feasible set and unique minimizer. The approximate detail functions are
+The approximate detail functions are
 \begin{equation}\label{eq:localized_detail_basis}
   \chi^{(k)}_{\rho,j} := \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,
     \psi^{(k+1)}_{\rho,m}, \qquad 1 \leq j \leq d_k .
