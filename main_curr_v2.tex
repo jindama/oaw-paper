@@ -911,8 +911,10 @@ within
   \iota_k \;\leq\; \tfrac12\, \sqrt{\kappa_k}\,
     \ln\bigl( 2\sqrt{\kappa_k} / \tau_{\mathrm{build}} \bigr)
 \end{equation}
-iterations~\cite{saad2003iterative}, independently of the level, the
-radii and~$N$ for bounded $X_{k+1}$.  The build tolerance determines the
+iterations~\cite{saad2003iterative}.  The dependence of this count on
+the level, the radii and~$N$ enters only through $X_{k+1}$; under the
+radii and tolerances of Corollary~\ref{cor:asymptotic}, $X_{k+1} \leq 1$
+and the count is uniform.  The build tolerance determines the
 patch tolerance of Theorem~\ref{prop:precond_conditioning}: the energy
 error of the computed correction relative to the exact correction is at
 most $\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$, and the proof of
@@ -1761,8 +1763,8 @@ it tests and the quantities reported.
 \label{sec:exp:scaling}
 Claim: at fixed radii and tolerance the iteration count grows slowly with
 $N$, as Subsection~\ref{rem:consequences} permits, and the inner
-iteration counts of the block solves are bounded independently of~$N$
-(Corollary~\ref{thm:localized_block_conditioning}).  Reported: outer
+iteration counts of the block solves grow at most as the bound of
+Corollary~\ref{thm:localized_block_conditioning} through $X_k$.  Reported: outer
 iterations against~$N$ for both problems; mean inner iterations per
 level.
 % [PLACEHOLDER: figure, outer iterations vs N; table, inner iterations per
