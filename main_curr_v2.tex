@@ -276,8 +276,8 @@ is a restriction, one well-conditioned solve per block, and a
 prolongation.  The functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ decay
 exponentially away from their nodes, at a rate that depends on the
 operator only through its continuity and coercivity constants
-\cite[Ch.~15]{Owhadi_Scovel_2019}; they are nevertheless globally
-supported, so $\Phi$ and the blocks are dense.
+\cite[Ch.~15]{Owhadi_Scovel_2019}, and are globally supported, so
+$\Phi$ and the blocks are dense.
 
 \subsection{The computed hierarchy}\label{subsec:loc}
 The algorithm computes, level by level, functions supported near their
@@ -522,16 +522,14 @@ Here $c := 2C_q\ln\beta$, and the constant in the third row depends
 on~$\beta$.  With $C_q = 1/(d\ln(1/H))$, the third row has
 $0 < c < 2/d$, below the growth $N^{2/d}$ of the condition number of
 the unpreconditioned system~\cite{ErnGuermond2004}.  For
-$\beta \geq H^{-1}$ PCG still converges, with no bound on the rate
-better than that growth.  At fixed radii and a fixed patch tolerance,
+$\beta \geq H^{-1}$ the bound is no better than that growth.  At fixed radii and a fixed patch tolerance,
 \eqref{eq:X_recursion} unrolls to
 $X_k \leq \sum_{n \geq k} ((1+\tau)\alpha/H)^{n-k} f_n$, with $f_n$ the
 last two terms of~\eqref{eq:X_recursion}, so
 $\beta \lesssim q\, N^{c'}$ with $c'$ set by $\alpha$, $\omega$, $H$,
-$d$ and the tolerance.  Since the constants are not computable, the
-theorem does not by itself place a fixed configuration in a row of the
-table; Section~\ref{sec:experiments} measures the iteration counts of
-such configurations.  Corollary~\ref{cor:asymptotic} gives radii and
+$d$ and the tolerance.  The row of a fixed configuration is set by~$\beta$, which is not
+computable; Section~\ref{sec:experiments} measures the iteration counts
+of such configurations.  Corollary~\ref{cor:asymptotic} gives radii and
 tolerances that place every $N$ in the first row.
 
 \begin{corollary}[Radius proportional to the depth]\label{cor:asymptotic}
@@ -584,7 +582,7 @@ $B^{(k+1)}_\rho$ and satisfy the same bound with $X_{k+1}$.
 \noindent A CG solve of a block or a patch system to relative energy
 error~$\tau$ therefore takes at most
 $\tfrac12 (1+X_k^2)^{1/2} C_B H^{-1} \ln(2/\tau)$ iterations.  The block
-systems of the apply need not be solved to a tolerance.
+systems of the apply may be solved approximately.
 
 \begin{corollary}[Approximate detail solves in the apply]\label{cor:apply_factor}
 For each slot $k$ let $S_k$ be a symmetric positive definite matrix, and
@@ -637,7 +635,7 @@ $p\,C_{\mathrm{dec}}$ and the error term multiplied by
 $p\,(1 + X_k^2)\, C_B^2 H^{-2}$.
 \end{corollary}
 
-The factor~$\Gamma$ enters once, not once per level: the detail
+The factor~$\Gamma$ enters once: the detail
 levels enter the preconditioner through the block-diagonal
 $\mathcal{B}_\rho^{-1}$, whereas an inexact patch solve in the build
 changes the next level's problem and propagates
@@ -703,10 +701,9 @@ by a symmetric $\Delta_\theta$ with
 $|x^\top \Delta_\theta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$,
 where $s \lesssim \rho^d$ bounds the nonzeros per row.  The patch
 systems of the next level are then solved for a perturbed matrix.  Since
-\eqref{eq:measurement_matching} holds for every $Z^{(k)}$, the computed
-functions still match their measurements, and the perturbation acts as
-an inexact patch solve in the sense of~\eqref{eq:tau_def}, with a
-tolerance that grows with~$\theta'$ below; we do not quantify it.  The stored blocks
+\eqref{eq:measurement_matching} holds for every $Z^{(k)}$, the
+perturbation is an inexact patch solve in the sense of~\eqref{eq:tau_def},
+with a tolerance that grows with~$\theta'$ below.  The stored blocks
 satisfy $(1-\theta')B^{(k)}_\rho \preceq \widetilde{B}^{(k)}_\rho
 \preceq (1+\theta')B^{(k)}_\rho$ with
 $\theta' := \theta s\, \kappa(B^{(k)}_\rho)$, so for $\theta' < 1$
@@ -864,10 +861,9 @@ every choice of the patch solutions $Z^{(k)}$ and after thresholding.
 
 The patterns of all matrices in Algorithm~\ref{alg:impl_build} are thus
 determined by the index sets, the radii and~$H$ alone, with
-$\lesssim \rho^d$ entries per row at every level.  The change of basis
-$\Phi_\rho$ is not formed: a column of it at level~$k$ has
-$\simeq \rho^d H^{-d(q-k)}$ entries, whereas the factors together hold
-$\lesssim N \rho^d$.
+$\lesssim \rho^d$ entries per row at every level.  The factors are stored and applied in sequence; a column of
+$\Phi_\rho$ at level~$k$ has $\simeq \rho^d H^{-d(q-k)}$ entries,
+whereas the factors together hold $\lesssim N \rho^d$.
 
 \subsubsection{Locality}
 Let $\mathcal{D}^{(k)}_i$ be the ball of radius
@@ -1860,8 +1856,7 @@ with distinct test and trial spaces, as in~\cite{HauckPeterseim2021},
 are not treated.  The conditions of Appendix~\ref{app:stability} are
 verified in~\cite{Owhadi_Scovel_2019} for cell averages, local
 polynomials and point values of regularity $s > d/2$; the point-value
-measurements of the experiments in $d = 3$ are not among these cases,
-and the experiments test the bound outside its verified hypotheses.  The
+measurements of the experiments in $d = 3$ lie outside these cases.  The
 implementation is restricted to the uniform grid and first-order
 elements, and to one device; Remark~\ref{rem:realization} states what
 the construction requires of other meshes.
