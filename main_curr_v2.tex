@@ -115,11 +115,11 @@ length scales and orders of magnitude.
 The operator-adapted wavelet (OAW) factorization of Owhadi and
 Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the energy-minimizing
 principle to recursively obtain resulting basis makes the operator block diagonal
-with one uniformly well-conditioned block per length scale. These basis
-functions decay exponentially in space, so approximating them by functions supported patches of radius~$\rho$ gives an approximate factorization of
+with one uniformly well-conditioned block per coarse space. These basis
+functions decay exponentially in space, so approximating them by functions supported on patches of radius~$\rho h_k$ (with $h_k$ the coarse mesh size) gives an approximate factorization of
 $K^{-1}$ with sparse factors and an accuracy bound for $L^\infty$
 coefficients. A relative energy-norm error of $\varepsilon$ may be guaranteed by taking 
-$ \rho \propto\ln(N/\varepsilon)$ and solving the block systems to relative error ~$\varepsilon$, and a
+$ \rho \propto\ln(N/\varepsilon)$, and a
 higher accuracy or a change of the operator requires a new factorization ~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.  
 % [VERIFY: the sizes reached by published OAW implementations, with
 % citations.]
@@ -138,7 +138,7 @@ proportional to $\ln N$ suffice to bound the condition number independently of~$
 three-dimensional diffusion and linear elasticity problems on one GPU,
 against algebraic multigrid baselines (Section~\ref{sec:experiments}).
 
-The key technical observation underlying our estimates is the observation that both the exact and approximate basis functions satisfy the same set of linear constraints on their associated mesh. The perturbation relating the computed change of basis to the exact one is therefore strictly block lower triangular, hence nilpotent, and the condition number is bounded by a product of factors that depend on the blockwise norms of the perturbation.
+The key technical observation underlying our estimates is the observation that both the exact and approximate basis functions satisfy the same set of linear constraints on their associated mesh. The perturbation relating the computed change of basis matrix to the exact one is therefore strictly block lower triangular, hence nilpotent, and the condition number is bounded by a product of factors that depend on the blockwise norms of the perturbation.
 
 The rest of the paper is structured as follows. Section~\ref{sec:background} reviews the definitions and properties of the OAW
 hierarchy,. Section~\ref{sec:results} states the conditioning bounds and the properties of the construction algorithm, and these are proved in Section~\ref{sec:preconditioner}. We report numerical experiments in
@@ -245,40 +245,46 @@ with $C_B$ independent of $N$ and the level, so
   K^{-1} = \Phi \operatorname{diag}\bigl(B^{(k)\,-1}\bigr) \Phi^\top
 \end{equation}
 is a restriction, one well-conditioned solve per block, and a
-prolongation.  The functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ decay
-exponentially away from their nodes, at a rate that depends on the
-operator only through its continuity and coercivity constants
-\cite[Ch.~15]{Owhadi_Scovel_2019}, and are globally supported, so
-$\Phi$ and the blocks are dense.
+prolongation.  The functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ are globally supported, so the factors in \eqref{eq:exact_inverse_formula} are in general dense, making the exact factorization impractical for large problems
 
-\subsection{The approximate hierarchy}\label{subsec:loc}
-The algorithm computes, level by level, functions supported near their
-nodes, each from a patch problem posed over the functions computed at
-the next finer level \cite[\S16.2]{Owhadi_Scovel_2019}.
+\subsection{Approximate hierarchies}\label{subsec:loc}
+The exact basis functions decay exponentially away from their nodes
+(Section~\ref{sec:background}), so each is well approximated by a
+function living on a bounded neighbourhood.  Fix radii $\rho_k \geq 1$ in
+level-$k$ mesh widths, with a generic element denoted $\rho$, and let the
+\emph{localized} level-$k$ basis function at node $x^{(k)}_i$ be the
+minimizer of the energy under the measurement constraints
+of~\eqref{eq:psi_k_def} and the further constraint that it vanish
+outside the ball of radius $\rho_k h_k$ about $x^{(k)}_i$.  It differs from
+$\psi^{(k)}_i$ by a function with energy norm proportional to $e^{-\rho_kh_k/\ell})$ \cite[Thm.~15.41]{Owhadi_Scovel_2019}, where $\ell$ is the ratio of the continuity and coercivity constants of $a(\cdot, \cdot)$.
 
-Distances at level $k$ are measured in level-$k$ mesh widths,
-$d^{(k)}(i,j) := |x^{(k)}_i - x^{(k)}_j| / h_k$ on
-$I^{(k)} := \{1, \ldots, n_k\}$, and each level-$(k{+}1)$ index~$j$ has
-a \emph{parent} $j^{(k)}$ at level~$k$ within $c_\star h_k$ of its node,
-with $C^{(k)}_{ij} = 0$ unless $j^{(k)} = i$ and $D^{(k)}_{mj} = 0$
-unless $j^{(k)} = m^{(k)}$.  The results of Section~\ref{sec:results}
-hold under the stability and locality conditions
-of~\cite{Owhadi_Scovel_2019} restated in Appendix~\ref{app:stability}.
-% [VERIFY: the implementation uses nodal selections (point values) with
-% first-order elements, s = 1; in d = 3 this is outside the s > d/2 for
-% which the book verifies the conditions.  State which family the
-% experiments realize and whether the conditions hold.]
-
-Fix radii $r_k \geq 1$, $1 \leq k < q$, in level-$k$ mesh units, and
-write $\rho$ for the family $(r_1, \ldots, r_{q-1})$, or for the common
-value when the radii coincide.  The \emph{patch} of the level-$k$
-index~$i$ is
+Posed over
+$\mathcal{V}^{(q)}$, however, a level-$k$ problem has as many unknowns as the
+finest mesh has elements in a ball of radius $\rho_k h_k$, namely
+$\simeq \rho^d H^{-d(q-k)}$, and in particular, a level-$1$ problem has $\simeq \rho^d N / n_1$
+unknowns, so solving this system is of comparable difficulty to solving the original problem. This is alleviated by observing that, sincd $\mathcal{V}^{(k)} \subseteq \mathcal{V}^{(k+1)}$, there exist matrices $R^{(k)}_{\mathrm{ex}} \in \mathbb{R}^{n_k \times n_{k+1}}$
+with
+\begin{equation}\label{eq:nesting_R}
+  \psi^{(k)}_i \;=\; \sum_{j=1}^{n_{k+1}} R^{(k)}_{\mathrm{ex},ij}\,
+  \psi^{(k+1)}_j , \qquad 1 \leq i \leq n_k ,
+\end{equation}
+whose entries decay exponentially in the distance between the nodes they
+couple \cite[Lemma~16.27]{Owhadi_Scovel_2019}.  Constraining the
+coefficients rather than the function, and posing each level's problem
+over the functions already built one level finer, leaves $\lesssim \rho_k^d$
+unknowns at every level.  To state this, measure distances at level $k$
+in level-$k$ mesh widths,
+$d^{(k)}(i,j) := |x^{(k)}_i - x^{(k)}_j| / h_k$, and assign to each
+level-$(k{+}1)$ index~$j$ a \emph{parent} $j^{(k)}$ at level~$k$ with
+$|x^{(k+1)}_j - x^{(k)}_{j^{(k)}}| \leq c_\star h_k$, so that
+$C^{(k)}_{ij} = 0$ unless $j^{(k)} = i$ and $D^{(k)}_{mj} = 0$ unless
+$j^{(k)} = m^{(k)}$.  The \emph{patch} of a level-$k$ index~$i$,
 \begin{equation}\label{eq:patch_def}
   \mathcal{P}^{(k)}_i := \bigl\{\, j \in I^{(k+1)} :
-    d^{(k)}\bigl(i, j^{(k)}\bigr) \leq r_k \,\bigr\},
+    d^{(k)}\bigl(i, j^{(k)}\bigr) \leq \rho_k \,\bigr\} ,
 \end{equation}
-which holds $\lesssim r_k^d$ indices.  Set
-$\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$ and, for $k = q-1, \ldots, 1$,
+holds $\lesssim \rho_k^d$ indices.  The \emph{approximate} basis functions
+are $\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$ and, for $k = q-1, \ldots, 1$, are defined recursively as
 \begin{equation}\label{eq:recursive_patch}
   \begin{aligned}
   \psi^{(k)}_{\rho,i} &:= \sum_{j=1}^{n_{k+1}} R^{(k)}_{ij}\,
@@ -286,65 +292,85 @@ $\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$ and, for $k = q-1, \ldots, 1$,
   R^{(k)}_{i,\cdot} &:= \operatorname{argmin}
   \Bigl\{ \Bigl\| \sum_j x_j \psi^{(k+1)}_{\rho,j} \Bigr\|_a :
     x_j = 0 \text{ for } j \notin \mathcal{P}^{(k)}_i,\;
-    C^{(k)} x = e_i \Bigr\}.
+    C^{(k)} x = e_i \Bigr\} ,
   \end{aligned}
 \end{equation}
-The feasible set is nonempty and the minimizer unique
-\cite[Thms.~16.7, 16.9]{Owhadi_Scovel_2019}, and each problem has
-$\lesssim r_k^d$ unknowns.  Let $C^{(k)\dagger}$ be a right inverse of
-$C^{(k)}$ with row~$i$ supported in the indices with parent~$i$; the
-computed factors do not depend on its choice
-(Lemma~\ref{lem:cdagger_independence}).  A feasible~$x$ is
-$C^{(k)\dagger}_{i,\cdot} + z D^{(k)}$ with $z$ supported in the detail
-indices whose parent lies within $r_k$ of~$i$, so
+a convex problem with nonempty feasible set and unique minimizer. Analogously,
+$\chi^{(k)}_{\rho,j} := \sum_m D^{(k)}_{jm} \psi^{(k+1)}_{\rho,m}$,
+$1 \leq j \leq d_k$, are the approximate detail functions.  All results
+below hold under the conditions of~\cite{Owhadi_Scovel_2019} restated in
+Appendix~\ref{app:stability}.
+
+Cellularity makes the feasible set of~\eqref{eq:recursive_patch} easy to
+parametrize. Let $C^{(k)\dagger}$ be a right inverse of $C^{(k)}$ whose row~$i$ is
+supported in the indices of parent~$i$.  Row~$i$ of $C^{(k)\dagger}$
+satisfies the constraint $C^{(k)} x = e_i$, while rows of the kernel parametrization with distinct
+parents have disjoint supports.  A vector $x$ is therefore feasible for
+index~$i$ in~\eqref{eq:recursive_patch} if and only if
+$x^\top = C^{(k)\dagger}_{i,\cdot} + z D^{(k)}$ with $z$ supported in
+\begin{equation}\label{eq:patch_detail_set}
+  J^{(k)}_i := \bigl\{\, m :\ d^{(k)}\bigl(i, m^{(k)}\bigr) \leq r_k \,\bigr\} .
+\end{equation}
+% [author] Particular solution: C C^{dag,T} e_i = e_i.  ker C has
+% dimension d_k = n_{k+1} - n_k, and C D^T = 0 with rank D = d_k, so the
+% columns of D^T are a basis of it and z is unique.  Support: rows of D
+% with parent within r_k are supported in children of those parents,
+% which lie in P_i, as is row i of C-dagger; conversely, on the children
+% of a parent farther than r_k the vector x is a combination of the rows
+% of D with that parent alone, and those rows are independent.
+Collecting these rows into $Z^{(k)}$,
 \begin{equation}\label{eq:R_structure}
-  R^{(k)} = C^{(k)\dagger} + Z^{(k)} D^{(k)},
+  R^{(k)} = C^{(k)\dagger} + Z^{(k)} D^{(k)} .
 \end{equation}
-where row~$i$ of $Z^{(k)}$ solves the \emph{patch system}, a principal
-submatrix system of the computed block $B^{(k+1)}_\rho$ defined below
-(Algorithm~\ref{alg:impl_build}, step~2).  The \emph{computed detail
-functions} are
-\begin{equation}\label{eq:localized_detail_basis}
-  \chi^{(k)}_{\rho,j} := \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,
-    \psi^{(k+1)}_{\rho,m}, \qquad 1 \leq j \leq d_k .
-\end{equation}
-Since $C^{(k)} D^{(k)\top} = 0$, \eqref{eq:R_structure} gives
-$R^{(k)} C^{(k)\top} = I$, and by induction from the finest level
+
+\eqref{eq:R_structure} implies
+$R^{(k)} C^{(k)\top} = I$ for every $Z^{(k)}$, and induction from the
+finest level gives
 \begin{equation}\label{eq:measurement_matching}
   \mu^{(k)}_l\bigl(\psi^{(k)}_{\rho,i}\bigr) = \delta_{il},
-  \qquad 1 \leq i, l \leq n_k ,
+  \qquad 1 \leq i, l \leq n_k .
 \end{equation}
-for all radii and every $Z^{(k)}$, hence for inexact patch solves: each
-computed function lies in the feasible set $\mathcal{A}^{(k)}_i$ of the
-exact problem.  The computed level-$k$ functions and detail functions
-together span the computed level-$(k{+}1)$ space, so the computed
-functions, ordered as in~\eqref{eq:combined_basis}, form a basis with an
+Every function built from a feasible $Z^{(k)}$ satisfies the constraints
+that define $\psi^{(k)}_i$.  The approximate functions of level~$k$ and
+the approximate details span the approximate level-$(k{+}1)$ space, so
+ordered as in~\eqref{eq:combined_basis} they form a basis, with
 invertible coefficient matrix~$\Phi_\rho$
-(Figure~\ref{fig:recursive_schematic}).  The \emph{OAW preconditioner}
-keeps the diagonal blocks $B^{(k)}_\rho$ of $\Phi_\rho^\top K \Phi_\rho$,
-with $B^{(1)}_{\rho,ij} = a(\psi^{(1)}_{\rho,i}, \psi^{(1)}_{\rho,j})$
-and $B^{(k)}_{\rho,ij} = a(\chi^{(k-1)}_{\rho,i}, \chi^{(k-1)}_{\rho,j})$
-for $k \geq 2$, and discards the rest:
+(Figure~\ref{fig:recursive_schematic}).
+
+Substituting the parametrization into the objective
+of~\eqref{eq:recursive_patch} leaves a convex quadratic in~$z$ with
+matrix $B^{(k+1)}_\rho := D^{(k)} A^{(k+1)}_\rho D^{(k)\top}$, where $A^{(k+1)}_\rho$ is
+the Gram matrix of the approximate functions of level $k{+}1$.
+Stationarity in the coordinates $J^{(k)}_i$ is the symmetric positive
+definite system
+\begin{equation}\label{eq:patch_system}
+  \bigl[B^{(k+1)}_\rho\bigr]_{J^{(k)}_i, J^{(k)}_i}\, z_{J^{(k)}_i}
+  \;=\; -\,\bigl[D^{(k)} A^{(k+1)}_\rho C^{(k)\dagger\top} e_i
+  \bigr]_{J^{(k)}_i} ,
+\end{equation}
+of order $|J^{(k)}_i| \lesssim r_k^d$, the \emph{patch system} of
+index~$i$.
+% [author] x^T A x = z B z^T + 2 z D A C^{dag,T} e_i
+%          + e_i^T C^dag A C^{dag,T} e_i, with B = D A D^T.
+% B is SPD (A SPD, D full row rank), hence so is any principal
+% submatrix, so the stationary point exists, is unique, and minimizes.
+Replacing $z_{J^{(k)}_i}$ by any other vector with the same support
+perturbs the energy but leaves leaves \eqref{eq:measurement_matching} intact.
+
+
+In this basis the stiffness matrix is not exactly block diagonal, but the diagonal
+blocks $B^{(1)}_{\rho,ij} = a(\psi^{(1)}_{\rho,i}, \psi^{(1)}_{\rho,j})$
+and $B^{(k)}_{\rho,ij} = a(\chi^{(k-1)}_{\rho,i}, \chi^{(k-1)}_{\rho,j})$,
+$k \geq 2$, give the \emph{localized approximate inverse}
 \begin{equation}\label{eq:preconditioner}
   \widetilde{K}_{\rho}^{-1}
   \;:=\; \Phi_{\rho}\,\mathcal{B}_{\rho}^{-1}\,\Phi_{\rho}^{\top},
   \qquad
-  \mathcal{B}_\rho := \operatorname{diag}\{B^{(k)}_\rho\}_{k=1}^{q}.
+  \mathcal{B}_\rho := \operatorname{diag}\{B^{(k)}_\rho\}_{k=1}^{q} ,
 \end{equation}
-
-\begin{figure}[t]
-\centering
-% results/paper_figs/argument_map/render_recursive_schematic.py (no data)
-\includegraphics[width=0.9\textwidth]{figures/recursive_schematic.pdf}
-\caption{The recursive construction.  At each level the exact space
-$\mathcal{V}^{(k)}$ (left) and the computed space $\mathcal{U}^{(k)}$
-(right); the finest level is exact.  The patch
-problems~\eqref{eq:recursive_patch} of level $k$ are posed over the
-computed functions of level $k+1$, and each computed function matches
-its level-$k$ measurements.}
-\label{fig:recursive_schematic}
-\end{figure}
-
+the approximation to \eqref{eq:exact_inverse_formula} of
+\cite[\S16.2]{Owhadi_Scovel_2019} and, in related forms,
+\cite{budni2019,HauckPeterseim2021}.\eqref{eq:preconditioner} guarantees relative energy norm error at most $\varepsilon$ provided $\rho_k \simeq \ell(\ln(N) + \ln(1/\varepsilon))$.
 \section{Main results}
 \label{sec:results}
 
@@ -363,13 +389,7 @@ its level-$k$ measurements.}
 % 5. Approximate block solves in the apply cost a constant factor.
 % 6. One hierarchy preconditions spectrally equivalent operators.
 % 7. Thresholding is covered; the one-shot basis admits ell ln ln N radii.
-Proofs are in Section~\ref{sec:preconditioner}.  The energy-norm error
-of preconditioned CG (PCG) after $m$ iterations is at most
-$2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^{m}$ times the initial
-error, where $\kappa$ is the condition number of
-$\widetilde{K}_\rho^{-1} K$ \cite{saad2003iterative}.
-
-Let $\psi^{(k),\ast}_{\rho,i}$ be the exact minimizer
+We postpone proofs to Section~\ref{sec:preconditioner}.  Let $\psi^{(k),\ast}_{\rho,i}$ be the exact minimizer
 of~\eqref{eq:recursive_patch} over the computed level-$(k{+}1)$
 functions, and $\psi^{(k)}_{\rho,i}$ the function computed from an
 approximate solution of the same patch system.  The \emph{patch
@@ -382,7 +402,7 @@ tolerance} $\tau_k$ is the smallest number with
 
 \begin{theorem}[Conditioning of the preconditioned system]\label{prop:precond_conditioning}
 Let the measurement hierarchy satisfy the conditions of
-Appendix~\ref{app:stability}, let the radii $r_k \geq 1$,
+Appendix~\ref{app:stability}, let the radii $\rho_k \geq 1$,
 $1 \leq k < q$, be arbitrary, let the level-$k$ patch solves satisfy
 \eqref{eq:tau_def}, and let the coarsened matrices not be thresholded.
 Then $\widetilde{K}_\rho^{-1}$ is symmetric positive definite and
@@ -399,7 +419,7 @@ Then $\widetilde{K}_\rho^{-1}$ is symmetric positive definite and
 where $X_q := 0$ and, for $k = q-1, \ldots, 1$,
 \begin{equation}\label{eq:X_recursion}
   X_k \;:=\; (1 + \tau_k)\Bigl[ \frac{\alpha}{H}\, X_{k+1}
-    + C_1\, \alpha\, \omega^{k+1} H^{k-1} e^{-r_k/\alpha} \Bigr]
+    + C_1\, \alpha\, \omega^{k+1} H^{k-1} e^{-\rho_k/\alpha} \Bigr]
     + C_2\, H^{-1 - dk/2}\, \tau_k .
 \end{equation}
 The constants $\alpha, \omega \geq 1$ and $C_1, C_2$ depend only on the
@@ -449,7 +469,7 @@ tolerances that keep $\beta \leq \tfrac12$ for every~$N$.
 \begin{corollary}[Radius proportional to the depth]\label{cor:asymptotic}
 Under the hypotheses of Theorem~\ref{prop:precond_conditioning} there are
 constants $c_r$ and $c_\tau$, depending only on $\alpha$, $\omega$, $H$
-and~$d$, such that $r_k \geq c_r\, q$ and $\ln(1/\tau_k) \geq c_\tau\, q$
+and~$d$, such that $\rho_k \geq c_r\, q$ and $\ln(1/\tau_k) \geq c_\tau\, q$
 for $1 \leq k < q$ give $\sum_{k<q} X_k \leq 1$,
 $\kappa(\widetilde{K}_\rho^{-1} K) \leq e^2$, and
 $k(\varepsilon) \leq \tfrac{e}{2} \ln(2/\varepsilon)$ for every
@@ -458,7 +478,7 @@ $\ln N$ and patch tolerances decreasing as a power of~$N$ suffice.
 \end{corollary}
 
 The radius condition has the form of the condition
-$r_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$ of
+$\rho_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$ of
 \cite[Thm.~16.32]{Owhadi_Scovel_2019} with the term $\ln(1/\varepsilon)$
 removed: the target accuracy enters only through the factor
 $\ln(1/\varepsilon)$ of the iteration count, and the setup does not
@@ -621,7 +641,7 @@ The recursion is that of Budninskiy et al.~\cite{budni2019}.
 \caption{Build}
 \label{alg:impl_build}
 \textbf{Input:} $K$ (by products), $\{C^{(k)}\}$, $\{D^{(k)}\}$, radii
-$\{r_k\}$, tolerance $\tau_{\mathrm{build}}$, detail policy per level.
+$\{\rho_k\}$, tolerance $\tau_{\mathrm{build}}$, detail policy per level.
 Set $A^{(q)} := K$.\\[2pt]
 \textbf{for} $k = q-1, \ldots, 1$:
 \begin{enumerate}
@@ -675,7 +695,7 @@ $\mathcal{P}^{(k)}_i$; row~$i$ of $A^{(k)}$ is supported within distance
 $w_k$ of~$i$, and the row of $B^{(k+1)}_\rho$ at a detail index is
 supported within distance $w_k$ of its parent, where
 \begin{equation}\label{eq:width_recursion}
-  w_k \;:=\; 2 r_k + H\, w_{k+1} + c_\star
+  w_k \;:=\; 2 \rho_k + H\, w_{k+1} + c_\star
   \;\leq\; \frac{2\rho}{1-H} + c_\star ,
   \qquad w_q \lesssim 1 .
 \end{equation}
@@ -727,14 +747,14 @@ systems from $A^{(k+1)}$, and no other part of the block is stored.
 With $\iota_k$ the CG iteration count of a level-$k$ patch solve,
 Algorithm~\ref{alg:impl_build} performs
 \begin{equation}\label{eq:build_cost}
-  \lesssim\; \sum_{k=1}^{q-1} n_k\, r_k^{2d}\, (1 + \iota_k)
+  \lesssim\; \sum_{k=1}^{q-1} n_k\, \rho_k^{2d}\, (1 + \iota_k)
 \end{equation}
 operations, the first term of each summand for the coarsening product
 and the second for the patch solves, and stores $\lesssim N\rho^d$ values
 ($n_{k+1} p^2$ per level under the block-Jacobi policy).  One application
 of Algorithm~\ref{alg:impl_apply} performs $\lesssim N\rho^d$ operations
 for the factor products and, per detail level, a CG solve on
-$\lesssim n_{k+1} r_k^d$ nonzeros under the solve policy or one
+$\lesssim n_{k+1} \rho_k^d$ nonzeros under the solve policy or one
 block-Jacobi scaling.
 \end{proposition}
 
@@ -776,9 +796,9 @@ their interfaces.
 
 The experiments of Section~\ref{sec:experiments} use the uniform
 hexahedral grid on a box with $H = \tfrac12$, first-order elements,
-point-value measurements, and the max-norm box of radius $r_k h_k$ about
-$x^{(k)}_i$ as the patch, which contains the ball of radius $r_k$ and is
-contained in the ball of radius $\sqrt{d}\, r_k$.  Labels are grid
+point-value measurements, and the max-norm box of radius $\rho_k h_k$ about
+$x^{(k)}_i$ as the patch, which contains the ball of radius $\rho_k$ and is
+contained in the ball of radius $\sqrt{d}\, \rho_k$.  Labels are grid
 coordinates, $C^{(k)}$ selects the level-$(k{+}1)$ nodes at coarse
 positions and $D^{(k)}$ the remaining ones, and the classes are lattice
 translations.  The column of a value follows from its position in the
@@ -1053,7 +1073,7 @@ We claim $b_k \leq C_1 H^{k-1} \epsilon_k \leq X_k$ for every $k$.  The
 first inequality is Lemma~\ref{lem:slot_error}; the second holds at
 $k = q$ since $\epsilon_q = 0$.  The exact patch minimizers over the
 computed finer functions satisfy
-$\epsilon^\ast_k \leq \alpha\, \epsilon_{k+1} + \alpha\, \omega^{k+1} e^{-r_k/\alpha}$
+$\epsilon^\ast_k \leq \alpha\, \epsilon_{k+1} + \alpha\, \omega^{k+1} e^{-\rho_k/\alpha}$
 with $\alpha, \omega \geq 1$ depending only on the conditions of
 Appendix~\ref{app:stability} \cite[Lemma~16.33,
 eq.~(16.167)]{Owhadi_Scovel_2019}.
@@ -1062,7 +1082,7 @@ If the claim holds at $k+1$, then by this and Lemma~\ref{lem:patch_error}
 \[
   C_1 H^{k-1} \epsilon_k
   \;\leq\; (1+\tau_k)\Bigl[ \frac{\alpha}{H}\, C_1 H^{k} \epsilon_{k+1}
-    + C_1 \alpha\, \omega^{k+1} H^{k-1} e^{-r_k/\alpha} \Bigr]
+    + C_1 \alpha\, \omega^{k+1} H^{k-1} e^{-\rho_k/\alpha} \Bigr]
     + C_2 H^{-1-dk/2} \tau_k
   \;\leq\; X_k ,
 \]
@@ -1219,7 +1239,7 @@ $c_\tau := \ln(2\alpha H^{-1-d/2}) + 2 + \ln(2 C_2/H)$; since
 $\ln q \leq q$, the hypotheses imply
 \begin{equation}\label{eq:asymptotic_radius}
   \begin{aligned}
-  r_k &\;\geq\; \alpha\bigl[\, q \ln(2\alpha\omega) + 2\ln q
+  \rho_k &\;\geq\; \alpha\bigl[\, q \ln(2\alpha\omega) + 2\ln q
     + \ln(4 C_1 \alpha) \,\bigr],\\
   \ln(1/\tau_k) &\;\geq\; q \ln\bigl(2\alpha H^{-1-d/2}\bigr) + 2\ln q
     + \ln(2 C_2 / H).
@@ -1265,9 +1285,9 @@ indices with parent~$i$ and the second in the patch, for every
 $Z^{(k)}$.  An entry $A^{(k)}_{ij} = (R^{(k)} A^{(k+1)} R^{(k)\top})_{ij}$
 is a sum over level-$(k{+}1)$ pairs $(a,b)$ with $a \in \mathcal{P}^{(k)}_i$,
 $b \in \mathcal{P}^{(k)}_j$ and $A^{(k+1)}_{ab} \neq 0$; the patches lie
-within $r_k + c_\star$ of their nodes and $d^{(k+1)}(a,b) \leq w_{k+1}$,
+within $\rho_k + c_\star$ of their nodes and $d^{(k+1)}(a,b) \leq w_{k+1}$,
 which is $H w_{k+1}$ in level-$k$ units, so the entry vanishes unless
-$d^{(k)}(i,j) \leq 2 r_k + H w_{k+1} + c_\star = w_k$.  The same count
+$d^{(k)}(i,j) \leq 2 \rho_k + H w_{k+1} + c_\star = w_k$.  The same count
 applies to $B^{(k+1)}_\rho = D^{(k)} A^{(k+1)} D^{(k)\top}$, the detail
 maps having support width $\lesssim 1$, and thresholding only removes
 entries.  Induction from $w_q \lesssim 1$ gives
@@ -1275,7 +1295,7 @@ $w_k \leq 2\rho/(1-H) + c_\star$.
 
 For the locality statement, the patch system of row~$i$ reads entries
 of $A^{(k+1)}$ and $B^{(k+1)}_\rho$ at indices within
-$r_k h_k + c_\star h_{k+1}$ of $x^{(k)}_i$; an entry of $A^{(m)}$ or
+$\rho_k h_k + c_\star h_{k+1}$ of $x^{(k)}_i$; an entry of $A^{(m)}$ or
 $B^{(m)}_\rho$ is a sum of products of entries of $A^{(m+1)}$ with
 entries of two rows of $R^{(m)}$ whose indices lie within $w_m h_m$ of
 each other, and at $m = q$ the entries of $A^{(q)} = K$ are the data.
