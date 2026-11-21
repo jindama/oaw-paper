@@ -145,8 +145,9 @@ reaches the target accuracy, so the setup does not depend on it; radii
 proportional to $\ln N$ and patch tolerances decreasing as a power
 of~$N$ bound the condition number independently of~$N$
 (Corollary~\ref{cor:asymptotic}).  Replacing the detail-level solves of
-the apply phase by block-Jacobi scaling multiplies the bound by a
-constant (Corollary~\ref{cor:apply_factor}), and a hierarchy built for
+the apply phase by block-Jacobi scaling multiplies the bound by one
+factor, which does not compound over the levels
+(Corollary~\ref{cor:apply_factor}), and a hierarchy built for
 one operator preconditions a spectrally equivalent one
 (Proposition~\ref{thm:perturbed_system}).  We give a construction in
 which every sparsity pattern follows from the mesh, no matrix indices are
@@ -635,11 +636,12 @@ $p\,C_{\mathrm{dec}}$ and the error term multiplied by
 $p\,(1 + X_k^2)\, C_B^2 H^{-2}$.
 \end{corollary}
 
-The factor~$\Gamma$ does not compound with the depth.  The detail
+The factor~$\Gamma$ enters once, not once per level: the detail
 levels enter the preconditioner through the block-diagonal
 $\mathcal{B}_\rho^{-1}$, whereas an inexact patch solve in the build
 changes the next level's problem and propagates
-through~\eqref{eq:X_recursion}.  The scaling (iii) is one block-Jacobi
+through~\eqref{eq:X_recursion}.  Its size depends on the radii and the
+depth through $X$ and, in (iii), through $m_k e_{k-1}$.  The scaling (iii) is one block-Jacobi
 step from a zero initial guess, uses only the diagonal blocks of
 $B^{(k)}_\rho$, and is the level solve of the BPX preconditioner in the
 subspace-correction framework~\cite{xu1992iterative}, here on the
@@ -650,13 +652,16 @@ radius~$r$ (Lemma~\ref{lem:support}), so without the error term the
 factor would grow with the radius;
 Lemma~\ref{lem:per_function} bounds $e_{k-1}$ by a per-function
 recursion of the same form as~\eqref{eq:X_recursion}, with the decaying
-factor $e^{-r/(2\gamma_3)}$ per level, so the product
-$m_k e_{k-1} \lesssim r^d e^{-r/(2\gamma_3)}$ is bounded uniformly in
-the radius at any fixed depth, and is bounded uniformly in the depth
-under the radius condition of Corollary~\ref{cor:asymptotic}.  The
-term $C_{\mathrm{dec}}$ is the largest scaled row sum of an exact detail
-block, bounded through the decay of its entries.
-% [VERIFY: uniformity in rho and depth under investigation]
+factor $e^{-r/(2\gamma_3)}$ per level, so at fixed depth the product
+$m_k e_{k-1} \lesssim r^d e^{-r/(2\gamma_3)}$ is bounded in the radius,
+and for radii proportional to the depth with a constant set by $C_R$,
+$H$ and $\gamma_3$ it is bounded in the depth; at fixed radii it grows
+with the depth as the recursion of Lemma~\ref{lem:per_function} does.
+The term $C_{\mathrm{dec}}$ is the largest scaled row sum of an exact
+detail block, bounded through the decay of its entries.
+% [VERIFY: the block-Jacobi bound in this form is under revision (direct
+% bound through the exact blocks' block-Jacobi conditioning); the
+% statements above describe the bound as currently stated.]
 
 \begin{proposition}[Preconditioning of perturbed systems]
 \label{thm:perturbed_system}
@@ -705,7 +710,8 @@ satisfy $(1-\theta')B^{(k)}_\rho \preceq \widetilde{B}^{(k)}_\rho
 $\theta' := \theta s\, \kappa(B^{(k)}_\rho)$, so for $\theta' < 1$
 Corollary~\ref{cor:apply_factor} applies with
 $S_k = (\widetilde{B}^{(k)}_\rho)^{-1}$ and
-$\Gamma \leq (1+\theta')/(1-\theta')$, uniformly in $k$ by
+$\Gamma \leq (1+\theta')/(1-\theta')$, where
+$\theta' \leq \theta s\,(1 + X_k^2)\, C_B^2 H^{-2}$ by
 Corollary~\ref{thm:localized_block_conditioning}.
 \end{remark}
 
@@ -1804,9 +1810,8 @@ policy.
 \subsection{Robustness}
 \label{sec:exp:robustness}
 Claim: the iteration count is insensitive to the coefficient contrast
-and structure at fixed size (the bound of
-Theorem~\ref{prop:precond_conditioning} is uniform in the mesh size; the
-contrast enters the constants).  Reported: outer iterations against the
+and structure at fixed size (the contrast enters the bound of
+Theorem~\ref{prop:precond_conditioning} only through its constants).  Reported: outer iterations against the
 contrast and across coefficient fields, for both problems and both
 detail policies.
 % [PLACEHOLDER: figure, iterations vs contrast; table, fields.]
