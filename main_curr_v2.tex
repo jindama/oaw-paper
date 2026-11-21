@@ -46,14 +46,11 @@
 \maketitle
 
 \begin{abstract}
-Operator-adapted wavelets give an approximate inverse, with accuracy
-guarantees, for elliptic problems with rough coefficients, but in practice
-the method does not scale to large problems.  We use it instead as a
-preconditioner for the conjugate gradient method and prove rigorous bounds
-on the resulting condition number.  The setup then no longer depends on the
-target accuracy, which is reached by the iteration.  We also restructure the
-construction so that its sparsity patterns are computed in advance from the
-mesh and no matrix indices are stored, and solve three-dimensional diffusion
+Operator-adapted wavelets give an approximate inverse factorization for elliptic problems with accuracy
+guarantees for generic rough coefficients in quasi-linear time. We bound the convergence rate of a
+preconditioner for the conjugate gradient method based on this factorization, decoupling the setup cost from the
+target accuracy and allowing arbitrary tolerances to be met via iteration. We also propose
+a construction optimizing the memory footprint of the preconditioner. This allows us to apply the OAW preconditioner at previously infeasible scales in three dimensions. We demonstrate the preconditioner on three-dimensional diffusion
 and elasticity problems with over a million unknowns on a single GPU.
 \end{abstract}
 
