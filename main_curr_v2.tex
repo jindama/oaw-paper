@@ -420,11 +420,11 @@ accuracy, and so the cost of the setup, depend on~$\varepsilon$.
 % 5. Approximate block solves in the apply cost a constant factor.
 % 6. One hierarchy preconditions spectrally equivalent operators.
 % 7. Thresholding is covered; the one-shot basis admits ell ln ln N radii.
-Proofs are in Section~\ref{sec:preconditioner}.  After $m$ iterations,
-preconditioned CG (PCG) reduces the energy-norm error by at least the
-factor $2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^{m}$, where
-$\kappa$ is the condition number of $\widetilde{K}_\rho^{-1} K$
-\cite{saad2003iterative}.
+Proofs are in Section~\ref{sec:preconditioner}.  The energy-norm error
+of preconditioned CG (PCG) after $m$ iterations is at most
+$2\bigl((\sqrt{\kappa}-1)/(\sqrt{\kappa}+1)\bigr)^{m}$ times the initial
+error, where $\kappa$ is the condition number of
+$\widetilde{K}_\rho^{-1} K$ \cite{saad2003iterative}.
 
 Let $\psi^{(k),\ast}_{\rho,i}$ be the exact minimizer
 of~\eqref{eq:recursive_patch} over the computed level-$(k{+}1)$
@@ -493,8 +493,8 @@ tolerances $\tau_m$, $m \geq k$, and does not depend on coarser levels.
 At fixed radii and tolerances the bound grows with the depth.  The
 constants $\alpha$, $\omega$, $C_1$, $C_2$ are not computable from the
 conditions of Appendix~\ref{app:stability}, so the theorem gives the
-form of the dependence on the configuration and
-Section~\ref{sec:experiments} measures the values.
+form of the dependence on the configuration, and the iteration counts
+of Section~\ref{sec:experiments} are the measured values.
 Remark~\ref{rem:inexact} treats thresholding.
 
 \subsubsection{Fixed configurations}\label{rem:consequences}
@@ -528,10 +528,11 @@ better than that growth.  At fixed radii and a fixed patch tolerance,
 $X_k \leq \sum_{n \geq k} ((1+\tau)\alpha/H)^{n-k} f_n$, with $f_n$ the
 last two terms of~\eqref{eq:X_recursion}, so
 $\beta \lesssim q\, N^{c'}$ with $c'$ set by $\alpha$, $\omega$, $H$,
-$d$ and the tolerance.  Corollary~\ref{cor:asymptotic} gives radii and
-tolerances that place every $N$ in the first row.  The configurations
-of Section~\ref{sec:experiments} use fixed radii and a fixed tolerance,
-and Theorem~\ref{prop:precond_conditioning} applies to them.
+$d$ and the tolerance.  Since the constants are not computable, the
+theorem does not by itself place a fixed configuration in a row of the
+table; Section~\ref{sec:experiments} measures the iteration counts of
+such configurations.  Corollary~\ref{cor:asymptotic} gives radii and
+tolerances that place every $N$ in the first row.
 
 \begin{corollary}[Radius proportional to the depth]\label{cor:asymptotic}
 Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, let
@@ -551,10 +552,10 @@ with $r_k \simeq \alpha \ln(2\alpha\omega)\, \ln N$ and
 $\ln(1/\tau_k) \simeq \ln N$.
 \end{corollary}
 
-The radius condition~\eqref{eq:asymptotic_radius} is that of
-\cite[Thm.~16.32]{Owhadi_Scovel_2019},
-$r_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$, without the term
-$\ln(1/\varepsilon)$: the target accuracy enters only through the factor
+The radius condition~\eqref{eq:asymptotic_radius} has the form of the
+condition $r_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$ of
+\cite[Thm.~16.32]{Owhadi_Scovel_2019} with the term $\ln(1/\varepsilon)$
+removed: the target accuracy enters only through the factor
 $\ln(1/\varepsilon)$ of the iteration count, and the setup does not
 depend on it.
 % [VERIFY: the relation between the constant alpha of Lemma 16.30 and
@@ -643,9 +644,8 @@ changes the next level's problem and propagates
 through~\eqref{eq:X_recursion}.  Its size depends on the radii and the
 depth through $X$ and, in (iii), through $m_k e_{k-1}$.  The scaling (iii) is one block-Jacobi
 step from a zero initial guess, uses only the diagonal blocks of
-$B^{(k)}_\rho$, and is the level solve of the BPX preconditioner in the
-subspace-correction framework~\cite{xu1992iterative}, here on the
-computed detail spaces.  The weight $\xi$ scales both extreme
+$B^{(k)}_\rho$, and is an inexact subspace solver in the sense of parallel subspace
+correction~\cite{xu1992iterative}, here on the computed detail spaces.  The weight $\xi$ scales both extreme
 eigenvalues of $S_k B^{(k)}_\rho$ and leaves $\Gamma$ unchanged.  The bound in (iii) has two
 parts.  The support count $m_k$ is $\lesssim r^d$ for a common
 radius~$r$ (Lemma~\ref{lem:support}), so without the error term the
@@ -702,9 +702,11 @@ $|A_{ij}| \leq \theta \sqrt{A_{ii} A_{jj}}$.  This perturbs the matrix
 by a symmetric $\Delta_\theta$ with
 $|x^\top \Delta_\theta x| \leq \theta s\, x^\top \operatorname{diag}(A)\, x$,
 where $s \lesssim \rho^d$ bounds the nonzeros per row.  The patch
-systems of the next level are then solved for a perturbed matrix; since
-\eqref{eq:measurement_matching} holds for every $Z^{(k)}$, the effect is
-an inexact patch solve and is contained in~$\tau_k$.  The stored blocks
+systems of the next level are then solved for a perturbed matrix.  Since
+\eqref{eq:measurement_matching} holds for every $Z^{(k)}$, the computed
+functions still match their measurements, and the perturbation acts as
+an inexact patch solve in the sense of~\eqref{eq:tau_def}, with a
+tolerance that grows with~$\theta'$ below; we do not quantify it.  The stored blocks
 satisfy $(1-\theta')B^{(k)}_\rho \preceq \widetilde{B}^{(k)}_\rho
 \preceq (1+\theta')B^{(k)}_\rho$ with
 $\theta' := \theta s\, \kappa(B^{(k)}_\rho)$, so for $\theta' < 1$
@@ -921,15 +923,21 @@ iterations~\cite{saad2003iterative}.  The dependence of this count on
 the level, the radii and~$N$ enters only through $X_{k+1}$; under the
 radii and tolerances of Corollary~\ref{cor:asymptotic}, $X_{k+1} \leq 1$
 and the count is uniform.  The build tolerance determines the
-patch tolerance of Theorem~\ref{prop:precond_conditioning}: the energy
-error of the computed correction relative to the exact correction is at
-most $\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$, and the proof of
-Corollary~\ref{cor:asymptotic} bounds the energy of the exact correction
-by a constant times $H^{-(k+1)}$ times that of the patch minimizer, so
-$\tau_k \lesssim H^{-(k+1)} \sqrt{\kappa_k}\, \tau_{\mathrm{build}}$.
-% [VERIFY: the conversion from the relative residual tolerance to the
-% per-function relative energy error tau_k of eq:tau_def; the factor
-% H^{-(k+1)} is taken from the proof of Corollary cor:asymptotic.]
+patch tolerance of Theorem~\ref{prop:precond_conditioning}.  Write
+$\psi_{0,i} := \sum_j C^{(k)\dagger}_{ij} \psi^{(k+1)}_{\rho,j}$ for the
+initial guess of patch~$i$ and $\zeta_i := \psi^{(k),\ast}_{\rho,i} -
+\psi_{0,i}$ for the exact correction; by optimality $\zeta_i$ is
+$a$-orthogonal to $\psi^{(k),\ast}_{\rho,i}$, so
+$\|\zeta_i\|_a \leq \|\psi_{0,i}\|_a$.  A relative residual
+$\tau_{\mathrm{build}}$ gives an energy error at most
+$\sqrt{\kappa_k}\, \tau_{\mathrm{build}}\, \|\zeta_i\|_a$, hence
+\begin{equation}\label{eq:tau_from_build}
+  \tau_k \;\leq\; \sqrt{\kappa_k}\; \tau_{\mathrm{build}}\;
+  \max_i \frac{\|\psi_{0,i}\|_a}{\|\psi^{(k),\ast}_{\rho,i}\|_a} .
+\end{equation}
+% [VERIFY: the ratio in eq:tau_from_build is bounded by a constant times
+% H^{-(k+1)} through the dual-norm bound of Condition 14.14 and the
+% energy bound of the computed functions; not proved in the paper.]
 The patch systems of a level are independent and are solved concurrently
 in batches of~$m$.
 
@@ -1849,8 +1857,14 @@ The measurement hierarchy is fixed a priori; coarse subspaces selected
 from the operator, as in multigrid, are not treated.  The analysis is
 restricted to symmetric positive definite systems; nonsymmetric systems
 with distinct test and trial spaces, as in~\cite{HauckPeterseim2021},
-are not treated.  The implementation is restricted to structured meshes
-and first-order elements, and to one device.
+are not treated.  The conditions of Appendix~\ref{app:stability} are
+verified in~\cite{Owhadi_Scovel_2019} for cell averages, local
+polynomials and point values of regularity $s > d/2$; the point-value
+measurements of the experiments in $d = 3$ are not among these cases,
+and the experiments test the bound outside its verified hypotheses.  The
+implementation is restricted to the uniform grid and first-order
+elements, and to one device; Remark~\ref{rem:realization} states what
+the construction requires of other meshes.
 
 Four questions are open.  It is not known whether the per-level error
 of the recursive construction contracts, that is, whether the
