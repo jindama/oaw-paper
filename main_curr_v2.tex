@@ -245,7 +245,11 @@ with $C_B$ independent of $N$ and the level, so
   K^{-1} = \Phi \operatorname{diag}\bigl(B^{(k)\,-1}\bigr) \Phi^\top
 \end{equation}
 is a restriction, one well-conditioned solve per block, and a
-prolongation.  The functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ are globally supported, so the factors in \eqref{eq:exact_inverse_formula} are in general dense, making the exact factorization impractical for large problems
+prolongation.  The functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ decay
+exponentially away from their nodes
+\cite[Ch.~15]{Owhadi_Scovel_2019} but are globally supported, so the
+factors in \eqref{eq:exact_inverse_formula} are in general dense, making
+the exact factorization impractical for large problems.
 
 \subsection{Approximate hierarchies}\label{subsec:loc}
 The exact basis functions decay exponentially away from their nodes
@@ -256,13 +260,17 @@ level-$k$ mesh widths, with a generic element denoted $\rho$, and let the
 minimizer of the energy under the measurement constraints
 of~\eqref{eq:psi_k_def} and the further constraint that it vanish
 outside the ball of radius $\rho_k h_k$ about $x^{(k)}_i$.  It differs from
-$\psi^{(k)}_i$ by a function with energy norm proportional to $e^{-\rho_kh_k/\ell})$ \cite[Thm.~15.41]{Owhadi_Scovel_2019}, where $\ell$ is the ratio of the continuity and coercivity constants of $a(\cdot, \cdot)$.
+$\psi^{(k)}_i$ in energy by at most a constant multiple of
+$e^{-\rho_k/\ell}\,\|\psi^{(k)}_i\|_a$
+\cite[Thm.~15.41]{Owhadi_Scovel_2019}, where the decay length $\ell$,
+measured in level-$k$ mesh widths, depends on the operator only through
+its continuity and coercivity constants.
 
 Posed over
 $\mathcal{V}^{(q)}$, however, a level-$k$ problem has as many unknowns as the
 finest mesh has elements in a ball of radius $\rho_k h_k$, namely
 $\simeq \rho^d H^{-d(q-k)}$, and in particular, a level-$1$ problem has $\simeq \rho^d N / n_1$
-unknowns, so solving this system is of comparable difficulty to solving the original problem. This is alleviated by observing that, sincd $\mathcal{V}^{(k)} \subseteq \mathcal{V}^{(k+1)}$, there exist matrices $R^{(k)}_{\mathrm{ex}} \in \mathbb{R}^{n_k \times n_{k+1}}$
+unknowns, so solving this system is of comparable difficulty to solving the original problem. This is alleviated by observing that, since $\mathcal{V}^{(k)} \subseteq \mathcal{V}^{(k+1)}$, there exist matrices $R^{(k)}_{\mathrm{ex}} \in \mathbb{R}^{n_k \times n_{k+1}}$
 with
 \begin{equation}\label{eq:nesting_R}
   \psi^{(k)}_i \;=\; \sum_{j=1}^{n_{k+1}} R^{(k)}_{\mathrm{ex},ij}\,
@@ -295,35 +303,38 @@ are $\psi^{(q)}_{\rho,i} := \psi^{(q)}_i$ and, for $k = q-1, \ldots, 1$, are def
     C^{(k)} x = e_i \Bigr\} ,
   \end{aligned}
 \end{equation}
-a convex problem with nonempty feasible set and unique minimizer. Analogously,
-$\chi^{(k)}_{\rho,j} := \sum_m D^{(k)}_{jm} \psi^{(k+1)}_{\rho,m}$,
-$1 \leq j \leq d_k$, are the approximate detail functions.  All results
+a convex problem with nonempty feasible set and unique minimizer. The approximate detail functions are
+\begin{equation}\label{eq:localized_detail_basis}
+  \chi^{(k)}_{\rho,j} := \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,
+    \psi^{(k+1)}_{\rho,m}, \qquad 1 \leq j \leq d_k .
+\end{equation}  All results
 below hold under the conditions of~\cite{Owhadi_Scovel_2019} restated in
 Appendix~\ref{app:stability}.
 
 Cellularity makes the feasible set of~\eqref{eq:recursive_patch} easy to
 parametrize. Let $C^{(k)\dagger}$ be a right inverse of $C^{(k)}$ whose row~$i$ is
 supported in the indices of parent~$i$.  Row~$i$ of $C^{(k)\dagger}$
-satisfies the constraint $C^{(k)} x = e_i$, while rows of the kernel parametrization with distinct
-parents have disjoint supports.  A vector $x$ is therefore feasible for
+satisfies the constraint $C^{(k)} x = e_i$, the rows of $D^{(k)}$ are a
+basis of the kernel of $C^{(k)}$ by~\eqref{eq:kernel_D}, and rows of
+$D^{(k)}$ with distinct parents have disjoint supports.  A vector $x$ is therefore feasible for
 index~$i$ in~\eqref{eq:recursive_patch} if and only if
 $x^\top = C^{(k)\dagger}_{i,\cdot} + z D^{(k)}$ with $z$ supported in
 \begin{equation}\label{eq:patch_detail_set}
-  J^{(k)}_i := \bigl\{\, m :\ d^{(k)}\bigl(i, m^{(k)}\bigr) \leq r_k \,\bigr\} .
+  J^{(k)}_i := \bigl\{\, m :\ d^{(k)}\bigl(i, m^{(k)}\bigr) \leq \rho_k \,\bigr\} .
 \end{equation}
 % [author] Particular solution: C C^{dag,T} e_i = e_i.  ker C has
 % dimension d_k = n_{k+1} - n_k, and C D^T = 0 with rank D = d_k, so the
 % columns of D^T are a basis of it and z is unique.  Support: rows of D
-% with parent within r_k are supported in children of those parents,
+% with parent within rho_k are supported in children of those parents,
 % which lie in P_i, as is row i of C-dagger; conversely, on the children
-% of a parent farther than r_k the vector x is a combination of the rows
+% of a parent farther than rho_k the vector x is a combination of the rows
 % of D with that parent alone, and those rows are independent.
 Collecting these rows into $Z^{(k)}$,
 \begin{equation}\label{eq:R_structure}
   R^{(k)} = C^{(k)\dagger} + Z^{(k)} D^{(k)} .
 \end{equation}
 
-\eqref{eq:R_structure} implies
+Since $C^{(k)} D^{(k)\top} = 0$, \eqref{eq:R_structure} gives
 $R^{(k)} C^{(k)\top} = I$ for every $Z^{(k)}$, and induction from the
 finest level gives
 \begin{equation}\label{eq:measurement_matching}
@@ -348,14 +359,14 @@ definite system
   \;=\; -\,\bigl[D^{(k)} A^{(k+1)}_\rho C^{(k)\dagger\top} e_i
   \bigr]_{J^{(k)}_i} ,
 \end{equation}
-of order $|J^{(k)}_i| \lesssim r_k^d$, the \emph{patch system} of
+of order $|J^{(k)}_i| \lesssim \rho_k^d$, the \emph{patch system} of
 index~$i$.
 % [author] x^T A x = z B z^T + 2 z D A C^{dag,T} e_i
 %          + e_i^T C^dag A C^{dag,T} e_i, with B = D A D^T.
 % B is SPD (A SPD, D full row rank), hence so is any principal
 % submatrix, so the stationary point exists, is unique, and minimizes.
 Replacing $z_{J^{(k)}_i}$ by any other vector with the same support
-perturbs the energy but leaves leaves \eqref{eq:measurement_matching} intact.
+perturbs the energy but leaves \eqref{eq:measurement_matching} intact.
 
 
 In this basis the stiffness matrix is not exactly block diagonal, but the diagonal
@@ -370,7 +381,22 @@ $k \geq 2$, give the \emph{localized approximate inverse}
 \end{equation}
 the approximation to \eqref{eq:exact_inverse_formula} of
 \cite[\S16.2]{Owhadi_Scovel_2019} and, in related forms,
-\cite{budni2019,HauckPeterseim2021}.\eqref{eq:preconditioner} guarantees relative energy norm error at most $\varepsilon$ provided $\rho_k \simeq \ell(\ln(N) + \ln(1/\varepsilon))$.
+\cite{budni2019,HauckPeterseim2021}.  Used directly,
+\eqref{eq:preconditioner} attains relative energy-norm error
+$\varepsilon$ provided $\rho_k \simeq \ell(\ln N + \ln(1/\varepsilon))$
+and the patch systems are solved to an accuracy that decreases
+exponentially in $\rho_k$ \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+\begin{figure}[t]
+\centering
+% [TODO: figure to be redesigned; placeholder keeps the reference live.]
+\includegraphics[width=0.9\textwidth]{figures/recursive_schematic.pdf}
+\caption{The recursive construction: the patch
+problem~\eqref{eq:recursive_patch} at level~$k$ is posed over the
+approximate functions of level $k+1$, and every approximate function
+satisfies the level-$k$ measurement constraints.}
+\label{fig:recursive_schematic}
+\end{figure}
+
 \section{Main results}
 \label{sec:results}
 
