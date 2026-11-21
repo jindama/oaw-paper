@@ -842,7 +842,7 @@ $N^{(k)}_r(i) := \{\, j \in I^{(k)} : d^{(k)}(i,j) \leq r \,\}$ be the
 level-$k$ neighbourhood of radius~$r$, which holds $\lesssim r^d$ indices
 \cite[Cond.~16.22]{Owhadi_Scovel_2019}.
 
-\begin{proposition}[Sparsity and locality]\label{prop:stencil_width}
+\begin{proposition}[Sparsity patterns]\label{prop:stencil_width}
 For $1 \leq k < q$ and every level-$k$ index~$i$,
 $\mathcal{S}(R^{(k)})(i) \subseteq \mathcal{P}^{(k)}_i$.  There are
 widths $w_q \lesssim 1$ and
@@ -857,11 +857,6 @@ $\mathcal{S}(B^{(k+1)}_\rho)(m) \subseteq
  \{\, n : d^{(k)}(m^{(k)}, n^{(k)}) \leq w_k \,\}$ for every level-$k$
 detail index~$m$.  These inclusions hold for every coefficient field,
 every choice of the patch solutions $Z^{(k)}$ and after thresholding.
-Moreover, row~$i$ of $R^{(k)}$ and the rows of $B^{(k+1)}_\rho$ with
-parent~$i$, as computed by Algorithm~\ref{alg:impl_build}, are functions
-of the entries of $K$ at the fine indices whose functionals are
-supported in the ball of radius $C_H\, \rho\, h_k + c_\star h_k$ about
-$x^{(k)}_i$, where $C_H := (1+H)/(1-H)^2$.
 \end{proposition}
 
 The patterns of all matrices in Algorithm~\ref{alg:impl_build} are thus
@@ -870,18 +865,44 @@ $\lesssim \rho^d$ entries per row at every level.  The factors are stored and ap
 $\Phi_\rho$ at level~$k$ has $\simeq \rho^d H^{-d(q-k)}$ entries,
 whereas the factors together hold $\lesssim N \rho^d$.
 
-Two patch problems whose data coincide have the same solution: if the
-entries of $K$ in the balls of two level-$k$ indices agree under a
-translation of the grid that carries one patch onto the other, the two
-rows of $R^{(k)}$ agree entry by entry, as computed, since CG from a zero
-initial guess is deterministic and the threshold is applied entrywise.
-Such rows form classes identified from the coefficient before any patch
-problem is solved, and Algorithm~\ref{alg:impl_build} solves one patch
-problem per class.  For a coefficient of period~$P$, an integer multiple
-of~$h_k$, the interior indices of level~$k$ fall into at most $(P/h_k)^d$
-classes, and the indices whose balls meet $\partial\Omega$ add
-$\lesssim \rho\, n_k^{(d-1)/d}$ further classes; for a coefficient
-without such structure every class is a singleton.
+\subsubsection{Locality}
+Let $\mathcal{D}^{(k)}_i$ be the ball of radius
+$C_H\, \rho\, h_k + c_\star h_k$ about $x^{(k)}_i$, with
+$C_H := (1+H)/(1-H)^2$, and let $J^{(q)}(S)$ denote the fine indices whose
+functionals are supported in a set~$S$.  A \emph{relabelling} is a family
+of bijections $T^{(m)}$ of $I^{(m)}$, $k \leq m \leq q$, and of the
+level-$m$ detail indices, that commutes with the nesting and detail maps,
+$C^{(m)}_{T^{(m)} i,\, T^{(m+1)} j} = C^{(m)}_{ij}$ and
+$D^{(m)}_{T^{(m)} m',\, T^{(m+1)} j} = D^{(m)}_{m' j}$, and maps patches to
+patches, $T^{(m+1)}(\mathcal{P}^{(m)}_i) = \mathcal{P}^{(m)}_{T^{(m)} i}$.
+
+\begin{lemma}[Locality and equivariance]\label{lem:dependency}
+Let $1 \leq k < q$ and let $i$ be a level-$k$ index.
+\begin{enumerate}
+  \item[(i)] Row~$i$ of $R^{(k)}$, and the rows of $B^{(k+1)}_\rho$ at the
+    detail indices with parent~$i$, as computed by
+    Algorithm~\ref{alg:impl_build}, are functions of the entries
+    $K_{ab}$, $a, b \in J^{(q)}(\mathcal{D}^{(k)}_i)$.
+  \item[(ii)] Let $T$ be a relabelling with
+    $K_{T^{(q)} a,\, T^{(q)} b} = K_{ab}$ for all
+    $a, b \in J^{(q)}(\mathcal{D}^{(k)}_i)$, and let neither
+    $\mathcal{D}^{(k)}_i$ nor its image under~$T$ meet $\partial\Omega$.
+    Then $R^{(k)}_{T^{(k)} i,\, T^{(k+1)} j} = R^{(k)}_{ij}$ for every~$j$,
+    and the corresponding rows of $B^{(k+1)}_\rho$ coincide.
+\end{enumerate}
+\end{lemma}
+
+Part~(ii) concerns the computed rows: the conjugate gradient iteration
+from a zero initial guess commutes with a permutation of the unknowns, and
+equal entries are thresholded alike.  The relation
+$i \sim T^{(k)} i$ of~(ii) partitions the level-$k$ indices into classes,
+determined by the coefficient field before any patch problem is solved,
+and Algorithm~\ref{alg:impl_build} solves one patch problem per class.
+For a field of period~$P$, an integer multiple of~$h_k$, the interior
+indices of level~$k$ fall into at most $(P/h_k)^d$ classes, and the
+indices whose balls meet $\partial\Omega$ add $\lesssim \rho\,
+n_k^{(d-1)/d}$ further classes.  For a field without such structure every
+class is a singleton.
 
 \subsubsection{Patch solves and detail policy}
 The level-$k$ patch systems are principal submatrices of
@@ -959,7 +980,7 @@ thresholding, and no column indices.%
 % [TODO: on the current code branch the index-free storage holds for the
 % factors; for A^(k) and B^(k)_rho once the bit-mask storage is merged
 % (dev/TICKET_masked_apply.md).]
-\ The value tables hold one row per
+\ Under Lemma~\ref{lem:dependency} the value tables hold one row per
 class, as constant- and periodic-coefficient stencils do for
 translation-invariant operators.  By the width
 bound~\eqref{eq:width_recursion}, the computation of
@@ -987,7 +1008,8 @@ point-value measurements, and the max-norm box of radius $r_k h_k$ about
 $x^{(k)}_i$ as the patch, which contains the ball of radius $r_k$ and is
 contained in the ball of radius $\sqrt{d}\, r_k$.  Labels are grid
 coordinates, $C^{(k)}$ selects the level-$(k{+}1)$ nodes at coarse
-positions and $D^{(k)}$ the remaining ones, and the classes are lattice translations.  Within the box of
+positions and $D^{(k)}$ the remaining ones, and the classes of
+Lemma~\ref{lem:dependency} are lattice translations.  Within the box of
 radius~$r$ about node~$x$, clipped to the grid with per-axis offsets
 $l_a := \max(x_a - r,\, 0)$ and extents
 $b_a := \min(x_a + r,\, n_a - 1) - l_a + 1$, the column at
@@ -1656,7 +1678,7 @@ are of lower order.
 
 \subsection{Proofs of the Construction Results}
 \label{sec:construction}
-% CLAIMS: sparsity and locality; cost.
+% CLAIMS: sparsity patterns; locality and equivariance; cost.
 
 The setting is that of Subsection~\ref{sec:implementation}.  For
 first-order elements the nesting and detail maps are selections: the
@@ -1680,17 +1702,37 @@ applies to $B^{(k+1)}_\rho = D^{(k)} A^{(k+1)} D^{(k)\top}$, the detail
 maps having support width $\lesssim 1$, and thresholding only removes
 entries.  Induction from $w_q \lesssim 1$ gives
 $w_k \leq 2\rho/(1-H) + c_\star$.
-
-For the locality statement, the patch system of row~$i$ reads entries
-of $A^{(k+1)}$ and $B^{(k+1)}_\rho$ at indices within
-$r_k h_k + c_\star h_{k+1}$ of $x^{(k)}_i$; an entry of $A^{(m)}$ or
-$B^{(m)}_\rho$ is a sum of products of entries of $A^{(m+1)}$ with
-entries of two rows of $R^{(m)}$ whose indices lie within $w_m h_m$ of
-each other, and at $m = q$ the entries of $A^{(q)} = K$ are the data.
-Summing the reaches over the levels gives a geometric series with
-ratio~$H$ and total $C_H\, \rho\, h_k + c_\star h_k$.
 \end{proof}
 
+\begin{proof}[Proof of Lemma~\textup{\ref{lem:dependency}}]
+(i) The patch system of row~$i$ reads entries of $A^{(k+1)}$ and
+$B^{(k+1)}_\rho$ at indices within $r_k h_k + c_\star h_{k+1}$ of
+$x^{(k)}_i$.  An entry of $A^{(m)}$ or $B^{(m)}_\rho$ is a sum of products
+of entries of $A^{(m+1)}$ with entries of two rows of $R^{(m)}$ whose
+indices lie within $w_m h_m$ of each other
+(Proposition~\ref{prop:stencil_width}), and at $m = q$ the entries of
+$A^{(q)} = K$ are the data.  Summing the reaches over the levels gives a
+geometric series with ratio~$H$ and total $C_H\, \rho\, h_k + c_\star h_k$,
+and every entry of $K$ read has both indices in
+$J^{(q)}(\mathcal{D}^{(k)}_i)$.
+
+(ii) For $k \leq m \leq q$ consider the claim: every entry of $A^{(m)}$
+and of $B^{(m)}_\rho$, and every row of $R^{(m)}$, read by the
+computation of row~$i$ satisfies $X_{T a,\, T b} = X_{a b}$, respectively
+$R^{(m)}_{T a,\, T b} = R^{(m)}_{a b}$, with $T$ the relabelling of the
+appropriate levels.  By~(i) the indices involved lie in
+$J^{(q)}(\mathcal{D}^{(k)}_i)$ and their images under~$T$, where the
+hypothesis gives the claim at $m = q$.  For the step from $m{+}1$ to~$m$:
+$T$ maps patches to patches and commutes with $C^{(m)\dagger}$ and
+$D^{(m)}$, so the patch systems of rows $a$ and $T a$, matrix and
+right-hand side, correspond entrywise under~$T$ by the claim at level
+$m{+}1$; CG from a zero initial guess commutes with the permutation of the
+unknowns, so the computed solutions correspond and the assembled rows of
+$R^{(m)}$ satisfy the claim.  The entries of $A^{(m)}$ and $B^{(m)}_\rho$
+are sums of products of corresponding entries and so satisfy the
+identity, and equal values are thresholded alike.  At $m = k$ the claim
+for row~$i$ is the assertion.
+\end{proof}
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:cost}}]
 Each row of $R^{(k)}$ holds $\lesssim r_k^d$ values and each row of
