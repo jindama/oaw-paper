@@ -104,12 +104,14 @@ positive definite (SPD) linear system
 Large systems of this kind are solved by the preconditioned conjugate
 gradient method (CG).  On a quasi-uniform mesh $\kappa(K)$ grows as
 $N^{2/d}$ with a prefactor that depends on the coefficient
-contrast~\cite{ErnGuermond2004}.  Multigrid preconditioners reach
-near-linear cost with coarse spaces chosen by heuristics, such as
-smoothed aggregation~\cite{saad2003iterative} or energy minimization
-under an imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}; the
-coarse spaces that give the optimal rate are expensive to
-construct~\cite{brannick2019role}, and the heuristics carry parameters
+contrast~\cite{ErnGuermond2004}.  Multigrid preconditioners achieve
+near-linear cost when the coarse spaces are chosen optimally, but
+computing those coarse spaces is itself superlinear: the basis functions
+that give the optimal rate minimize the energy under interpolation
+constraints and are globally supported~\cite{brannick2019role}.
+Implementations therefore use heuristic coarse spaces, such as smoothed
+aggregation~\cite{saad2003iterative} or energy minimization under an
+imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}, with parameters
 tuned per problem, in particular for coefficients that vary over many
 length scales and orders of magnitude.
 
