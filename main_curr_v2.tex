@@ -830,15 +830,9 @@ tolerance $\tau_{\mathrm{apply}}$.
 \textbf{Output:} $\hat{u}_\rho = t^{(q)}$.
 \end{algorithm}
 
-The exact level-$k$ functions are combinations of the exact
-level-$(k{+}1)$ functions,
-\begin{equation}\label{eq:nesting_R}
-  \psi^{(k)}_i \;=\; \sum_{j=1}^{n_{k+1}} R^{(k)}_{\mathrm{ex},ij}\, \psi^{(k+1)}_j,
-  \qquad 1 \leq i \leq n_k,
-\end{equation}
-with dense \emph{exact nesting matrices} $R^{(k)}_{\mathrm{ex}}$.  The
-computed factors $R^{(k)}$ of~\eqref{eq:recursive_patch} replace them,
-with each row supported in its patch.
+The computed factors $R^{(k)}$ of~\eqref{eq:recursive_patch} stand in
+for the dense exact nesting matrices $R^{(k)}_{\mathrm{ex}}$
+of~\eqref{eq:nesting_R}, each row supported in its patch.
 
 \begin{proposition}[Sparsity and locality]\label{prop:stencil_width}
 Let $1 \leq k < q$.  Row~$i$ of $R^{(k)}$ is supported in
@@ -1035,9 +1029,10 @@ Section~\ref{sec:experiments} measures the constants.
 \begin{remark}[Realization]\label{rem:realization}
 Proposition~\ref{prop:stencil_width} permits the matrices of
 Algorithm~\ref{alg:impl_build} to be stored as in the stencil format of
-structured multigrid~\cite{hypre2006,dendy1982blackbox}: the values of a
-row in a fixed order of its neighbourhood $N^{(k)}_{w_k}(i)$, together
-with one bit per position indicating whether the entry survived
+structured multigrid~\cite{hypre2006,dendy1982blackbox}: the values of
+row~$i$ in a fixed order of the neighbourhood
+$N^{(k)}_r(i) := \{ j \in I^{(k)} : d^{(k)}(i,j) \leq r \}$ at $r = w_k$,
+together with one bit per position recording whether the entry survived
 thresholding, and no column indices.%
 % [TODO: on the current code branch the index-free storage holds for the
 % factors; for A^(k) and B^(k)_rho once the bit-mask storage is merged
@@ -1055,33 +1050,46 @@ of temporal blocking~\cite{wonnacott2002timeskewing}; the working memory
 is then one band and one batch of patch systems in addition to the
 output.
 
-What this requires of the discretization is that the level index sets be
-labelled so that $N^{(k)}_r(i)$, and the position of an index within it,
-are computable from the labels with tables whose size is independent
-of~$N$.  Uniform refinements of an unstructured base mesh have this
-property, with labels consisting of a base entity and local coordinates
-and one table per base entity; so do the index trees of~\cite{owhadi2017}
-and meshes assembled from structured regions with adjacency tables at
-their interfaces.
+The format asks of the discretization that the neighbourhood
+$N^{(k)}_r(i)$, and the position of an index within it, be computable
+from the index labels with tables whose size is set by the initial mesh
+and not by~$N$.  Uniform refinement supplies such a labelling.  Each
+element of the initial mesh carries, in its reference coordinates, a
+structured lattice of level-$k$ nodes, so a level-$k$ index is a pair:
+an element of the initial mesh and a local multi-index in that element's
+lattice.  Where a neighbourhood lies inside one element, its members and
+their positions are differences of local multi-indices.  A neighbourhood
+that crosses an element face is resolved by one table of the faces of the
+initial mesh and the orientations with which they are identified; the
+size of that table is set by the initial mesh alone.  The indices
+concerned are those within $r$ of a face, a fraction $\lesssim r\, h_k$
+of the level's indices, which shrinks under refinement.  The shape of the
+initial elements enters the constants of the estimates through the
+mesh-regularity constant.  The index
+trees of~\cite{owhadi2017} and meshes assembled from structured regions
+with adjacency tables at their interfaces carry labellings of the same
+kind.
 
-The experiments of Section~\ref{sec:experiments} use the uniform
-hexahedral grid on a box with $H = \tfrac12$, first-order elements,
-point-value measurements, and the max-norm box of radius $\rho_k h_k$ about
-$x^{(k)}_i$ as the patch, which contains the ball of radius $\rho_k$ and is
-contained in the ball of radius $\sqrt{d}\, \rho_k$.  Labels are grid
-coordinates, $C^{(k)}$ selects the level-$(k{+}1)$ nodes at coarse
-positions and $D^{(k)}$ the remaining ones, and the orbits are lattice
-translations.  The column of a value follows from its position in the
-row's box by a mixed-radix index,
+A single structured block is the instance the experiments of
+Section~\ref{sec:experiments} use: the uniform hexahedral grid on a box
+with $H = \tfrac12$, first-order elements, point-value measurements, and
+the max-norm box of radius $\rho_k h_k$ about $x^{(k)}_i$ as the patch,
+which contains the ball of radius $\rho_k$ and is contained in the ball of
+radius $\sqrt{d}\, \rho_k$.  The initial mesh is one element, the local
+multi-index is the grid coordinate, the table of faces and orientations
+is empty, and the position of a value within a row reduces to the
+mixed-radix index
 \begin{equation}\label{eq:slot_map}
   \mathrm{slot}(x, y) \;=\; \sum_{a=1}^{d} (y_a - l_a)
   \prod_{a' > a} b_{a'} ,
 \end{equation}
 with $l$ and $b$ the lower corner and the extents of the box about~$x$
-clipped to the grid (Figure~\ref{fig:stencil_vs_csr}).  Vector-valued problems
-with $p$ components per node carry $p \times p$ blocks throughout, with
-$C^{(k)}$ and $D^{(k)}$ Kronecker products of selections; the elasticity
-experiments use $p = d$.
+clipped to the grid (Figure~\ref{fig:stencil_vs_csr}).  Here $C^{(k)}$
+selects the level-$(k{+}1)$ nodes at coarse positions and $D^{(k)}$ the
+remaining ones, and the orbits are lattice translations.  Vector-valued
+problems with $p$ components per node carry $p \times p$ blocks
+throughout, with $C^{(k)}$ and $D^{(k)}$ Kronecker products of
+selections; the elasticity experiments use $p = d$.
 \end{remark}
 
 \begin{figure}[t]
