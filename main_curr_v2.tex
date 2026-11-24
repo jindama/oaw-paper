@@ -496,21 +496,8 @@ isometry from this norm to the energy norm,
 \begin{equation}\label{eq:isometry}
   \|\Phi w\|_K = \|w\|_{\mathcal{B}} \qquad \forall w \in \mathbb{R}^N ,
 \end{equation}
-and let $\sigma_+$ and $\sigma_-$ be the largest and the smallest value
-of $\|(I + F_\rho) v\|_{\mathcal{B}} / \|v\|_{\mathcal{B}}$ over $v \neq 0$, the
-extreme singular values of $I + F_\rho$ in this inner product.  By
-\eqref{eq:F_def} and~\eqref{eq:isometry},
-$w^\top \Phi_\rho^\top K \Phi_\rho\, w = \|(I+F_\rho) w\|_{\mathcal{B}}^2$, and
-the same identity applied to each $\hat{w}_k$ separately gives
-$w^\top \mathcal{B}_\rho\, w = \sum_k \|(I+F_\rho)\hat{w}_k\|_{\mathcal{B}}^2$.  Hence
-$\sigma_+$ and $\sigma_-$ bound the condition number of the
-preconditioned system,
-\begin{equation}\label{eq:kappa_sigma}
-  \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
-  \;\leq\; \sigma_+^4 \big/ \sigma_-^2 .
-\end{equation}
-Let $b_k$ be the operator norm of the block column~$k$ of $F_\rho$ in
-this inner product, and $\beta$ the Euclidean aggregate of the $b_k$:
+and let $b_k$ be the operator norm of the block column~$k$ of $F_\rho$
+in this inner product, $\beta$ the Euclidean aggregate of the $b_k$:
 \begin{equation}\label{eq:b_k_def}
   b_k \;:=\; \sup_{\hat{w}_k \neq 0}
     \frac{\|F_\rho\, \hat{w}_k\|_{\mathcal{B}}}{\|\hat{w}_k\|_{\mathcal{B}}},
@@ -518,17 +505,12 @@ this inner product, and $\beta$ the Euclidean aggregate of the $b_k$:
   \qquad
   \beta \;:=\; \Bigl(\sum_{k=1}^{q} b_k^2\Bigr)^{1/2} .
 \end{equation}
-Cauchy--Schwarz over the blocks gives $\|F_\rho\|_{\mathcal{B}} \leq \beta$, hence
-$\sigma_+ \leq 1 + \beta$.
-
-The approximate basis functions of level $k$ satisfy the same measurement constraints as the exact ones,~\eqref{eq:measurement_matching}, regardless of the values of $\rho_k$ and $\tau_k$.  The error $\psi^{(k)}_{\rho,i} - \psi^{(k)}_i$ is
-therefore annihilated by the functionals of levels $1$ through~$k$, so it
-lies in the span of the columns of $\Phi$ in blocks $k+1$ through~$q$,
-and $F_\rho$ is strictly block lower triangular: its block $(j,k)$
-vanishes for $j \leq k$.  A strictly block lower triangular matrix with
-$q$ blocks is nilpotent, $F_\rho^{\,q} = 0$, so the Neumann series of
-$(I + F_\rho)^{-1}$ terminates after $q$ terms and
-$\sigma_-^{-1} \leq \sum_{j=0}^{q-1} \beta^{\,j}$.
+The approximate basis functions of level $k$ satisfy the same
+measurement constraints as the exact ones,
+\eqref{eq:measurement_matching}, regardless of the values of $\rho_k$
+and $\tau_k$.  Hence $F_\rho$ is strictly block lower triangular and
+therefore nilpotent (Lemma~\ref{lem:nilpotent}), which is why the bounds
+below carry a sum of $q$ terms and not a convergent series.
 
 \begin{theorem}[Conditioning of the preconditioned system]\label{prop:precond_conditioning}
 Let the measurement hierarchy satisfy the conditions of
@@ -1388,7 +1370,11 @@ by $C_1 H^k \epsilon_{k+1} \leq X_{k+1}$.  With $b_q = 0$ the definition
 of $\beta$ in~\eqref{eq:b_k_def} then gives
 $\beta \leq \bigl(\sum_{k<q} X_k^2\bigr)^{1/2}$.
 
-For~\eqref{eq:kappa_bound}: by the triangle inequality over the blocks,
+For~\eqref{eq:kappa_bound}, let $\sigma_+$ and $\sigma_-$ be the largest
+and the smallest value of
+$\|(I + F_\rho) v\|_{\mathcal{B}} / \|v\|_{\mathcal{B}}$ over $v \neq 0$, the
+extreme singular values of $I + F_\rho$ in this inner product.  By the
+triangle inequality over the blocks,
 \eqref{eq:b_k_def}, Cauchy--Schwarz and~\eqref{eq:slot_orthogonality},
 \[
   \|F_\rho w\|_{\mathcal{B}} \;\leq\; \sum_{k=1}^{q-1} \|F_\rho \hat{w}_k\|_{\mathcal{B}}
@@ -1415,7 +1401,8 @@ to each term, and~\eqref{eq:slot_orthogonality},
 $w^\top \mathcal{B}_\rho\, w \leq \sigma_+^2 \|w\|_{\mathcal{B}}^2$;
 Lemma~\ref{lem:domination} gives $w^\top \mathcal{B}_\rho\, w \geq \|w\|_{\mathcal{B}}^2$.
 Hence $R(w) \leq \sigma_+^2$ and $R(w) \geq \sigma_-^2/\sigma_+^2$, so
-\eqref{eq:rayleigh} gives~\eqref{eq:kappa_sigma}, and the two bounds on
+\eqref{eq:rayleigh} gives
+$\kappa(\widetilde{K}_\rho^{-1} K) \leq \sigma_+^4 / \sigma_-^2$, and the two bounds on
 $\sigma_\pm$ give
 $\kappa(\widetilde{K}_\rho^{-1} K) \leq (1+\beta)^4
  \bigl(\sum_{j=0}^{q-1}\beta^{\,j}\bigr)^2$, which
