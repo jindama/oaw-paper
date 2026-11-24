@@ -1658,17 +1658,29 @@ the algorithm builds it, at any radii, patch tolerances and depth, and
 given a construction that solves three-dimensional diffusion and
 elasticity problems with over a million unknowns on one GPU.
 
-The measurement hierarchy is fixed a priori; coarse subspaces selected
-from the operator, as in multigrid, are not treated.  The analysis is
-restricted to symmetric positive definite systems; nonsymmetric systems
-with distinct test and trial spaces, as in~\cite{HauckPeterseim2021},
-are not treated.  The conditions of Appendix~\ref{app:stability} are
-verified in~\cite{Owhadi_Scovel_2019} for cell averages, local
-polynomials and point values of regularity $s > d/2$; the point-value
-measurements of the experiments in $d = 3$ lie outside these cases.  The
-implementation is restricted to the uniform grid and first-order
-elements, and to one device; Remark~\ref{rem:realization} states what
-the construction requires of other meshes.
+The analysis holds for any nested measurement hierarchy meeting the
+conditions of Appendix~\ref{app:stability}, with $H$ a bound on the ratio
+between successive mesh scales~\eqref{eq:scale_bound}; hierarchies
+obtained by adaptive refinement are among them.  It covers symmetric
+positive definite systems, and not the nonsymmetric setting with distinct
+test and trial spaces of~\cite{HauckPeterseim2021}.  The measurement
+hierarchy is fixed a priori, so coarse subspaces selected from the
+operator, as in multigrid, lie outside the scope of the analysis.  The
+conditions of
+Appendix~\ref{app:stability} are verified in~\cite{Owhadi_Scovel_2019}
+for cell averages, local polynomials and point values of regularity
+$s > d/2$; the point-value measurements of the experiments in $d = 3$ lie
+outside these cases.
+
+The construction assumes uniform refinement: the position of an index
+within its neighbourhood is then computable from its label.  Under graded
+or adaptive refinement the single table of faces and orientations of
+Remark~\ref{rem:realization} becomes one table per local refinement
+configuration.  For a hierarchy not obtained by refinement, agglomeration
+for instance, the sparsity patterns of the coarsened matrices depend on
+the coarsening, and the construction does not apply.  The implementation
+realizes a single structured block with first-order elements on one
+device.
 
 Four questions are open.  It is not known whether the per-level error
 of the recursive construction contracts, that is, whether the
