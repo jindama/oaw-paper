@@ -182,10 +182,34 @@ $d_k := n_{k+1} - n_k$, whose rows span the right kernel of~$C^{(k)}$:
   C^{(k)}\, D^{(k)\top} = 0,
   \qquad \operatorname{rank} D^{(k)} = d_k.
 \end{equation}
-Level~$q$ is the finest.  Each level-$k$ functional is associated with a
-node $x^{(k)}_j$ of a shape-regular mesh of width $h_k \propto H^k$,
-$H \in (0,1)$, and is supported on $c_\star$ cells about it, so
-$n_k \propto h_k^{-d}$ and $q \leq C_q \ln N$.
+Level~$q$ is the finest.  Write $I^{(k)}$ for the index set of level~$k$,
+of cardinality~$n_k$.  Each level $k$ carries a shape-regular mesh of
+width~$h_k$; the functional $\mu^{(k)}_j$ is attached to a node
+$x^{(k)}_j$ of that mesh and is supported on at most $c_\star$ of its
+cells about $x^{(k)}_j$.  Distances at level~$k$ are measured in
+level-$k$ mesh widths,
+\begin{equation}\label{eq:level_metric}
+  d^{(k)}(i,j) \;:=\; \lvert x^{(k)}_i - x^{(k)}_j \rvert / h_k ,
+  \qquad i, j \in I^{(k)} .
+\end{equation}
+The widths satisfy, for a fixed $H \in (0,1)$,
+\begin{equation}\label{eq:scale_bound}
+  h_{k+1} \;\leq\; H\, h_k \quad\text{and}\quad h_k \simeq H^k,
+  \qquad 1 \leq k < q .
+\end{equation}
+The ratios $h_{k+1}/h_k$ may differ from level to level, and $H$ is a
+bound on them rather than a common refinement ratio.  Each
+level-$(k{+}1)$ index~$j$ carries a \emph{parent} $j^{(k)} \in I^{(k)}$
+with $\lvert x^{(k+1)}_j - x^{(k)}_{j^{(k)}} \rvert \leq c_\star h_k$, and
+the nesting and detail maps are cellular for this relation,
+\begin{equation}\label{eq:cellularity}
+  C^{(k)}_{ij} = 0 \ \text{ unless } j^{(k)} = i,
+  \qquad
+  D^{(k)}_{mj} = 0 \ \text{ unless } j^{(k)} = m^{(k)} .
+\end{equation}
+Shape regularity gives $n_k \simeq h_k^{-d}$, so the level counts obey
+$n_k \leq c_n H^{-dk}$.  Since $n_q = N$, the second
+estimate of~\eqref{eq:scale_bound} bounds the depth, $q \leq C_q \ln N$.
 
 For $1 \leq i \leq n_k$, the level-$k$ basis function is the minimizer
 of the energy norm over an affine set,
@@ -280,13 +304,7 @@ whose entries decay exponentially in the distance between the nodes they
 couple \cite[Lemma~16.27]{Owhadi_Scovel_2019}.  Constraining the
 coefficients rather than the function, and posing each level's problem
 over the functions already built one level finer, leaves $\lesssim \rho_k^d$
-unknowns at every level.  To state this, measure distances at level $k$
-in level-$k$ mesh widths,
-$d^{(k)}(i,j) := |x^{(k)}_i - x^{(k)}_j| / h_k$, and assign to each
-level-$(k{+}1)$ index~$j$ a \emph{parent} $j^{(k)}$ at level~$k$ with
-$|x^{(k+1)}_j - x^{(k)}_{j^{(k)}}| \leq c_\star h_k$, so that
-$C^{(k)}_{ij} = 0$ unless $j^{(k)} = i$ and $D^{(k)}_{mj} = 0$ unless
-$j^{(k)} = m^{(k)}$.  The \emph{patch} of a level-$k$ index~$i$,
+unknowns at every level.  The \emph{patch} of a level-$k$ index~$i$,
 \begin{equation}\label{eq:patch_def}
   \mathcal{P}^{(k)}_i := \bigl\{\, j \in I^{(k+1)} :
     d^{(k)}\bigl(i, j^{(k)}\bigr) \leq \rho_k \,\bigr\} ,
