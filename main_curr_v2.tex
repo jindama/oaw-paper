@@ -1725,17 +1725,17 @@ the coarsening, and the construction does not apply.  The implementation
 realizes a single structured block with first-order elements on one
 device.
 
-Four questions are open.  It is not known whether the per-level error
-of the recursive construction contracts, that is, whether the
-amplification $\alpha/H$ of~\eqref{eq:X_recursion} can be replaced by a
-factor below one; a contraction would transfer the radius
-$\ell\ln\ln N$ of the one-shot basis to the computed basis.  It is not
-known whether a build tolerance fixed independently of the depth keeps
-the condition number bounded as the depth grows.  It is not known whether the radius
-proportional to $\ln N$ of Corollary~\ref{cor:asymptotic} is necessary.
-The inner CG solves of the apply phase, stopped at a tolerance, are a
-nonlinear map of the residual, and their effect on the outer iteration
-is measured but not analyzed.
+Whether the per-level error of the recursive construction contracts
+remains open: the amplification $\alpha/H$ of~\eqref{eq:X_recursion} may
+or may not be replaceable by a factor below one, and a contraction would
+carry the radius $\ell\ln\ln N$ of the one-shot basis over to the
+computed basis.  Nor is it known whether a build tolerance fixed
+independently of the depth keeps the condition number bounded as the
+depth grows, or whether the radius proportional to $\ln N$ of
+Corollary~\ref{cor:asymptotic} is necessary.  The inner conjugate
+gradient solves of the apply phase, stopped at a tolerance, are a
+nonlinear map of the residual; their effect on the outer iteration is
+measured but not analyzed.
 
 \section*{Acknowledgments}
 % TODO: carried from main_abridged.tex at harvest.
