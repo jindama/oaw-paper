@@ -1231,9 +1231,20 @@ gives~\eqref{eq:kappa_beta0}.
 Algorithm~\ref{alg:impl_build} computes the factors $R^{(k)}$
 of~\eqref{eq:R_structure} recursively from fine to coarse grids.
 Algorithm~\ref{alg:impl_apply} applies~\eqref{eq:preconditioner}.
-The recursion is that of Budninskiy et al.~\cite{budni2019}. This section bounds the cost of computing the factors;
-Section~\ref{sec:experiments} reports measurements of one
-implementation.
+The recursion is that of Budninskiy et al.~\cite{budni2019}.
+
+What makes the construction affordable at the sizes of
+Section~\ref{sec:experiments} is that it never has to discover anything
+about the structure of what it builds.  The sparsity pattern of every
+matrix follows from the index sets and the radii, so the footprint is
+bounded before any entry is computed and its memory is allocated
+outright.  The position of a value within a row follows from the index
+labels, so the matrices are filled in parallel with no column indices
+stored and no search over the pattern.  And the patch problems inherit
+the symmetries of the mesh and of the coefficient, so the problems that
+must be solved are the orbits rather than the nodes.  The operation and
+storage counts follow from these three; Section~\ref{sec:experiments}
+reports measurements of one implementation.
 
 \begin{algorithm}[t]
 \caption{Build}
@@ -1328,6 +1339,31 @@ $\lesssim \rho^d$ entries per row at every level, and the factors are
 stored and applied in sequence (a column of $\Phi_\rho$ at level~$k$ has
 $\simeq \rho^d H^{-d(q-k)}$ entries).
 
+This is what separates the construction from the same algebra performed
+with a general sparse matrix library.  A general sparse product cannot
+know its result's pattern in advance and must either determine it in a
+symbolic pass or bound it pessimistically, and at the coarse levels,
+where a row of $A^{(k)}$ carries $\lesssim \rho^d$ entries but the
+candidate columns are many times that, the bound is what exhausts the
+device.  Here the pattern is an input.
+
+The second property is a condition on the labelling.  The format below
+asks that the neighbourhood
+$N^{(k)}_r(i) := \{ j \in I^{(k)} : d^{(k)}(i,j) \leq r \}$, and the
+position of an index within it, be computable from the index labels
+with tables whose size is set by the initial mesh and not by~$N$.
+Uniform refinement supplies such a labelling: each element of the
+initial mesh carries, in its reference coordinates, a structured
+lattice of level-$k$ nodes, so a level-$k$ index is an element of the
+initial mesh together with a local multi-index in that element's
+lattice.  Where a neighbourhood lies inside one element its members and
+their positions are differences of local multi-indices; one that
+crosses a face is resolved by a table of the faces of the initial mesh
+and the orientations with which they are identified, whose size the
+initial mesh alone fixes.  The indices concerned are those within $r$ of
+a face, a fraction $\lesssim r\, h_k$ of the level's indices, which
+shrinks under refinement.
+
 \subsection{Symmetry and orbits}
 \label{sec:symmetry}
 The patch problem~\eqref{eq:recursive_patch} of a level-$k$ index~$i$ is
@@ -1343,7 +1379,45 @@ block of the Gram matrix $A^{(k+1)}_\rho$ on that index set,
 \end{equation}
 its solution being the row $R^{(k)}_{i,\cdot}$.
 
-Write $I^{(k)}_\chi := \{1, \ldots, d_k\}$ for the detail index set of
+The localized basis function at a node minimizes the energy among
+functions supported in that node's patch and matching the measurements
+of its level.  Let $T$ be a map of the domain that carries the mesh
+hierarchy to itself, carries the patch of one node onto the patch of
+another, and under which the measurements correspond; suppose the
+coefficient is carried to a positive multiple of itself.  Then
+$v \mapsto v \circ T^{-1}$ is a bijection between the two constraint
+sets under which the energy is multiplied by that positive factor, so
+it carries the minimizer of the first problem to the minimizer of the
+second.  One minimization per orbit of nodes suffices, and the factor
+drops out, because multiplying an energy by a positive constant does
+not move where it is minimized.
+\[
+  \begin{array}{ccc}
+    \mathcal{A}^{(k)}_i & \xrightarrow{\;v \,\mapsto\, v \circ T^{-1}\;}
+      & \mathcal{A}^{(k)}_{i'} \\[2pt]
+    \big\downarrow\,{\scriptstyle \mu^{(k)}} & &
+      \big\downarrow\,{\scriptstyle \mu^{(k)}} \\[2pt]
+    \mathbb{R}^{n_k} & \xrightarrow{\;P_k\;} & \mathbb{R}^{n_k}
+  \end{array}
+\]
+Functions are carried forward by composition with $T^{-1}$ and the
+measurements by the permutation $P_k$ that $T$ induces on the nodes;
+the constraint $\mu^{(k)}(\psi) = e_i$ is preserved because the two
+transform dually.
+
+Within a level such maps are the symmetries of the mesh --- on a lattice
+the translations and the rotations and reflections about a node ---
+together with the positive scalings of the coefficient.  Between
+consecutive levels the corresponding map is the dilation by the
+refinement ratio, under which the energy and the measurement
+normalization each acquire a power of the scale; that the local problems
+of two consecutive levels then differ by a positive factor is a
+property of the discretization, assumed where it is used and checkable
+for a given one.
+
+In coordinates these maps become permutations of the index sets, and it
+is in that form that the construction uses them.  Write
+$I^{(k)}_\chi := \{1, \ldots, d_k\}$ for the detail index set of
 level~$k$, which indexes the rows of $D^{(k)}$.  An \emph{admissible
 transformation} is a family of bijections
 $g_k \colon I^{(k)} \to I^{(k)}$, $1 \leq k \leq q$, and
@@ -1427,18 +1501,19 @@ in~$n_k$.  The rows agree entry by entry as computed, not only in exact
 arithmetic, because CG from a zero initial guess performs the same
 arithmetic on permuted data and the threshold is applied entrywise.
 
-A scale map acts alongside the admissible transformations, identifying
-the level-$k$ patch problem of an index with the level-$(k{+}1)$ problem at
-the corresponding position of the refined grid; the two problems have the
-same patch and the same constraint, and where the coefficient is constant
-on the patch their local operators are positive multiples of one another,
-so Proposition~\ref{prop:orbit_transport}(ii) makes the identification
-exact.
-% [VERIFY: that a coefficient constant on the patch makes the local
-% operators of two consecutive levels proportional.  It holds at k = q-1,
-% where the local operator is the element stiffness array scaled by
-% h_q^{d-2}; for k < q-1 it is a self-similarity statement about the
-% coarsened stencils R^(k) A^(k+1) R^(k)T that the paper does not prove.]
+The dilation between consecutive levels identifies the level-$k$ patch
+problem of an index with the level-$(k{+}1)$ problem at the
+corresponding position of the refined grid: the two have the same patch
+and the same constraint.  Where their local operators are positive
+multiples of one another,
+Proposition~\ref{prop:orbit_transport}(ii) makes the identification
+exact and the two problems share one solution.  That proportionality is
+a hypothesis on the discretization rather than a consequence of the
+construction.  It holds at the finest pair, where the local operator is
+the element array scaled by a power of the mesh width, and for a
+coefficient constant on the patch it is a self-similarity property of
+the coarsened operators, which a given discretization either has or
+does not.
 When the mesh is obtained via uniform refinement of a (not necessarily
 structured) initial mesh, the admissible transformations are the
 symmetries of the initial mesh together with the translations inside one
@@ -1508,6 +1583,9 @@ one block per detail level, the solve policy reading the
 $\lesssim n_{k+1} \rho_k^d$ nonzeros of $B^{(k+1)}_\rho$.
 \end{proof}
 
+The storage count is the one the format of
+Remark~\ref{rem:realization} realizes: values only, in the order the
+labelling fixes, with no column indices, and one stored row per orbit.
 At the finest level the stencil of $K$ has width $\lesssim 1$ and a patch
 iteration costs $\lesssim r_{q-1}^d$ rather than $r_{q-1}^{2d}$.
 Section~\ref{sec:experiments} measures the constants.
@@ -1536,25 +1614,11 @@ of temporal blocking~\cite{wonnacott2002timeskewing}; the working memory
 is then one band and one batch of patch systems in addition to the
 output.
 
-The format asks of the discretization that the neighbourhood
-$N^{(k)}_r(i)$, and the position of an index within it, be computable
-from the index labels with tables whose size is set by the initial mesh
-and not by~$N$.  Uniform refinement supplies such a labelling.  Each
-element of the initial mesh carries, in its reference coordinates, a
-structured lattice of level-$k$ nodes, so a level-$k$ index is a pair:
-an element of the initial mesh and a local multi-index in that element's
-lattice.  Where a neighbourhood lies inside one element, its members and
-their positions are differences of local multi-indices.  A neighbourhood
-that crosses an element face is resolved by one table of the faces of the
-initial mesh and the orientations with which they are identified; the
-size of that table is set by the initial mesh alone.  The indices
-concerned are those within $r$ of a face, a fraction $\lesssim r\, h_k$
-of the level's indices, which shrinks under refinement.  The shape of the
-initial elements enters the constants of the estimates through the
-mesh-regularity constant.  The index
-trees of~\cite{owhadi2017} and meshes assembled from structured regions
-with adjacency tables at their interfaces carry labellings of the same
-kind.
+The labelling this format requires is the one described above; the
+shape of the initial elements enters the constants of the estimates
+through the mesh-regularity constant.  The index trees
+of~\cite{owhadi2017} and meshes assembled from structured regions with
+adjacency tables at their interfaces carry labellings of the same kind.
 
 \end{remark}
 
