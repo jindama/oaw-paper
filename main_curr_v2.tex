@@ -164,9 +164,7 @@ localization.  Section~\ref{sec:results} states the conditioning bounds
 and the properties of the construction, and
 Section~\ref{sec:preconditioner} proves them.
 Section~\ref{sec:experiments} reports the numerical experiments and
-Section~\ref{sec:conclusions} the limitations.  The appendices address
-some technical conditions that are necessary for the argument but
-inessential to understanding the contribution.
+Section~\ref{sec:conclusions} the limitations.  The appendices address some necessary technical conditions that the main argument omits for the sake of brevity.
 \section{Background}
 \label{sec:background}
 % CLAIMS:
@@ -204,26 +202,24 @@ $d_k := n_{k+1} - n_k$, whose rows span the right kernel of~$C^{(k)}$:
   C^{(k)}\, D^{(k)\top} = 0,
   \qquad \operatorname{rank} D^{(k)} = d_k.
 \end{equation}
-Level~$q$ is the finest.  Write $I^{(k)}$ for the index set of level~$k$,
-of cardinality~$n_k$.  Each level $k$ carries a shape-regular mesh of
+Write $I^{(k)}$ for the index set of level~$k$,
+of cardinality~$n_k$. For each level $k$, assume a shape-regular mesh of
 width~$h_k$; the functional $\mu^{(k)}_j$ is attached to a node
 $x^{(k)}_j$ of that mesh and is supported on at most $c_\star$ of its
-cells about $x^{(k)}_j$.  Distances at level~$k$ are measured in
-level-$k$ mesh widths,
+cells about $x^{(k)}_j$, in the sense that $\mu^{(k)}(f) = 0$ for all functions $f$ supported outside that neighborhood.  We define the level-$k$ pseudometric
 \begin{equation}\label{eq:level_metric}
   d^{(k)}(i,j) \;:=\; \lvert x^{(k)}_i - x^{(k)}_j \rvert / h_k ,
   \qquad i, j \in I^{(k)} .
 \end{equation}
-The widths satisfy, for a fixed $H \in (0,1)$,
+The widths must satisfy
 \begin{equation}\label{eq:scale_bound}
   h_{k+1} \;\leq\; H\, h_k \quad\text{and}\quad h_k \simeq H^k,
-  \qquad 1 \leq k < q .
+  \qquad 1 \leq k < q ,
 \end{equation}
-The ratios $h_{k+1}/h_k$ may differ from level to level, and $H$ is a
-bound on them rather than a common refinement ratio.  Each
-level-$(k{+}1)$ index~$j$ carries a \emph{parent} $j^{(k)} \in I^{(k)}$
+for a fixed $H \in (0,1)$. Each
+level-$(k{+}1)$ index~$j$ is associated with a \emph{parent} $j^{(k)} \in I^{(k)}$
 with $\lvert x^{(k+1)}_j - x^{(k)}_{j^{(k)}} \rvert \leq c_\star h_k$, and
-the nesting and detail maps are cellular for this relation,
+the nesting and detail maps satisfy the cellularity condition
 \begin{equation}\label{eq:cellularity}
   C^{(k)}_{ij} = 0 \ \text{ unless } j^{(k)} = i,
   \qquad
@@ -231,10 +227,9 @@ the nesting and detail maps are cellular for this relation,
 \end{equation}
 Shape regularity gives $n_k \simeq h_k^{-d}$, so the level counts obey
 $n_k \leq c_n H^{-dk}$.  Since $n_q = N$, the second
-estimate of~\eqref{eq:scale_bound} bounds the depth, $q \leq C_q \ln N$.
+estimate of~\eqref{eq:scale_bound} forces $q \lesssim\ln N$.
 
-For $1 \leq i \leq n_k$, the level-$k$ basis function is the minimizer
-of the energy norm over an affine set,
+For each $1 \leq k \leq q$, define the level-$k$ basis functions as the energy-minimizing basis dual to the measurements,
 \begin{equation}\label{eq:constraint_set}
   \mathcal{A}^{(k)}_i
   := \{v \in \mathcal{V}^{(q)} : \mu^{(k)}_j(v) = \delta_{ij},\;
@@ -245,7 +240,7 @@ of the energy norm over an affine set,
 \end{equation}
 The \emph{coarse spaces}
 $\mathcal{V}^{(k)} := \operatorname{span}\{\psi^{(k)}_i\}_{i=1}^{n_k}$
-are nested by~\eqref{eq:measurement_nesting}, the \emph{detail space}
+are nested by~\eqref{eq:measurement_nesting}. The \emph{detail space}
 $\mathcal{W}^{(k)}$ is the $a$-orthogonal complement of
 $\mathcal{V}^{(k)}$ in $\mathcal{V}^{(k+1)}$,
 \begin{equation}\label{eq:scale_decomposition}
@@ -254,12 +249,12 @@ $\mathcal{V}^{(k)}$ in $\mathcal{V}^{(k+1)}$,
   \mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}
   \oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)} ,
 \end{equation}
-and the \emph{detail functions}
+and it is easy to verify that the \emph{detail functions}
 \begin{equation}\label{eq:detail_basis}
   \chi^{(k)}_j = \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,\psi^{(k+1)}_m,
   \qquad 1 \leq j \leq d_k ,
 \end{equation}
-form a basis of $\mathcal{W}^{(k)}$~\cite[Ch.~14]{Owhadi_Scovel_2019}.
+form a basis of $\mathcal{W}^{(k)}$.
 The $n_q$ functions
 \begin{equation}\label{eq:combined_basis}
   \varphi_i :=
@@ -275,10 +270,7 @@ matrix in this basis is block diagonal by~\eqref{eq:scale_decomposition},
 \begin{equation}\label{eq:block_diagonal}
   \Phi^\top K \Phi = \operatorname{diag}\bigl(B^{(1)}, \ldots, B^{(q)}\bigr) =: \mathcal{B},
 \end{equation}
-with $B^{(1)}_{ij} = a(\psi^{(1)}_i, \psi^{(1)}_j)$ and
-$B^{(k)}_{ij} = a(\chi^{(k-1)}_i, \chi^{(k-1)}_j)$ for $k \geq 2$; block $k \geq 2$ holds the level-$(k{-}1)$ details.
-Under the conditions of
-Appendix~\ref{app:stability} the blocks are uniformly well conditioned
+with $B^{(k)}_{ij} = a(\varphi_j, \varphi_i)$. Under mild assumptions on the measurements $\mu^{(k)}_j$( see Appendix~\ref{app:stability}), the blocks are uniformly well conditioned
 \cite[Thm.~14.17]{Owhadi_Scovel_2019},
 \begin{equation}\label{eq:block_conditioning}
   C_B^{-1}\, H^{-2(k-1)}
@@ -286,7 +278,7 @@ Appendix~\ref{app:stability} the blocks are uniformly well conditioned
   \;\leq\; \lambda_{\max}\bigl(B^{(k)}\bigr)
   \;\leq\; C_B\,H^{-2k},
 \end{equation}
-with $C_B$ independent of $N$ and the level, so
+with $C_B$ independent of $N$ and $k$, so
 \begin{equation}\label{eq:exact_inverse_formula}
   K^{-1} = \Phi \operatorname{diag}\bigl(B^{(k)\,-1}\bigr) \Phi^\top
 \end{equation}
@@ -423,9 +415,7 @@ perturbs the energy but leaves \eqref{eq:measurement_matching} intact.
 
 
 In this basis the stiffness matrix is not exactly block diagonal, but the diagonal
-blocks $B^{(1)}_{\rho,ij} = a(\psi^{(1)}_{\rho,i}, \psi^{(1)}_{\rho,j})$
-and $B^{(k)}_{\rho,ij} = a(\chi^{(k-1)}_{\rho,i}, \chi^{(k-1)}_{\rho,j})$,
-$k \geq 2$, give the \emph{localized approximate inverse}
+blocks $B^{(k)}_{\rho,ij} = a(\varphi_{\rho,j}, \varphi_{\rho,i})$ give the \emph{localized approximate inverse}
 \begin{equation}\label{eq:preconditioner}
   \widetilde{K}_{\rho}^{-1}
   \;:=\; \Phi_{\rho}\,\mathcal{B}_{\rho}^{-1}\,\Phi_{\rho}^{\top},
@@ -522,17 +512,14 @@ this inner product, and $\beta$ the Euclidean aggregate of the $b_k$:
 Cauchy--Schwarz over the blocks gives $\|F_\rho\|_{\mathcal{B}} \leq \beta$, hence
 $\sigma_+ \leq 1 + \beta$.
 
-Every computed function matches the measurements of its own
-level,~\eqref{eq:measurement_matching}, at any radii and for any patch
-solutions $Z^{(k)}$.  The error $\psi^{(k)}_{\rho,i} - \psi^{(k)}_i$ is
+The approximate basis functions of level $k$ satisfy the same measurement constraints as the exact ones,~\eqref{eq:measurement_matching}, regardless of the values of $\rho_k$ and $\tau_k$.  The error $\psi^{(k)}_{\rho,i} - \psi^{(k)}_i$ is
 therefore annihilated by the functionals of levels $1$ through~$k$, so it
 lies in the span of the columns of $\Phi$ in blocks $k+1$ through~$q$,
 and $F_\rho$ is strictly block lower triangular: its block $(j,k)$
 vanishes for $j \leq k$.  A strictly block lower triangular matrix with
 $q$ blocks is nilpotent, $F_\rho^{\,q} = 0$, so the Neumann series of
 $(I + F_\rho)^{-1}$ terminates after $q$ terms and
-$\sigma_-^{-1} \leq \sum_{j=0}^{q-1} \beta^{\,j}$.  The sum has $q$ terms
-at every value of~$\beta$.
+$\sigma_-^{-1} \leq \sum_{j=0}^{q-1} \beta^{\,j}$.
 
 \begin{theorem}[Conditioning of the preconditioned system]\label{prop:precond_conditioning}
 Let the measurement hierarchy satisfy the conditions of
