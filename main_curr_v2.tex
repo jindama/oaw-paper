@@ -1085,40 +1085,7 @@ trees of~\cite{owhadi2017} and meshes assembled from structured regions
 with adjacency tables at their interfaces carry labellings of the same
 kind.
 
-A single structured block is the instance the experiments of
-Section~\ref{sec:experiments} use: the uniform hexahedral grid on a box
-with $H = \tfrac12$, first-order elements, point-value measurements, and
-the max-norm box of radius $\rho_k h_k$ about $x^{(k)}_i$ as the patch,
-which contains the ball of radius $\rho_k$ and is contained in the ball of
-radius $\sqrt{d}\, \rho_k$.  The initial mesh is one element, the local
-multi-index is the grid coordinate, the table of faces and orientations
-is empty, and the position of a value within a row reduces to the
-mixed-radix index
-\begin{equation}\label{eq:slot_map}
-  \mathrm{slot}(x, y) \;=\; \sum_{a=1}^{d} (y_a - l_a)
-  \prod_{a' > a} b_{a'} ,
-\end{equation}
-with $l$ and $b$ the lower corner and the extents of the box about~$x$
-clipped to the grid (Figure~\ref{fig:stencil_vs_csr}).  Here $C^{(k)}$
-selects the level-$(k{+}1)$ nodes at coarse positions and $D^{(k)}$ the
-remaining ones, and the orbits are lattice translations.  Vector-valued
-problems with $p$ components per node carry $p \times p$ blocks
-throughout, with $C^{(k)}$ and $D^{(k)}$ Kronecker products of
-selections; the elasticity experiments use $p = d$.
 \end{remark}
-
-\begin{figure}[t]
-\centering
-% results/paper_figs/stencil_fig/render_stencil_vs_csr_min.py
-\includegraphics[width=0.85\textwidth]{figures/stencil_vs_csr.pdf}
-\caption{One row of a nine-point operator in the two storage formats.
-A compressed-row format keeps a column index next to every value; the
-stencil format stores the values only, in the order of the positions of
-the box about the row's node, and the column of a value follows from its
-position by~\eqref{eq:slot_map}, $\mathrm{slot}(x,y) = (y_1 - l_1)\, b_2 +
-(y_2 - l_2)$ in two dimensions.}
-\label{fig:stencil_vs_csr}
-\end{figure}
 
 \section{Proofs of the Main Results}
 \label{sec:preconditioner}
@@ -1557,12 +1524,9 @@ gives~\eqref{eq:kappa_beta0}.
 \label{sec:construction}
 % CLAIMS: sparsity and locality.
 
-The setting is that of Subsection~\ref{sec:implementation}.  For
-first-order elements the nesting and detail maps are selections: the
-level-$k$ nodes are the level-$(k{+}1)$ nodes whose coordinates, in
-level-$(k{+}1)$ units, are multiples of $1/H$, so
-$C^{(k)}_{ij} = \delta_{j,\pi(i)}$ with $\pi(i) = x^{(k)}_i/H$, and
-$D^{(k)}$ selects the remaining nodes.
+The setting is that of Subsection~\ref{sec:implementation}; the argument
+uses only cellularity~\eqref{eq:cellularity}, the width
+bound~\eqref{eq:scale_bound} and the support of the measurements.
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:stencil_width}}]
 Row~$i$ of $R^{(k)}$ is $C^{(k)\dagger}_{i,\cdot} + Z^{(k)}_{i,\cdot}
@@ -1588,6 +1552,43 @@ each other, and at $m = q$ the entries of $A^{(q)} = K$ are the data.
 Summing the reaches over the levels gives a geometric series with
 ratio~$H$ and total $C_H\, \rho\, h_k + c_\star h_k$.
 \end{proof}
+
+\begin{remark}[The instance used in the experiments]
+\label{rem:instance}
+A single structured block is the instance the experiments of
+Section~\ref{sec:experiments} use: the uniform hexahedral grid on a box
+with $H = \tfrac12$, first-order elements, point-value measurements, and
+the max-norm box of radius $\rho_k h_k$ about $x^{(k)}_i$ as the patch,
+which contains the ball of radius $\rho_k$ and is contained in the ball of
+radius $\sqrt{d}\, \rho_k$.  The initial mesh is one element, the local
+multi-index is the grid coordinate, the table of faces and orientations
+is empty, and the position of a value within a row reduces to the
+mixed-radix index
+\begin{equation}\label{eq:slot_map}
+  \mathrm{slot}(x, y) \;=\; \sum_{a=1}^{d} (y_a - l_a)
+  \prod_{a' > a} b_{a'} ,
+\end{equation}
+with $l$ and $b$ the lower corner and the extents of the box about~$x$
+clipped to the grid (Figure~\ref{fig:stencil_vs_csr}).  Here $C^{(k)}$
+selects the level-$(k{+}1)$ nodes at coarse positions and $D^{(k)}$ the
+remaining ones, and the orbits are lattice translations.  Vector-valued
+problems with $p$ components per node carry $p \times p$ blocks
+throughout, with $C^{(k)}$ and $D^{(k)}$ Kronecker products of
+selections; the elasticity experiments use $p = d$.
+\end{remark}
+
+\begin{figure}[t]
+\centering
+% results/paper_figs/stencil_fig/render_stencil_vs_csr_min.py
+\includegraphics[width=0.85\textwidth]{figures/stencil_vs_csr.pdf}
+\caption{One row of a nine-point operator in the two storage formats.
+A compressed-row format keeps a column index next to every value; the
+stencil format stores the values only, in the order of the positions of
+the box about the row's node, and the column of a value follows from its
+position by~\eqref{eq:slot_map}, $\mathrm{slot}(x,y) = (y_1 - l_1)\, b_2 +
+(y_2 - l_2)$ in two dimensions.}
+\label{fig:stencil_vs_csr}
+\end{figure}
 
 \section{Numerical experiments}
 \label{sec:experiments}
