@@ -206,7 +206,7 @@ Write $I^{(k)}$ for the index set of level~$k$,
 of cardinality~$n_k$. For each level $k$, assume a shape-regular mesh of
 width~$h_k$; the functional $\mu^{(k)}_j$ is attached to a node
 $x^{(k)}_j$ of that mesh and is supported on at most $c_\star$ of its
-cells about $x^{(k)}_j$, in the sense that $\mu^{(k)}(f) = 0$ for all functions $f$ supported outside that neighborhood.  We define the level-$k$ pseudometric
+cells about $x^{(k)}_j$, in the sense that $\mu^{(k)}_j(f) = 0$ for all functions $f$ supported outside that neighborhood.  We define the level-$k$ pseudometric
 \begin{equation}\label{eq:level_metric}
   d^{(k)}(i,j) \;:=\; \lvert x^{(k)}_i - x^{(k)}_j \rvert / h_k ,
   \qquad i, j \in I^{(k)} .
@@ -249,12 +249,17 @@ $\mathcal{V}^{(k)}$ in $\mathcal{V}^{(k+1)}$,
   \mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}
   \oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)} ,
 \end{equation}
-and it is easy to verify that the \emph{detail functions}
+and the \emph{detail functions}
 \begin{equation}\label{eq:detail_basis}
   \chi^{(k)}_j = \sum_{m=1}^{n_{k+1}} D^{(k)}_{jm}\,\psi^{(k+1)}_m,
   \qquad 1 \leq j \leq d_k ,
 \end{equation}
-form a basis of $\mathcal{W}^{(k)}$.
+form a basis of $\mathcal{W}^{(k)}$: they lie in $\mathcal{V}^{(k+1)}$ and
+$\mu^{(k)}_l(\chi^{(k)}_j) = \bigl(C^{(k)} D^{(k)\top}\bigr)_{lj} = 0$
+by~\eqref{eq:measurement_nesting} and~\eqref{eq:kernel_D}, each
+$\psi^{(k)}_i$ is $a$-orthogonal to the kernel of $\mu^{(k)}$ by
+first-order optimality in~\eqref{eq:psi_k_def}, and
+$\operatorname{rank} D^{(k)} = d_k = \dim \mathcal{W}^{(k)}$.
 The $n_q$ functions
 \begin{equation}\label{eq:combined_basis}
   \varphi_i :=
@@ -270,7 +275,10 @@ matrix in this basis is block diagonal by~\eqref{eq:scale_decomposition},
 \begin{equation}\label{eq:block_diagonal}
   \Phi^\top K \Phi = \operatorname{diag}\bigl(B^{(1)}, \ldots, B^{(q)}\bigr) =: \mathcal{B},
 \end{equation}
-with $B^{(k)}_{ij} = a(\varphi_j, \varphi_i)$. Under mild assumptions on the measurements $\mu^{(k)}_j$( see Appendix~\ref{app:stability}), the blocks are uniformly well conditioned
+with $B^{(k)}_{ij} = a(\varphi_{n_{k-1}+j}, \varphi_{n_{k-1}+i})$ for
+$1 \leq i, j \leq n_k - n_{k-1}$, where $n_0 := 0$.  Under mild
+assumptions on the measurements $\mu^{(k)}_j$ (see
+Appendix~\ref{app:stability}), the blocks are uniformly well conditioned
 \cite[Thm.~14.17]{Owhadi_Scovel_2019},
 \begin{equation}\label{eq:block_conditioning}
   C_B^{-1}\, H^{-2(k-1)}
@@ -415,7 +423,8 @@ perturbs the energy but leaves \eqref{eq:measurement_matching} intact.
 
 
 In this basis the stiffness matrix is not exactly block diagonal, but the diagonal
-blocks $B^{(k)}_{\rho,ij} = a(\varphi_{\rho,j}, \varphi_{\rho,i})$ give the \emph{localized approximate inverse}
+blocks $B^{(k)}_{\rho,ij} = a(\varphi_{\rho,n_{k-1}+j}, \varphi_{\rho,n_{k-1}+i})$
+give the \emph{localized approximate inverse}
 \begin{equation}\label{eq:preconditioner}
   \widetilde{K}_{\rho}^{-1}
   \;:=\; \Phi_{\rho}\,\mathcal{B}_{\rho}^{-1}\,\Phi_{\rho}^{\top},
