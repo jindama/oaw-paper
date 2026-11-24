@@ -90,7 +90,7 @@ where $\mathcal V \subseteq H^s(\Omega)$ is a Sobolev space on a bounded
 Lipschitz domain $\Omega \subset \mathbb{R}^d$, $a$ is a bounded,
 symmetric, coercive and local bilinear form with $L^\infty$
 coefficients, and the boundary conditions are incorporated in
-$\mathcal V$ and~$f$.  Diffusion and linear elasticity are examples.  A
+$\mathcal V$ and~$f$. Physical examples of this type include diffusion-reaction and linear elasticity problems.  A
 conforming finite-element discretization on a trial space
 $\mathcal V^{(q)} \subset \mathcal V$ of dimension~$N$ yields a symmetric
 positive definite (SPD) linear system
@@ -98,79 +98,67 @@ positive definite (SPD) linear system
   Ku = g .
 \end{equation}
 
-Large systems of this kind are solved by the preconditioned conjugate
-gradient method (CG).  On a quasi-uniform mesh $\kappa(K)$ grows as
-$N^{2/d}$ with a prefactor that depends on the coefficient
-contrast~\cite{ErnGuermond2004}.  Multigrid preconditioners achieve
-near-linear cost when the coarse spaces are chosen optimally, but
-computing those coarse spaces is itself superlinear: the basis functions
-that give the optimal rate minimize the energy under interpolation
-constraints and are globally supported~\cite{brannick2019role}.
-Implementations therefore use heuristic coarse spaces, such as smoothed
+Large systems of this kind are typically solved by the preconditioned conjugate
+gradient method (CG).  On a quasi-uniform mesh the condition number $\kappa(K)$ grows as
+$N^{2/d}$~\cite{ErnGuermond2004}, making preconditioners essential for convergence at scale.  Multigrid preconditioners achieve
+near-linear cost with an optimal choice of coarse spaces, but
+computing those coarse spaces is itself often superlinear, since the required restriction and prolongation matrices are in general dense ~\cite{brannick2019role}.
+Practical implementations therefore use heuristic coarse spaces, such as smoothed
 aggregation~\cite{saad2003iterative} or energy minimization under an
 imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}.  Choosing these
-spaces often requires problem-specific parameter tuning, especially for
-coefficients that vary over many length scales and orders of magnitude.
+spaces often requires problem-specific parameter tuning, particularly for
+coefficients that vary over many length scales and orders of
+magnitude.
 
 The operator-adapted wavelet (OAW) factorization of Owhadi and
-Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the energy-minimizing
-principle recursively; the resulting basis makes the operator block
-diagonal with one uniformly well-conditioned block per coarse space.
-These basis functions decay exponentially in space, so approximating
-them by functions supported on patches of radius~$\rho h_k$ (with $h_k$
-the coarse mesh size) gives an approximate factorization of $K^{-1}$
-with sparse factors and an accuracy bound for $L^\infty$ coefficients.
-A relative energy-norm error of $\varepsilon$ may be guaranteed by taking
-$\rho \propto \ln(N/\varepsilon)$, the patch systems being solved to
-accuracy $\varepsilon$ as well; higher accuracy or a change of the
-operator requires a new factorization
-\cite[Thm.~16.36]{Owhadi_Scovel_2019}.
-% [VERIFY: the sizes reached by published OAW implementations, with
-% citations.]
+Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the aforementioned energy minimization recursively to construct a basis $\{\varphi_i\}_{i=1}^{N}$ inducing an orthogonal decomposition $\mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}\oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)}$, with the integers $k$ corresponding to coarse meshes with mesh widths $h_k$. In this basis, $K$ is block diagonal
+with one block per scale, and every block is well conditioned uniformly
+in~$N$, so applying $K^{-1}$ amounts to a change of basis and one well-conditioned solve per scale. Dense matrices can be avoided because the basis functions decay
+exponentially away from their
+nodes, so each is well approximated by a function supported on a patch,
+a neighborhood of radius $\rho h_k$.  This approximation yields an approximate
+factorization of $K^{-1}$ whose factors are sparse, with an accuracy
+bound that holds for $L^\infty$ coefficients: the energy-norm error of
+the resulting solution is at most $\varepsilon$ once
+$\rho \propto \ln(N/\varepsilon)$.
+Improving the solution accuracy or perturbing the operator $a$ thus requires recomputing the factorization.
 
-Owhadi~\cite{owhadi2017} notes that the hierarchy may serve as a
-preconditioner, but does not pursue this notion further.
+Owhadi~\cite{owhadi2017} notes that the factorization may serve instead
+as a preconditioner, though that work does not pursue the idea further.
+% [PLACEHOLDER: one sentence here on the memory of existing OAW
+% implementations, and the sizes they reach; the claim waits for a
+% measurement.]
 % BP: related work beyond the OAW line (robust multigrid and domain
 %     decomposition for heterogeneous coefficients; hierarchical
 %     factorizations) -- content TODO.
-
 We prove a bound on the condition number of the system preconditioned by
-an approximate OAW factorization as a function of the approximation
-parameters (Theorem~\ref{prop:precond_conditioning}).  Patch radii
-proportional to $\ln N$ suffice to bound the condition number
-independently of~$N$ (Corollary~\ref{cor:asymptotic}), though we also
-quantify the~$N$-dependence of the bound's degradation if this fails.
-We also quantify the degradation incurred by replacing the diagonal
-block solves in the preconditioner by block-Jacobi scaling
-(Corollary~\ref{cor:apply_factor}).  Because the factorization functions
-as a preconditioner rather than a direct inverse, a hierarchy built for
-one operator also accelerates inversion of a perturbed system
-(Subsection~\ref{sec:main_bounds}).  We give a memory-efficient
-construction of the factorization that takes advantage of fixed sparsity
-patterns and symmetries in the operator to avoid index storage and
-control memory growth in 3D problems with scalar and vector degrees of
-freedom (Subsection~\ref{sec:implementation}), and we measure it on
+the approximate factorization, as a function of the patch radii, the
+accuracy of the patch solves and the number of scales
+(Theorem~\ref{prop:precond_conditioning}).  Radii proportional to
+$\ln N$ bound the condition number independently of~$N$, and the same
+expression gives the growth of the bound when the radii are held fixed
+instead (Corollary~\ref{cor:asymptotic}).  We bound the further
+degradation incurred when the solve of a diagonal block is replaced by a
+single block-Jacobi scaling (Corollary~\ref{cor:apply_factor}).  Because
+the factorization serves as a preconditioner and not as a direct
+inverse, a factorization built for one operator also accelerates the
+solution of a perturbed system (Subsection~\ref{sec:main_bounds}).  We
+give a construction of the factorization that takes the sparsity pattern
+of every matrix it builds from the mesh and the radii, stores values
+without column indices, and solves one patch problem for each class of
+patch problems equivalent under the symmetries of the mesh and of the
+coefficient field; it covers scalar and vector-valued problems alike
+(Subsection~\ref{sec:implementation}).  We measure it on
 three-dimensional diffusion and linear elasticity problems on one GPU,
 against algebraic multigrid baselines (Section~\ref{sec:experiments}).
 
-The key technical observation underlying our estimates is that both the
-exact and approximate basis functions satisfy the same set of linear
-constraints on their associated mesh.  The perturbation relating the
-computed change of basis matrix to the exact one is therefore strictly
-block lower triangular, hence nilpotent, and the condition number is
-bounded by a product of factors that depend on the blockwise norms of
-the perturbation.
-
-The rest of the paper is structured as follows.
-Section~\ref{sec:background} reviews the definitions and properties of
-the OAW hierarchy.  Section~\ref{sec:results} states the conditioning
-bounds and the properties of the construction algorithm, and these are
-proved in Section~\ref{sec:preconditioner}.
-Section~\ref{sec:experiments} reports numerical experiments and
-Section~\ref{sec:conclusions} the limitations.  The appendices address
-some technical conditions that are necessary for the argument but
-inessential to understanding the contribution.
-
+Section~\ref{sec:background} reviews the OAW factorization and its
+localization.  Section~\ref{sec:results} states the conditioning bounds
+and the properties of the construction, and
+Section~\ref{sec:preconditioner} proves them.
+Section~\ref{sec:experiments} reports the numerical experiments and
+Section~\ref{sec:conclusions} the limitations.  The appendices collect
+the technical conditions the argument requires.
 \section{Background}
 \label{sec:background}
 % CLAIMS:
