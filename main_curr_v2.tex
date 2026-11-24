@@ -108,43 +108,77 @@ that give the optimal rate minimize the energy under interpolation
 constraints and are globally supported~\cite{brannick2019role}.
 Implementations therefore use heuristic coarse spaces, such as smoothed
 aggregation~\cite{saad2003iterative} or energy minimization under an
-imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}. Choosing these spaces often requires problem-specific parameters
-tuning, especially for for coefficients that vary over many
-length scales and orders of magnitude.
+imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}.  Choosing these
+spaces often requires problem-specific parameter tuning, the more so for
+coefficients that vary over many length scales and many orders of
+magnitude.
 
 The operator-adapted wavelet (OAW) factorization of Owhadi and
-Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the energy-minimizing
-principle to recursively obtain resulting basis makes the operator block diagonal
-with one uniformly well-conditioned block per coarse space. These basis
-functions decay exponentially in space, so approximating them by functions supported on patches of radius~$\rho h_k$ (with $h_k$ the coarse mesh size) gives an approximate factorization of
-$K^{-1}$ with sparse factors and an accuracy bound for $L^\infty$
-coefficients. A relative energy-norm error of $\varepsilon$ may be guaranteed by taking 
-$ \rho \propto\ln(N/\varepsilon)$, and a
-higher accuracy or a change of the operator requires a new factorization ~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.  
-% [VERIFY: the sizes reached by published OAW implementations, with
-% citations.]
+Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the
+energy-minimizing principle recursively.  It fixes, for each mesh scale
+$k = 1, \ldots, q$, a set of linear functionals of the solution, those of
+scale~$k$ lying in the span of those of scale $k+1$, and takes as basis
+functions of scale~$k$ the minimizers of the energy among the functions
+with prescribed values of those functionals.  Their spans form a nested
+sequence $\mathcal{V}^{(1)} \subset \cdots \subset \mathcal{V}^{(q)}$,
+one subspace per scale.  In the basis so obtained, $K$ is block diagonal
+with one block per scale, and every block is well conditioned uniformly
+in~$N$, so applying $K^{-1}$ amounts to a change of basis and one
+well-conditioned solve per scale.  The basis functions decay
+exponentially away from their
+nodes, so each is well approximated by a function supported on a patch,
+a neighbourhood of radius $\rho h_k$ about its node with $h_k$ the mesh
+width of scale~$k$.  The approximations give an approximate
+factorization of $K^{-1}$ whose factors are sparse, with an accuracy
+bound that holds for $L^\infty$ coefficients: the energy-norm error of
+the resulting solve is at most $\varepsilon$ once
+$\rho \propto \ln(N/\varepsilon)$ and the patch problems are themselves
+solved to accuracy~$\varepsilon$ \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+Used in this way, as a direct solver, the factorization is recomputed at
+a larger radius for a smaller~$\varepsilon$, and recomputed from the
+start when the operator changes.
 
-Owhadi~\cite{owhadi2017}notes that the hierarchy may serve as a
-preconditioner, but does not pursue this notion further.
+Owhadi~\cite{owhadi2017} notes that the factorization may serve instead
+as a preconditioner, and does not pursue the idea.  \c{S}\i{}k, Teixeira
+and Shanker~\cite{sik2025hfm} use the decomposition as a direct
+multiresolution solver, solving each scale's block system by GMRES with
+an ILU preconditioner built from a sparse approximation of that block,
+rather than preconditioning the original system.
+% [PLACEHOLDER: one sentence here on the memory of existing OAW
+% implementations, and the sizes they reach; the claim waits for a
+% measurement.]
 % BP: related work beyond the OAW line (robust multigrid and domain
 %     decomposition for heterogeneous coefficients; hierarchical
 %     factorizations) -- content TODO.
-We prove a bound on the condition number of the system preconditioned by an approximate OAW factorization as a function of the approximation parameters(Theorem~\ref{prop:precond_conditioning}). Patch radii
-proportional to $\ln N$ suffice to bound the condition number independently of~$N$
-(Corollary~\ref{cor:asymptotic}), though we also quantify the~$N$-dependence of the bound's degradation if this fails. We also quantify the degradation incurred by replacing the diagonal block solves in the preconditioner by block-Jacobi scaling
-(Corollary~\ref{cor:apply_factor}). Because the factorization functions as a preconditioner rather than a direct inverse, a hierarchy built for one operator also accelerates inversion of a perturbed system
-(Subsection~\ref{sec:main_bounds}). We give a memory-efficient construction of the factorization that takes advantage of fixed sparsity patterns and symmetries in the operator to avoid index storage and control memory growth in 3D problems with scalar and vector degrees of freedom.
-(Subsection~\ref{sec:implementation}), and we measure it on
+
+We prove a bound on the condition number of the system preconditioned by
+the approximate factorization, as a function of the patch radii, the
+accuracy of the patch solves and the number of scales
+(Theorem~\ref{prop:precond_conditioning}).  Radii proportional to
+$\ln N$ bound the condition number independently of~$N$, and the same
+expression gives the growth of the bound when the radii are held fixed
+instead (Corollary~\ref{cor:asymptotic}).  We bound the further
+degradation incurred when the solve of a diagonal block is replaced by a
+single block-Jacobi scaling (Corollary~\ref{cor:apply_factor}).  Because
+the factorization serves as a preconditioner and not as a direct
+inverse, a factorization built for one operator also accelerates the
+solution of a perturbed system (Subsection~\ref{sec:main_bounds}).  We
+give a construction of the factorization that takes the sparsity pattern
+of every matrix it builds from the mesh and the radii, stores values
+without column indices, and solves one patch problem for each class of
+patch problems equivalent under the symmetries of the mesh and of the
+coefficient field; it covers scalar and vector-valued problems alike
+(Subsection~\ref{sec:implementation}).  We measure it on
 three-dimensional diffusion and linear elasticity problems on one GPU,
 against algebraic multigrid baselines (Section~\ref{sec:experiments}).
 
-The key technical observation underlying our estimates is the observation that both the exact and approximate basis functions satisfy the same set of linear constraints on their associated mesh. The perturbation relating the computed change of basis matrix to the exact one is therefore strictly block lower triangular, hence nilpotent, and the condition number is bounded by a product of factors that depend on the blockwise norms of the perturbation.
-
-The rest of the paper is structured as follows. Section~\ref{sec:background} reviews the definitions and properties of the OAW
-hierarchy,. Section~\ref{sec:results} states the conditioning bounds and the properties of the construction algorithm, and these are proved in Section~\ref{sec:preconditioner}. We report numerical experiments in
-Section~\ref{sec:experiments}.
-Section~\ref{sec:conclusions} the limitations.  The appendices address
-some technical conditions that are necessary for the argument but inessential to understanding the contribution.
+Section~\ref{sec:background} reviews the OAW factorization and its
+localization.  Section~\ref{sec:results} states the conditioning bounds
+and the properties of the construction, and
+Section~\ref{sec:preconditioner} proves them.
+Section~\ref{sec:experiments} reports the numerical experiments and
+Section~\ref{sec:conclusions} the limitations.  The appendices collect
+the technical conditions the argument requires.
 \section{Background}
 \label{sec:background}
 % CLAIMS:
@@ -1115,7 +1149,16 @@ position by~\eqref{eq:slot_map}, $\mathrm{slot}(x,y) = (y_1 - l_1)\, b_2 +
 %    Lemma 16.30, valid for computed children, plus the patch-solve error.
 % 3. These give both bounds of Theorem 3.1 and its corollaries; the
 %    construction results follow from grid geometry.
-This section proves the results of Section~\ref{sec:results}.
+This section proves the results of Section~\ref{sec:results}.  The
+argument rests on a single property of the computed basis: every
+computed function satisfies the measurement constraints that define its
+exact counterpart, at any radii and for any patch solutions.
+Lemmas~\ref{lem:domination}--\ref{lem:nilpotent} draw from that property
+the domination of the exact blocks by the computed ones and the strict
+block lower triangularity of $F_\rho$, hence its nilpotency;
+Lemmas~\ref{lem:slot_error} and~\ref{lem:patch_error} bound the block
+norms $b_k$ through the aggregate error of each level and the patch
+tolerances.
 
 Throughout this section, $\varphi_i$ denotes a member of the
 multiresolution basis~\eqref{eq:combined_basis}, $\varphi_{\rho,i}$ its
