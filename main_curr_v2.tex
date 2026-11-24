@@ -1230,18 +1230,10 @@ of~\eqref{eq:R_structure} recursively from fine to coarse grids.
 Algorithm~\ref{alg:impl_apply} applies~\eqref{eq:preconditioner}.
 The recursion is that of Budninskiy et al.~\cite{budni2019}.
 
-What makes the construction affordable at the sizes of
-Section~\ref{sec:experiments} is that it never has to discover anything
-about the structure of what it builds.  The sparsity pattern of every
-matrix follows from the index sets and the radii, so the footprint is
-bounded before any entry is computed and its memory is allocated
-outright.  The position of a value within a row follows from the index
-labels, so the matrices are filled in parallel with no column indices
-stored and no search over the pattern.  And the patch problems inherit
-the symmetries of the mesh and of the coefficient, so the problems that
-must be solved are the orbits rather than the nodes.  The operation and
-storage counts follow from these three; Section~\ref{sec:experiments}
-reports measurements of one implementation.
+Their cost is determined by the sparsity of the matrices the build
+produces, by the labelling of the index sets, and by the equivalence of
+patch problems under the symmetries of the mesh and of the
+coefficient.  These are treated in that order.
 
 \begin{algorithm}[t]
 \caption{Build}
@@ -1299,8 +1291,8 @@ Row~$i$ of $R^{(k)}$ and the rows of $B^{(k+1)}_\rho$ with parent~$i$, as
 computed by Algorithm~\ref{alg:impl_build}, depend on $K$ only through
 its entries at the fine indices whose functionals are supported in the
 ball of radius $C_H\, \rho\, h_k + c_\star h_k$ about $x^{(k)}_i$,
-$C_H := (1+H)/(1-H)^2$.  All of this holds for every coefficient field,
-every choice of the patch solutions $Z^{(k)}$ and after thresholding.
+$C_H := (1+H)/(1-H)^2$.  The statements hold for every coefficient field, every choice of the
+patch solutions $Z^{(k)}$, and after thresholding.
 \end{proposition}
 
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:stencil_width}}]
@@ -1336,16 +1328,15 @@ $\lesssim \rho^d$ entries per row at every level, and the factors are
 stored and applied in sequence (a column of $\Phi_\rho$ at level~$k$ has
 $\simeq \rho^d H^{-d(q-k)}$ entries).
 
-This is what separates the construction from the same algebra performed
-with a general sparse matrix library.  A general sparse product cannot
-know its result's pattern in advance and must either determine it in a
-symbolic pass or bound it pessimistically, and at the coarse levels,
-where a row of $A^{(k)}$ carries $\lesssim \rho^d$ entries but the
-candidate columns are many times that, the bound is what exhausts the
-device.  Here the pattern is an input.
+A general sparse product cannot know the pattern of its result in
+advance; it either determines the pattern in a symbolic pass or bounds
+it.  At the coarse levels a row of $A^{(k)}$ carries $\lesssim \rho^d$
+entries while the candidate columns number many times that, so the
+bound is far from tight, and the bound is what has to be allocated.
+Here the pattern is given by the index sets and the radii.
 
-The second property is a condition on the labelling.  The format below
-asks that the neighbourhood
+The storage format of Remark~\ref{rem:realization} requires that the
+neighbourhood
 $N^{(k)}_r(i) := \{ j \in I^{(k)} : d^{(k)}(i,j) \leq r \}$, and the
 position of an index within it, be computable from the index labels
 with tables whose size is set by the initial mesh and not by~$N$.
@@ -1385,9 +1376,9 @@ coefficient is carried to a positive multiple of itself.  Then
 $v \mapsto v \circ T^{-1}$ is a bijection between the two constraint
 sets under which the energy is multiplied by that positive factor, so
 it carries the minimizer of the first problem to the minimizer of the
-second.  One minimization per orbit of nodes suffices, and the factor
-drops out, because multiplying an energy by a positive constant does
-not move where it is minimized.
+second.  A positive multiple of the energy has the same minimizer, so the factor
+does not enter, and one minimization determines the basis functions of
+the whole orbit.
 \[
   \begin{array}{ccc}
     \mathcal{A}^{(k)}_i & \xrightarrow{\;v \,\mapsto\, v \circ T^{-1}\;}
@@ -1407,13 +1398,11 @@ the translations and the rotations and reflections about a node ---
 together with the positive scalings of the coefficient.  Between
 consecutive levels the corresponding map is the dilation by the
 refinement ratio, under which the energy and the measurement
-normalization each acquire a power of the scale; that the local problems
-of two consecutive levels then differ by a positive factor is a
-property of the discretization, assumed where it is used and checkable
-for a given one.
+normalization each acquire a power of the scale.  That the local
+problems of two consecutive levels then differ by a positive factor is
+an assumption on the discretization, used where stated.
 
-In coordinates these maps become permutations of the index sets, and it
-is in that form that the construction uses them.  Write
+In coordinates these maps are permutations of the index sets.  Write
 $I^{(k)}_\chi := \{1, \ldots, d_k\}$ for the detail index set of
 level~$k$, which indexes the rows of $D^{(k)}$.  An \emph{admissible
 transformation} is a family of bijections
@@ -1481,8 +1470,8 @@ $(P_{k+1}x)^\top A^{(k+1)}_\rho (P_{k+1}x) = x^\top A^{(k+1)}_\rho x$ for
 every such~$x$, so the two problems have the same objective and
 $P_{k+1}$ carries the minimizer at~$i$ to the minimizer at~$i'$.
 For~(ii), multiplying a quadratic form by $c > 0$ multiplies its value at
-every point of the feasible set by~$c$, which leaves the minimizer over
-that set where it was.
+every point of the feasible set by~$c$, leaving the minimizer
+unchanged.
 \end{proof}
 
 Call $i, i' \in I^{(k)}$ equivalent when some admissible transformation
@@ -1502,8 +1491,7 @@ a hypothesis on the discretization rather than a consequence of the
 construction.  It holds at the finest pair, where the local operator is
 the element array scaled by a power of the mesh width, and for a
 coefficient constant on the patch it is a self-similarity property of
-the coarsened operators, which a given discretization either has or
-does not.
+the coarsened operators.
 When the mesh is obtained via uniform refinement of a (not necessarily
 structured) initial mesh, the admissible transformations are the
 symmetries of the initial mesh together with the translations inside one
@@ -1511,13 +1499,14 @@ element.
 
 By Proposition~\ref{prop:stencil_width} the data of a level-$k$ patch
 problem depends on $K$ only through its entries in a ball about
-$x^{(k)}_i$, so the orbits are read off the coefficient field before any
+$x^{(k)}_i$, so the orbits are determined by the coefficient field before any
 patch problem is solved.  For a coefficient of period~$P$, an integer
 multiple of~$h_k$,
 the interior indices of level~$k$ fall into at most $(P/h_k)^d$ orbits
 under translations, and the indices whose patches meet $\partial\Omega$
-add $\lesssim \rho\, n_k^{(d-1)/d}$ further orbits; for a coefficient
-without such structure every orbit is a single index.
+add $\lesssim \rho\, n_k^{(d-1)/d}$ further orbits.  Without such
+structure the construction has no bound on the orbit count below $n_k$,
+and the number of problems solved approaches the number of indices.
 
 The level-$k$ patch systems are principal submatrices of
 $B^{(k+1)}_\rho$, so by Corollary~\ref{thm:localized_block_conditioning}
@@ -1578,7 +1567,6 @@ Remark~\ref{rem:realization} realizes: values only, in the order the
 labelling fixes, with no column indices, and one stored row per orbit.
 At the finest level the stencil of $K$ has width $\lesssim 1$ and a patch
 iteration costs $\lesssim r_{q-1}^d$ rather than $r_{q-1}^{2d}$.
-Section~\ref{sec:experiments} measures the constants.
 
 \begin{remark}[Realization]\label{rem:realization}
 Proposition~\ref{prop:stencil_width} permits the matrices of
