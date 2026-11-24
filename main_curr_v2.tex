@@ -132,33 +132,41 @@ as a preconditioner, though that work does not pursue the idea further.
 %     decomposition for heterogeneous coefficients; hierarchical
 %     factorizations) -- content TODO.
 We prove a bound on the condition number of the system preconditioned by
-the approximate factorization, as a function of the patch radii, the
-accuracy of the patch solves and the number of scales
-(Theorem~\ref{prop:precond_conditioning}).  Radii proportional to
-$\ln N$ bound the condition number independently of~$N$, and the same
-expression gives the growth of the bound when the radii are held fixed
-instead (Corollary~\ref{cor:asymptotic}).  We bound the further
-degradation incurred when the solve of a diagonal block is replaced by a
-single block-Jacobi scaling (Corollary~\ref{cor:apply_factor}).  Because
-the factorization serves as a preconditioner and not as a direct
-inverse, a factorization built for one operator also accelerates the
-solution of a perturbed system (Subsection~\ref{sec:main_bounds}).  We
-give a construction of the factorization that takes the sparsity pattern
-of every matrix it builds from the mesh and the radii, stores values
-without column indices, and solves one patch problem for each class of
-patch problems equivalent under the symmetries of the mesh and of the
-coefficient field; it covers scalar and vector-valued problems alike
-(Subsection~\ref{sec:implementation}).  We measure it on
+an approximate OAW factorization as a function of the approximation
+parameters (Theorem~\ref{prop:precond_conditioning}).  Patch radii
+proportional to $\ln N$ suffice to bound the condition number
+independently of~$N$ (Corollary~\ref{cor:asymptotic}), though we also
+quantify the~$N$-dependence of the bound's degradation if this fails.
+We also quantify the degradation incurred by replacing the diagonal
+block solves in the preconditioner by block-Jacobi scaling
+(Corollary~\ref{cor:apply_factor}).  Because the factorization functions
+as a preconditioner rather than a direct inverse, a hierarchy built for
+one operator also accelerates inversion of a perturbed system
+(Subsection~\ref{sec:main_bounds}).  We give a memory-efficient
+construction of the factorization that takes advantage of fixed sparsity
+patterns and symmetries in the operator to avoid index storage and
+control memory growth in 3D problems with scalar and vector degrees of
+freedom (Subsection~\ref{sec:implementation}), and we measure it on
 three-dimensional diffusion and linear elasticity problems on one GPU,
 against algebraic multigrid baselines (Section~\ref{sec:experiments}).
 
+The key technical observation underlying our estimates is that both the
+exact and approximate basis functions satisfy the same set of linear
+constraints on their associated mesh.  The perturbation relating the
+computed change of basis matrix to the exact one is therefore strictly
+block lower triangular, hence nilpotent, and the condition number is
+bounded by a product of factors that depend on the blockwise norms of
+the perturbation.
+
+The rest of the paper is structured as follows.
 Section~\ref{sec:background} reviews the OAW factorization and its
 localization.  Section~\ref{sec:results} states the conditioning bounds
 and the properties of the construction, and
 Section~\ref{sec:preconditioner} proves them.
 Section~\ref{sec:experiments} reports the numerical experiments and
-Section~\ref{sec:conclusions} the limitations.  The appendices collect
-the technical conditions the argument requires.
+Section~\ref{sec:conclusions} the limitations.  The appendices address
+some technical conditions that are necessary for the argument but
+inessential to understanding the contribution.
 \section{Background}
 \label{sec:background}
 % CLAIMS:
