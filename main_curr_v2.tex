@@ -90,7 +90,7 @@ where $\mathcal V \subseteq H^s(\Omega)$ is a Sobolev space on a bounded
 Lipschitz domain $\Omega \subset \mathbb{R}^d$, $a$ is a bounded,
 symmetric, coercive and local bilinear form with $L^\infty$
 coefficients, and the boundary conditions are incorporated in
-$\mathcal V$ and~$f$.  Diffusion and linear elasticity are examples.  A
+$\mathcal V$ and~$f$. Physical examples of this type include diffusion-reaction and linear elasticity problems.  A
 conforming finite-element discretization on a trial space
 $\mathcal V^{(q)} \subset \mathcal V$ of dimension~$N$ yields a symmetric
 positive definite (SPD) linear system
@@ -98,59 +98,39 @@ positive definite (SPD) linear system
   Ku = g .
 \end{equation}
 
-Large systems of this kind are solved by the preconditioned conjugate
-gradient method (CG).  On a quasi-uniform mesh $\kappa(K)$ grows as
-$N^{2/d}$ with a prefactor that depends on the coefficient
-contrast~\cite{ErnGuermond2004}.  Multigrid preconditioners achieve
-near-linear cost when the coarse spaces are chosen optimally, but
-computing those coarse spaces is itself superlinear: the basis functions
-that give the optimal rate minimize the energy under interpolation
-constraints and are globally supported~\cite{brannick2019role}.
-Implementations therefore use heuristic coarse spaces, such as smoothed
+Large systems of this kind are typically solved by the preconditioned conjugate
+gradient method (CG).  On a quasi-uniform mesh the condition number $\kappa(K)$ grows as
+$N^{2/d}$~\cite{ErnGuermond2004}, making preconditioners essential for convergence at scale.  Multigrid preconditioners achieve
+near-linear cost with an optimal choice of coarse spaces, but
+computing those coarse spaces is itself often superlinear, since the required restriction and prolongation matrices are in general dense ~\cite{brannick2019role}.
+Practical implementations therefore use heuristic coarse spaces, such as smoothed
 aggregation~\cite{saad2003iterative} or energy minimization under an
 imposed sparsity pattern~\cite{Wan1998EnergyMinimizing}.  Choosing these
-spaces often requires problem-specific parameter tuning, the more so for
-coefficients that vary over many length scales and many orders of
+spaces often requires problem-specific parameter tuning, particularly for
+coefficients that vary over many length scales and orders of
 magnitude.
 
 The operator-adapted wavelet (OAW) factorization of Owhadi and
-Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the
-energy-minimizing principle recursively.  It fixes, for each mesh scale
-$k = 1, \ldots, q$, a set of linear functionals of the solution, those of
-scale~$k$ lying in the span of those of scale $k+1$, and takes as basis
-functions of scale~$k$ the minimizers of the energy among the functions
-with prescribed values of those functionals.  Their spans form a nested
-sequence $\mathcal{V}^{(1)} \subset \cdots \subset \mathcal{V}^{(q)}$,
-one subspace per scale.  In the basis so obtained, $K$ is block diagonal
+Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the aforementioned energy minimization recursively to construct a basis $\{\varphi_i\}_{i=1}^{N}$ inducing an orthogonal decomposition $\mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}\oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)}$, with the integers $k$ corresponding to coarse meshes with mesh widths $h_k$. In this basis, $K$ is block diagonal
 with one block per scale, and every block is well conditioned uniformly
-in~$N$, so applying $K^{-1}$ amounts to a change of basis and one
-well-conditioned solve per scale.  The basis functions decay
+in~$N$, so applying $K^{-1}$ amounts to a change of basis and one well-conditioned solve per scale. Dense matrices can be avoided because the basis functions decay
 exponentially away from their
 nodes, so each is well approximated by a function supported on a patch,
-a neighbourhood of radius $\rho h_k$ about its node with $h_k$ the mesh
-width of scale~$k$.  The approximations give an approximate
+a neighborhood of radius $\rho h_k$.  This approximation yields an approximate
 factorization of $K^{-1}$ whose factors are sparse, with an accuracy
 bound that holds for $L^\infty$ coefficients: the energy-norm error of
-the resulting solve is at most $\varepsilon$ once
-$\rho \propto \ln(N/\varepsilon)$ and the patch problems are themselves
-solved to accuracy~$\varepsilon$ \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
-Used in this way, as a direct solver, the factorization is recomputed at
-a larger radius for a smaller~$\varepsilon$, and recomputed from the
-start when the operator changes.
+the resulting solution is at most $\varepsilon$ once
+$\rho \propto \ln(N/\varepsilon)$.
+Improving the solution accuracy or perturbing the operator $a$ thus requires recomputing the factorization.
 
 Owhadi~\cite{owhadi2017} notes that the factorization may serve instead
-as a preconditioner, and does not pursue the idea.  \c{S}\i{}k, Teixeira
-and Shanker~\cite{sik2025hfm} use the decomposition as a direct
-multiresolution solver, solving each scale's block system by GMRES with
-an ILU preconditioner built from a sparse approximation of that block,
-rather than preconditioning the original system.
+as a preconditioner, though that work does not pursue the idea further.
 % [PLACEHOLDER: one sentence here on the memory of existing OAW
 % implementations, and the sizes they reach; the claim waits for a
 % measurement.]
 % BP: related work beyond the OAW line (robust multigrid and domain
 %     decomposition for heterogeneous coefficients; hierarchical
 %     factorizations) -- content TODO.
-
 We prove a bound on the condition number of the system preconditioned by
 the approximate factorization, as a function of the patch radii, the
 accuracy of the patch solves and the number of scales
