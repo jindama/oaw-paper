@@ -363,7 +363,8 @@ The approximate detail functions are
 below hold under the conditions of~\cite{Owhadi_Scovel_2019} restated in
 Appendix~\ref{app:stability}.
 
-Cellularity makes the feasible set of~\eqref{eq:recursive_patch} easy to
+Cellularity~\eqref{eq:cellularity} makes the feasible set
+of~\eqref{eq:recursive_patch} easy to
 parametrize. Let $C^{(k)\dagger}$ be a right inverse of $C^{(k)}$ whose row~$i$ is
 supported in the indices of parent~$i$.  Row~$i$ of $C^{(k)\dagger}$
 satisfies the constraint $C^{(k)} x = e_i$, the rows of $D^{(k)}$ are a
@@ -436,7 +437,8 @@ the approximation to \eqref{eq:exact_inverse_formula} of
 \cite{budni2019,HauckPeterseim2021}.  Used directly,
 \eqref{eq:preconditioner} attains relative energy-norm error
 $\varepsilon$ provided $\rho_k \simeq \ell(\ln N + \ln(1/\varepsilon))$
-and the patch systems are also solved to accuracy $\varepsilon$. \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+and the patch systems are also solved to accuracy
+$\varepsilon$~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.
 \begin{figure}[t]
 \centering
 % [TODO: figure to be redesigned; placeholder keeps the reference live.]
@@ -920,7 +922,12 @@ maps,
   D^{(k)} P_{k+1} = Q_k\, D^{(k)},
   \qquad 1 \leq k < q ,
 \end{equation}
-that is,
+and which carries patches to patches,
+\begin{equation}\label{eq:patch_equivariance}
+  g_{k+1}\bigl(\mathcal{P}^{(k)}_i\bigr) = \mathcal{P}^{(k)}_{g_k(i)},
+  \qquad i \in I^{(k)}, \quad 1 \leq k < q .
+\end{equation}
+The conditions~\eqref{eq:admissible} say that both squares
 \[
   \begin{array}{ccc}
     \mathbb{R}^{I^{(k+1)}} & \xrightarrow{\;C^{(k)}\;} & \mathbb{R}^{I^{(k)}} \\
@@ -938,12 +945,8 @@ that is,
       \mathbb{R}^{I^{(k)}_\chi}
   \end{array}
 \]
-and which carries patches to patches,
-\begin{equation}\label{eq:patch_equivariance}
-  g_{k+1}\bigl(\mathcal{P}^{(k)}_i\bigr) = \mathcal{P}^{(k)}_{g_k(i)},
-  \qquad i \in I^{(k)}, \quad 1 \leq k < q .
-\end{equation}
-Admissible transformations compose and invert, so they form a group.
+commute for $1 \leq k < q$.  Admissible transformations compose and
+invert, so they form a group.
 
 \begin{proposition}[Transport of patch solutions]\label{prop:orbit_transport}
 Let $1 \leq k < q$ and $i \in I^{(k)}$.
@@ -1210,9 +1213,6 @@ $\hat{w}_k$ gives
   = \sum_k \hat{w}_k^\top G_\rho\, \hat{w}_k
   = \sum_k \|(I + F_\rho)\, \hat{w}_k\|_{\mathcal{B}}^2 .
 \end{equation}
-The singular values $\sigma_\pm$ and the block norms $b_k$
-of~\eqref{eq:b_k_def} are those of Subsection~\ref{sec:main_bounds}.
-
 \paragraph{Structure.}
 By~\eqref{eq:measurement_matching}, for all radii and every $Z^{(k)}$,
 \begin{equation}\label{eq:own_level_data}
