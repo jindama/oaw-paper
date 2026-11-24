@@ -775,7 +775,7 @@ $\simeq \rho^d H^{-d(q-k)}$ unknowns.
 %    index sets, the radii and H (Proposition); the factors are stored,
 %    not the change of basis.
 % 3. A row depends on the operator in a ball, and equal data give equal
-%    rows (Lemma); one representative per class.
+%    rows (Lemma); one representative per orbit.
 % 4. Patch solves by CG to the build tolerance; the detail policy; the
 %    cost as a sum over levels (Proposition).
 % 5. One remark on the realization: stencil storage with presence bits,
@@ -798,7 +798,7 @@ Set $A^{(q)} := K$.\\[2pt]
 \begin{enumerate}
   \item[1.] $B^{(k+1)}_\rho \gets D^{(k)} A^{(k+1)} D^{(k)\top}$
     (its nodal diagonal blocks only, under the block-Jacobi policy).
-  \item[2.] \textbf{for} each $i$, one per class:
+  \item[2.] \textbf{for} each $i$, one per orbit:
     $[B^{(k+1)}_\rho]_{\mathcal{P}^{(k)}_i}\, z_i =
      -[D^{(k)} A^{(k+1)} C^{(k)\dagger\top} e_i]_{\mathcal{P}^{(k)}_i}$
     by CG to $\tau_{\mathrm{build}}$.
@@ -862,19 +862,138 @@ The sparsity patterns of all matrices in Algorithm~\ref{alg:impl_build}
 are therefore fixed by the index sets, the radii and~$H$, with
 $\lesssim \rho^d$ entries per row at every level, and the factors are
 stored and applied in sequence (a column of $\Phi_\rho$ at level~$k$ has
-$\simeq \rho^d H^{-d(q-k)}$ entries).  Two patch problems with the same
-data have the same solution: if the entries of $K$ in the balls of two
-level-$k$ indices agree under a translation of the grid that carries one
-patch onto the other, the two rows of $R^{(k)}$ agree entry by entry, as
-computed, since CG from a zero initial guess is deterministic and the
-threshold is applied entrywise.  Such rows form classes identified from
-the coefficient before any patch problem is solved, and
-Algorithm~\ref{alg:impl_build} solves one patch problem per class.  For
-a coefficient of period~$P$, an integer multiple of~$h_k$, the interior
-indices of level~$k$ fall into at most $(P/h_k)^d$ classes, and the
-indices whose balls meet $\partial\Omega$ add
-$\lesssim \rho\, n_k^{(d-1)/d}$ further classes; for a coefficient
-without such structure every class is a singleton.
+$\simeq \rho^d H^{-d(q-k)}$ entries).
+
+\subsubsection{Symmetry and orbits}
+\label{sec:symmetry}
+The patch problem~\eqref{eq:recursive_patch} of a level-$k$ index~$i$ is
+determined by three pieces of data: the index set
+$\mathcal{P}^{(k)}_i$ that carries its unknowns, the right-hand side
+$e_i$ of the constraint $C^{(k)} x = e_i$, and the local operator, the
+block of the Gram matrix $A^{(k+1)}_\rho$ on that index set,
+\begin{equation}\label{eq:patch_data}
+  \mathcal{D}^{(k)}_i \;:=\;
+  \Bigl(\, \mathcal{P}^{(k)}_i, \;\; e_i, \;\;
+    \bigl[A^{(k+1)}_\rho\bigr]_{\mathcal{P}^{(k)}_i \times \mathcal{P}^{(k)}_i}
+  \,\Bigr) ,
+\end{equation}
+its solution being the row $R^{(k)}_{i,\cdot}$.
+
+Write $I^{(k)}_\chi := \{1, \ldots, d_k\}$ for the detail index set of
+level~$k$, which indexes the rows of $D^{(k)}$.  An \emph{admissible
+transformation} is a family of bijections
+$g_k \colon I^{(k)} \to I^{(k)}$, $1 \leq k \leq q$, and
+$\gamma_k \colon I^{(k)}_\chi \to I^{(k)}_\chi$, $1 \leq k < q$, whose
+permutation matrices $P_k$ and $Q_k$ commute with the nesting and detail
+maps,
+\begin{equation}\label{eq:admissible}
+  C^{(k)} P_{k+1} = P_k\, C^{(k)},
+  \qquad
+  D^{(k)} P_{k+1} = Q_k\, D^{(k)},
+  \qquad 1 \leq k < q ,
+\end{equation}
+that is,
+\[
+  \begin{array}{ccc}
+    \mathbb{R}^{I^{(k+1)}} & \xrightarrow{\;C^{(k)}\;} & \mathbb{R}^{I^{(k)}} \\
+    \big\downarrow\,{\scriptstyle P_{k+1}} & &
+      \big\downarrow\,{\scriptstyle P_{k}} \\
+    \mathbb{R}^{I^{(k+1)}} & \xrightarrow{\;C^{(k)}\;} & \mathbb{R}^{I^{(k)}}
+  \end{array}
+  \qquad\qquad
+  \begin{array}{ccc}
+    \mathbb{R}^{I^{(k+1)}} & \xrightarrow{\;D^{(k)}\;} &
+      \mathbb{R}^{I^{(k)}_\chi} \\
+    \big\downarrow\,{\scriptstyle P_{k+1}} & &
+      \big\downarrow\,{\scriptstyle Q_{k}} \\
+    \mathbb{R}^{I^{(k+1)}} & \xrightarrow{\;D^{(k)}\;} &
+      \mathbb{R}^{I^{(k)}_\chi}
+  \end{array}
+\]
+and which carries patches to patches,
+\begin{equation}\label{eq:patch_equivariance}
+  g_{k+1}\bigl(\mathcal{P}^{(k)}_i\bigr) = \mathcal{P}^{(k)}_{g_k(i)},
+  \qquad i \in I^{(k)}, \quad 1 \leq k < q .
+\end{equation}
+Admissible transformations compose and invert, so they form a group.
+
+\begin{proposition}[Transport of patch solutions]\label{prop:orbit_transport}
+Let $1 \leq k < q$ and $i \in I^{(k)}$.
+\begin{enumerate}
+  \item[(i)] Let $g$ be an admissible transformation, $i' := g_k(i)$, and
+    let $g$ carry the local operator of $\mathcal{D}^{(k)}_i$ to that of
+    $\mathcal{D}^{(k)}_{i'}$, that is
+    $\bigl[A^{(k+1)}_\rho\bigr]_{g_{k+1}(a),\, g_{k+1}(b)}
+     = \bigl[A^{(k+1)}_\rho\bigr]_{a,b}$ for all
+    $a, b \in \mathcal{P}^{(k)}_i$.  Then
+    $R^{(k)}_{i',\, g_{k+1}(j)} = R^{(k)}_{i,\, j}$ for every
+    $j \in \mathcal{P}^{(k)}_i$.
+  \item[(ii)] Replacing the local operator of $\mathcal{D}^{(k)}_i$ by a
+    positive multiple of itself leaves $R^{(k)}_{i,\cdot}$ unchanged.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+For~(i), the map $x \mapsto P_{k+1} x$ is a bijection from the feasible
+set of~\eqref{eq:recursive_patch} at $i$ onto the feasible set at $i'$:
+it carries vectors supported in $\mathcal{P}^{(k)}_i$ to vectors
+supported in $\mathcal{P}^{(k)}_{i'}$
+by~\eqref{eq:patch_equivariance}, and
+$C^{(k)} P_{k+1} x = P_k C^{(k)} x = P_k e_i = e_{i'}$
+by~\eqref{eq:admissible}.  The hypothesis on the local operator gives
+$(P_{k+1}x)^\top A^{(k+1)}_\rho (P_{k+1}x) = x^\top A^{(k+1)}_\rho x$ for
+every such~$x$, so the two problems have the same objective and
+$P_{k+1}$ carries the minimizer at~$i$ to the minimizer at~$i'$.
+For~(ii), multiplying a quadratic form by $c > 0$ multiplies its value at
+every point of the feasible set by~$c$, which leaves the minimizer over
+that set where it was.
+\end{proof}
+
+Call $i, i' \in I^{(k)}$ equivalent when some admissible transformation
+carries $\mathcal{D}^{(k)}_i$ to a positive multiple
+of~$\mathcal{D}^{(k)}_{i'}$.  The relation is an equivalence and its
+classes are the orbits of the group of admissible transformations on
+$I^{(k)}$.  By Proposition~\ref{prop:orbit_transport} the indices of one
+orbit share a single solution, read at the permuted positions, so
+Algorithm~\ref{alg:impl_build} solves one patch problem per orbit and
+pushes its row forward to the other members; the patch-solve work and the
+stored rows of $R^{(k)}$ then scale in the number of orbits rather than
+in~$n_k$.  The rows agree entry by entry as computed, not only in exact
+arithmetic, because CG from a zero initial guess performs the same
+arithmetic on permuted data and the threshold is applied entrywise.
+
+On the uniform grid the admissible transformations are generated by the
+lattice translations and by the $2^d d!$ rotations and reflections of the
+cube about a node, $48$ of them for $d = 3$.  They act on the entries of
+a row by a signed permutation --- a permutation for a scalar problem, and
+one composed with a sign change of the $p$ components at each node for a
+vector-valued one --- so pushing a stored row forward introduces no
+rounding.  Alongside them acts the scale map, which identifies the
+level-$k$ patch problem of an index with the level-$(k{+}1)$ problem at
+the corresponding position of the refined grid; the two problems have the
+same patch and the same constraint, and where the coefficient is constant
+on the patch their local operators are positive multiples of one another,
+so Proposition~\ref{prop:orbit_transport}(ii) makes the identification
+exact.
+% [VERIFY: that a coefficient constant on the patch makes the local
+% operators of two consecutive levels proportional.  It holds at k = q-1,
+% where the local operator is the element stiffness array scaled by
+% h_q^{d-2}; for k < q-1 it is a self-similarity statement about the
+% coarsened stencils R^(k) A^(k+1) R^(k)T that the paper does not prove.]
+On a general initial mesh refined uniformly the admissible
+transformations are the symmetries of the initial mesh together with the
+translations inside one element.  The implementation uses the
+translations alone.
+
+By Proposition~\ref{prop:stencil_width} the data of a level-$k$ patch
+problem depends on $K$ only through its entries in a ball about
+$x^{(k)}_i$, so the orbits are read off the coefficient field before any
+patch problem is solved.  For a coefficient of period~$P$, an integer
+multiple of~$h_k$,
+the interior indices of level~$k$ fall into at most $(P/h_k)^d$ orbits
+under translations, and the indices whose patches meet $\partial\Omega$
+add $\lesssim \rho\, n_k^{(d-1)/d}$ further orbits; for a coefficient
+without such structure every orbit is a single index.
 
 The level-$k$ patch systems are principal submatrices of
 $B^{(k+1)}_\rho$, so by Corollary~\ref{thm:localized_block_conditioning}
@@ -924,7 +1043,7 @@ thresholding, and no column indices.%
 % factors; for A^(k) and B^(k)_rho once the bit-mask storage is merged
 % (dev/TICKET_masked_apply.md).]
 \ The value tables hold one row per
-class, as constant- and periodic-coefficient stencils do for
+orbit, as constant- and periodic-coefficient stencils do for
 translation-invariant operators.  By the width
 bound~\eqref{eq:width_recursion}, the computation of
 $B^{(k)}_\rho$ and of the level-$(k{-}1)$ patch problems from a band of
@@ -951,7 +1070,7 @@ point-value measurements, and the max-norm box of radius $\rho_k h_k$ about
 $x^{(k)}_i$ as the patch, which contains the ball of radius $\rho_k$ and is
 contained in the ball of radius $\sqrt{d}\, \rho_k$.  Labels are grid
 coordinates, $C^{(k)}$ selects the level-$(k{+}1)$ nodes at coarse
-positions and $D^{(k)}$ the remaining ones, and the classes are lattice
+positions and $D^{(k)}$ the remaining ones, and the orbits are lattice
 translations.  The column of a value follows from its position in the
 row's box by a mixed-radix index,
 \begin{equation}\label{eq:slot_map}
