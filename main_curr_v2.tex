@@ -419,10 +419,7 @@ index~$i$.
 % B is SPD (A SPD, D full row rank), hence so is any principal
 % submatrix, so the stationary point exists, is unique, and minimizes.
 Replacing $z_{J^{(k)}_i}$ by any other vector with the same support
-perturbs the energy but leaves \eqref{eq:measurement_matching} intact.
-
-
-In this basis the stiffness matrix is not exactly block diagonal, but the diagonal
+perturbs the energy but leaves \eqref{eq:measurement_matching} intact. In this basis the stiffness matrix is not exactly block diagonal, but the diagonal
 blocks $B^{(k)}_{\rho,ij} = a(\varphi_{\rho,n_{k-1}+j}, \varphi_{\rho,n_{k-1}+i})$
 give the \emph{localized approximate inverse}
 \begin{equation}\label{eq:preconditioner}
@@ -1418,16 +1415,9 @@ Call $i, i' \in I^{(k)}$ equivalent when some admissible transformation
 carries $\mathcal{D}^{(k)}_i$ to a positive multiple
 of~$\mathcal{D}^{(k)}_{i'}$.  The relation is an equivalence and its
 classes are the orbits of the group of admissible transformations on
-$I^{(k)}$.  By Proposition~\ref{prop:orbit_transport} the indices of one
-orbit share a single solution, read at the permuted positions, so
-Algorithm~\ref{alg:impl_build} solves one patch problem per orbit and
-pushes its row forward to the other members; the patch-solve work and the
-stored rows of $R^{(k)}$ then scale in the number of orbits rather than
-in~$n_k$.  The rows agree entry by entry as computed, not only in exact
-arithmetic, because CG from a zero initial guess performs the same
-arithmetic on permuted data and the threshold is applied entrywise.
+$I^{(k)}$. By Proposition~\ref{prop:orbit_transport} the row at one index of an orbit is the row at another with its columns relabelled by the transformation between them, so the patch-solve work and the stored rows of $R^{(k)}$ are proportional to the number of orbits rather than to~$n_k$. .
 
-A scale map acts alongside the admissible transformations, identifying
+A scaling map acts alongside the admissible transformations, identifying
 the level-$k$ patch problem of an index with the level-$(k{+}1)$ problem at
 the corresponding position of the refined grid; the two problems have the
 same patch and the same constraint, and where the coefficient is constant
