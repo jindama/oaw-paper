@@ -334,7 +334,7 @@ Collecting these rows into $Z^{(k)}$,
   R^{(k)} = C^{(k)\dagger} + Z^{(k)} D^{(k)} .
 \end{equation}
 
-Since $C^{(k)} D^{(k)\top} = 0$, \eqref{eq:R_structure} gives
+\eqref{eq:R_structure} implies
 $R^{(k)} C^{(k)\top} = I$ for every $Z^{(k)}$, and induction from the
 finest level gives
 \begin{equation}\label{eq:measurement_matching}
@@ -384,8 +384,7 @@ the approximation to \eqref{eq:exact_inverse_formula} of
 \cite{budni2019,HauckPeterseim2021}.  Used directly,
 \eqref{eq:preconditioner} attains relative energy-norm error
 $\varepsilon$ provided $\rho_k \simeq \ell(\ln N + \ln(1/\varepsilon))$
-and the patch systems are solved to an accuracy that decreases
-exponentially in $\rho_k$ \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
+and the patch systems are also solved to accuracy $\varepsilon$. \cite[Thm.~16.36]{Owhadi_Scovel_2019}.
 \begin{figure}[t]
 \centering
 % [TODO: figure to be redesigned; placeholder keeps the reference live.]
