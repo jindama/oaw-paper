@@ -1281,6 +1281,10 @@ tolerance $\tau_{\mathrm{apply}}$.
 \textbf{Output:} $\hat{u}_\rho = t^{(q)}$.
 \end{algorithm}
 
+The computed factors $R^{(k)}$ of~\eqref{eq:recursive_patch} stand in
+for the dense exact nesting matrices $R^{(k)}_{\mathrm{ex}}$
+of~\eqref{eq:nesting_R}, each row supported in its patch.
+
 \begin{proposition}[Sparsity and locality]\label{prop:stencil_width}
 Let $1 \leq k < q$.  Row~$i$ of $R^{(k)}$ is supported in
 $\mathcal{P}^{(k)}_i$; row~$i$ of $A^{(k)}$ is supported within distance
