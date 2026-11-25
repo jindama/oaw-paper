@@ -1735,8 +1735,14 @@ iterations against~$N$ for both problems; mean inner iterations per
 level.
 \begin{figure}[tbp]
 \centering
-\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
-\caption{Outer PCG iterations against $N$ at fixed radii and patch tolerance, for diffusion and linear elasticity.}
+\includegraphics[width=0.49\textwidth]{figures/s6_iterations_diffusion.pdf}\hfill
+\includegraphics[width=0.49\textwidth]{figures/s6_iterations_elasticity.pdf}
+\caption{Outer PCG iterations against the number of unknowns, with CG
+block solves, for diffusion (left) and linear elasticity (right).
+Diffusion: checkerboard and two-species coefficients, with radii
+$3,2,\dots,2$, uniform radius~$3$, and radii growing with the number of
+levels up to~$4$.  Elasticity: the three-layer sandwich with radii
+$3,2,\dots,2$.}
 \label{fig:exp_scaling}
 \end{figure}
 
@@ -1755,8 +1761,12 @@ and apply time and stored and peak memory against~$N$ at fixed radii, and
 against the radius at fixed~$N$.
 \begin{figure}[tbp]
 \centering
-\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
-\caption{Build time, apply time, stored memory and peak memory against $N$ at fixed radii.}
+\includegraphics[width=0.9\textwidth]{figures/s6_resources_diffusion.pdf}\\[4pt]
+\includegraphics[width=0.9\textwidth]{figures/s6_resources_elasticity.pdf}
+\caption{Build time, time per application, stored hierarchy and peak
+memory against the number of unknowns, for the configurations of
+Figure~\ref{fig:exp_scaling}: diffusion (top) and linear elasticity
+(bottom), on one A100 GPU with 80\,GB.}
 \label{fig:exp_cost_N}
 \end{figure}
 
