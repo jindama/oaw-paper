@@ -1854,6 +1854,19 @@ Figure~\ref{fig:exp_scaling_jacobi}: diffusion (top) and elasticity
 \label{fig:exp_cost_N_jacobi}
 \end{figure}
 
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\textwidth]{figures/s6_memory_for_iterations.pdf}
+\caption{Outer PCG iterations against the stored hierarchy for two radius
+schedules, radii $3,2,\dots,2$ and radii growing with the number of
+levels ($\min(r,4)$ for $r = q,\dots,2$ from the finest level), for
+diffusion with Jacobi on the detail blocks and the checkerboard
+coefficient (left) and with CG block solves and the two-species
+coefficient (right).  Each point is one run, labelled by~$N$; grey
+segments join the two schedules at equal~$N$.}
+\label{fig:exp_memory_iterations}
+\end{figure}
+
 \subsection{Robustness}
 \label{sec:exp:robustness}
 Claim: the iteration count is insensitive to the coefficient contrast
