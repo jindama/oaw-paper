@@ -1793,6 +1793,18 @@ with the stored hierarchy split into factors and blocks.
 \label{fig:exp_memory}
 \end{figure}
 
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\textwidth]{figures/s6_typed_storage_bars.pdf}
+\caption{Stored hierarchy and peak memory with the equivalence-class
+storage of Section~\ref{sec:symmetry} off and on, with (block-)Jacobi on
+the detail blocks: diffusion with the checkerboard coefficient at
+$N = 2{,}146{,}689$ (left) and elasticity with the sandwich coefficient
+at $N = 2{,}738{,}019$ (right), radii $3,2,\dots,2$.  Outer iterations
+are given above each panel.}
+\label{fig:exp_typed_storage}
+\end{figure}
+
 \subsection{Build tolerance and detail policy}
 \label{sec:exp:policy}
 Claim: the build tolerance can be loosened by several orders of
@@ -1815,6 +1827,30 @@ policy.
 \label{tab:exp_policy}
 \fbox{\parbox[c][0.12\textheight][c]{0.8\textwidth}{\centering Placeholder}}
 \end{table}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=0.49\textwidth]{figures/s6_iterations_diffusion_jacobi.pdf}\hfill
+\includegraphics[width=0.49\textwidth]{figures/s6_iterations_elasticity_jacobi.pdf}
+\caption{Outer PCG iterations against the number of unknowns with Jacobi
+on the detail blocks for diffusion (left, checkerboard coefficient) and
+block-Jacobi for elasticity (right, sandwich coefficient), radii
+$3,2,\dots,2$, equivalence-class storage on.  The hollow marker at
+$N = 12{,}519{,}843$ is a run that stopped at the cap of 500 iterations
+with relative residual $1.9\times10^{-7}$.}
+\label{fig:exp_scaling_jacobi}
+\end{figure}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/s6_resources_diffusion_jacobi.pdf}\\[4pt]
+\includegraphics[width=0.9\textwidth]{figures/s6_resources_elasticity_jacobi.pdf}
+\caption{Build time, time per application, stored hierarchy and peak
+memory against the number of unknowns, for the configurations of
+Figure~\ref{fig:exp_scaling_jacobi}: diffusion (top) and elasticity
+(bottom), on one A100 GPU with 80\,GB.}
+\label{fig:exp_cost_N_jacobi}
+\end{figure}
 
 \subsection{Robustness}
 \label{sec:exp:robustness}
