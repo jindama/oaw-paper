@@ -636,13 +636,13 @@ and tolerances held fixed while $N$ grows.  From $H^{-dq} \simeq N$,
 \]
 so the bound on $\beta$ is $\lesssim (\ln N)^2$ times a fixed power
 of~$N$, with a prefactor falling like $e^{-\rho/\alpha}$ in the radius and
-like $\tau$ in the tolerance.  Once $\beta$ exceeds one,
+like $\tau$ in the tolerance.  Once $\beta$ exceeds unity,
 $(1-\beta^{\,q})/(1-\beta) \leq \beta^{\,q}/(\beta-1)$
 and~\eqref{eq:kappa_bound} gives
 $\kappa \leq (1+\beta)^4 \beta^{\,2q}/(\beta-1)^2$ with
-$\beta^{\,2q} \simeq N^{2\ln\beta/(d\ln(1/H))}$, which grows more slowly
+$\beta^{\,2q} \simeq N^{2\ln\beta/(d\ln(1/H))}$. This grows more slowly
 than the condition number $N^{2/d}$ of the unpreconditioned
-system~\cite{ErnGuermond2004} while $\beta < H^{-1}$.
+system~\cite{ErnGuermond2004} provided $\beta < H^{-1}$.
 
 \begin{corollary}[Approximate detail solves in the apply]\label{cor:apply_factor}
 For each block $k$ let $S_k$ be a symmetric positive definite matrix, and
