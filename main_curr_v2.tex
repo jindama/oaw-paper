@@ -1835,7 +1835,9 @@ policy.
 \caption{Outer PCG iterations against the number of unknowns with Jacobi
 on the detail blocks for diffusion (left, checkerboard coefficient) and
 block-Jacobi for elasticity (right, sandwich coefficient), radii
-$3,2,\dots,2$, equivalence-class storage on.  The hollow marker at
+$3,2,\dots,2$, equivalence-class storage on.  For diffusion, a second
+curve uses radii growing with the number of levels, $\min(r,4)$ for
+$r = q,\dots,2$ from the finest level.  The hollow marker at
 $N = 12{,}519{,}843$ is a run that stopped at the cap of 500 iterations
 with relative residual $1.9\times10^{-7}$.}
 \label{fig:exp_scaling_jacobi}
