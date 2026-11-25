@@ -1863,52 +1863,56 @@ step to the reference step, with the bound.
 
 \section{Conclusions}
 \label{sec:conclusions}
-% CLAIMS:
-% 1. What was shown: a bound for the hierarchy as built; a construction
-%    run in 3D up to 2.7e6 unknowns on one GPU.
-% 2. Limitations of the analysis and of the implementation.
-% 3. The four open questions (single home).
-We have proved a conditioning bound for a conjugate-gradient
-preconditioner based on operator-adapted wavelets, for the hierarchy as
-the algorithm builds it, at any radii, patch tolerances and depth, and
-given a construction that solves three-dimensional diffusion and
-elasticity problems with over a million unknowns on one GPU.
 
-The analysis holds for any nested measurement hierarchy meeting the
-conditions of Appendix~\ref{app:stability}, with $H$ a bound on the ratio
-between successive mesh scales~\eqref{eq:scale_bound}; hierarchies
-obtained by adaptive refinement are among them.  It covers symmetric
-positive definite systems, and not the nonsymmetric setting with distinct
-test and trial spaces of~\cite{HauckPeterseim2021}.  The measurement
-hierarchy is fixed a priori, so coarse subspaces selected from the
-operator, as in multigrid, lie outside the scope of the analysis.  The
-conditions of
-Appendix~\ref{app:stability} are verified in~\cite{Owhadi_Scovel_2019}
-for cell averages, local polynomials and point values of regularity
-$s > d/2$; the point-value measurements of the experiments in $d = 3$ lie
-outside these cases.
+We have bounded the condition number of the system preconditioned by the
+localized factorization as it is computed, with truncated patches and
+inexact local solves, in terms of the patch radii, the patch tolerances
+and the number of levels.  With radii and patch iterations proportional
+to $\ln N$, the bound does not depend on~$N$.  The proof uses one
+property of the computed basis: every function satisfies the same
+measurement constraints as its exact counterpart, so the perturbation of
+the change of basis is strictly block triangular and the error
+accumulates over finitely many levels.
 
-The construction assumes uniform refinement: the position of an index
-within its neighbourhood is then computable from its label.  Under graded
-or adaptive refinement the single table of faces and orientations of
-Remark~\ref{rem:realization} becomes one table per local refinement
-configuration.  For a hierarchy not obtained by refinement, agglomeration
-for instance, the sparsity patterns of the coarsened matrices depend on
-the coarsening, and the construction does not apply.  The implementation
-realizes a single structured block with first-order elements on one
-device.
+Because the construction does not depend on the target accuracy, the
+accuracy of a solve is set by the number of outer iterations, and the
+same hierarchy can be used for any tolerance.  It also preconditions any
+spectrally equivalent operator, for example the systems of an implicit
+time integrator at other step sizes.  The setup solves a constrained
+local problem for every coarse degree of freedom, and its cost is
+amortized when one hierarchy is used for many solves.
 
-Whether the per-level error of the recursive construction contracts
-remains open: the amplification $\alpha/H$ of~\eqref{eq:X_recursion} may
-or may not be replaceable by a factor below one, and a contraction would
-carry the radius $\ell\ln\ln N$ of the one-shot basis over to the
-computed basis.  Nor is it known whether a build tolerance fixed
-independently of the depth keeps the condition number bounded as the
-depth grows, or whether the radius proportional to $\ln N$ of
-Corollary~\ref{cor:asymptotic} is necessary.  The inner conjugate
-gradient solves of the apply phase, stopped at a tolerance, are a
-nonlinear map of the residual; their effect on the outer iteration is
-measured but not analyzed.
+Existing implementations of the factorization are limited by
+memory~\cite{chen2021}.  In the construction of
+Section~\ref{sec:implementation}, the sparsity pattern of every factor
+is determined by the mesh and the radii before any entry is computed, so
+storage can be allocated in advance and positions within rows computed
+rather than stored.  Patch problems related by a symmetry of the mesh and
+the coefficient have the same solution up to a relabelling, so only one
+problem per class needs to be solved.  Both properties require a mesh
+hierarchy with a structured labelling, such as uniform refinement of an
+initial mesh.
+% [Section 6: the implementation as a proof of concept -- sizes reached
+% on one GPU, memory, iteration behaviour.]
+
+The symmetry reduction requires patch problems to be equal after a
+transformation, so it reduces the work only for coefficients with
+repeated local configurations.  One possible extension is to group patch
+problems by approximate similarity.  A solution transported between
+geometrically corresponding patches still satisfies the constraints of
+the target problem, so it could be treated as an inexact patch solve with
+its error accounted for by the patch tolerance; this would reduce the
+number of distinct problems for coefficients whose patch problems are
+similar but not equal, at the cost of a larger bound on the condition
+number.  Making this precise, including the choice of similarity
+measure, is left to future work.
+
+The analysis is restricted to symmetric positive definite operators.
+Non-symmetric operators would require a Petrov--Galerkin construction in
+the manner of Hauck and Peterseim~\cite{HauckPeterseim2021} and a direct
+bound on the iterations of GMRES or BiCGSTAB, since the eigenvalues no
+longer determine their convergence.  It is also open whether the
+geometric growth of the bound with the number of levels can be removed.
 
 \section*{Acknowledgments}
 % TODO: carried from main_abridged.tex at harvest.
