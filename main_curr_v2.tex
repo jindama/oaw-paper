@@ -46,11 +46,11 @@
 \maketitle
 
 \begin{abstract}
-Operator-adapted wavelets give an approximate inverse factorization for elliptic problems with accuracy
-guarantees for generic rough coefficients in quasi-linear time. We bound the convergence rate of a
+Operator-adapted wavelets (OAWs) give an approximate inverse factorization for elliptic problems with accuracy
+guarantees for $L^\infty$ coefficients in quasi-linear time. We bound the convergence rate of a
 preconditioner for the conjugate gradient method based on this factorization, decoupling the setup cost from the
 target accuracy and allowing arbitrary tolerances to be met via iteration. We also propose
-a construction optimizing the memory footprint of the preconditioner. This allows us to apply the OAW preconditioner at previously infeasible scales in three dimensions. We demonstrate the preconditioner on three-dimensional diffusion
+a construction prioritizing the memory footprint of the preconditioner. This allows us to apply the OAW preconditioner at previously infeasible scales in three dimensions. We demonstrate the preconditioner on three-dimensional diffusion
 and elasticity problems with over a million unknowns on a single GPU.
 \end{abstract}
 
@@ -88,7 +88,7 @@ We consider elliptic variational problems
 \end{equation}
 where $\mathcal V \subseteq H^s(\Omega)$ is a Sobolev space on a bounded
 Lipschitz domain $\Omega \subset \mathbb{R}^d$, $a$ is a bounded,
-symmetric, coercive and local bilinear form with $L^\infty$
+symmetric, coercive and local (in the sense of arising from an integrable density) bilinear form with $L^\infty$
 coefficients, and the boundary conditions are incorporated in
 $\mathcal V$ and~$f$. Physical examples of this type include diffusion-reaction and linear elasticity problems.  A
 conforming finite-element discretization on a trial space
@@ -99,7 +99,7 @@ positive definite (SPD) linear system
 \end{equation}
 
 Large systems of this kind are typically solved by the preconditioned conjugate
-gradient method (CG).  On a quasi-uniform mesh the condition number $\kappa(K)$ grows as
+gradient method (CG).  With nodal bases on a quasi-uniform mesh, the condition number $\kappa(K)$ grows as
 $N^{2/d}$~\cite{ErnGuermond2004}, making preconditioners essential for convergence at scale.  Multigrid preconditioners achieve
 near-linear cost with an optimal choice of coarse spaces, but
 computing those coarse spaces is itself often superlinear, since the required restriction and prolongation matrices are in general dense ~\cite{brannick2019role}.
@@ -111,12 +111,11 @@ coefficients that vary over many length scales and orders of
 magnitude.
 
 The operator-adapted wavelet (OAW) factorization of Owhadi and
-Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the aforementioned energy minimization recursively to construct a basis $\{\varphi_i\}_{i=1}^{N}$ inducing an orthogonal decomposition $\mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}\oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)}$, with the integers $k$ corresponding to coarse meshes with mesh widths $h_k$. In this basis, $K$ is block diagonal
+Scovel~\cite{owhadi2017,Owhadi_Scovel_2019} applies the aforementioned energy minimization recursively to construct a basis $\{\varphi_i\}_{i=1}^{N}$ inducing an $a$-orthogonal decomposition $\mathcal{V}^{(q)} = \mathcal{V}^{(1)} \oplus_a \mathcal{W}^{(1)}\oplus_a \cdots \oplus_a \mathcal{W}^{(q-1)}$, with the integers $k$ corresponding to coarse meshes with mesh widths $h_k$. In this basis, $K$ is block diagonal
 with one block per scale, and every block is well conditioned uniformly
 in~$N$, so applying $K^{-1}$ amounts to a change of basis and one well-conditioned solve per scale. Dense matrices can be avoided because the basis functions decay
-exponentially away from their
-nodes, so each is well approximated by a function supported on a patch,
-a neighborhood of radius $\rho h_k$.  This approximation yields an approximate
+exponentially in space, so each is well approximated by a function supported on a patch,
+a neighborhood of radius $\rho h_k$ for some $\rho \geq 1$.  This approximation yields an approximate
 factorization of $K^{-1}$ whose factors are sparse, with an accuracy
 bound that holds for $L^\infty$ coefficients: the energy-norm error of
 the resulting solution is at most $\varepsilon$ once
@@ -136,15 +135,15 @@ an approximate OAW factorization as a function of the approximation
 parameters (Theorem~\ref{prop:precond_conditioning}).  Patch radii
 proportional to $\ln N$ suffice to bound the condition number
 independently of~$N$ (Corollary~\ref{cor:asymptotic}), though we also
-quantify the~$N$-dependence of the bound's degradation if this fails.
+quantify the~$N$-dependence of the bound's degradation for constant patch radii.
 We also quantify the degradation incurred by replacing the diagonal
 block solves in the preconditioner by block-Jacobi scaling
 (Corollary~\ref{cor:apply_factor}).  Because the factorization functions
 as a preconditioner rather than a direct inverse, a hierarchy built for
 one operator also accelerates inversion of a perturbed system
-(Section~\ref{sec:main_bounds}).  We give a memory-efficient
+(Section~\ref{sec:main_bounds}).  We give a
 construction of the factorization that takes advantage of fixed sparsity
-patterns and symmetries in the operator to avoid index storage and
+patterns and symmetries in the problem to avoid index storage and
 control memory growth in 3D problems with scalar and vector degrees of
 freedom (Section~\ref{sec:implementation}), and we measure it on
 three-dimensional diffusion and linear elasticity problems on one GPU,
@@ -155,7 +154,7 @@ exact and approximate basis functions satisfy the same set of linear
 constraints on their associated mesh.  The perturbation relating the
 computed change of basis matrix to the exact one is therefore strictly
 block lower triangular, hence nilpotent, and the condition number is
-bounded by a product of factors that depend on the blockwise norms of
+bounded by a product of factors that depend on the norm of
 the perturbation.
 
 The rest of the paper is structured as follows.
@@ -197,7 +196,7 @@ encoded by matrices $C^{(k)} \in \mathbb{R}^{n_k \times n_{k+1}}$,
   \qquad 1 \leq i \leq n_k,\ 1 \leq k < q,
 \end{equation}
 and fix matrices $D^{(k)} \in \mathbb{R}^{d_k \times n_{k+1}}$,
-$d_k := n_{k+1} - n_k$, whose rows span the right kernel of~$C^{(k)}$:
+$d_k := n_{k+1} - n_k$, whose rows span the kernel of~$C^{(k)}$:
 \begin{equation}\label{eq:kernel_D}
   C^{(k)}\, D^{(k)\top} = 0,
   \qquad \operatorname{rank} D^{(k)} = d_k.
@@ -206,7 +205,7 @@ Write $I^{(k)}$ for the index set of level~$k$,
 of cardinality~$n_k$. For each level $k$, assume a shape-regular mesh of
 width~$h_k$; the functional $\mu^{(k)}_j$ is attached to a node
 $x^{(k)}_j$ of that mesh and is supported on at most $c_\star$ of its
-cells about $x^{(k)}_j$, in the sense that $\mu^{(k)}_j(f) = 0$ for all functions $f$ supported outside that neighborhood.  We define the level-$k$ pseudometric
+cells about $x^{(k)}_j$, in the sense that $\mu^{(k)}_j(f) = 0$ for all functions $f$ vanishing outside that neighborhood.  We define the level-$k$ pseudometric
 \begin{equation}\label{eq:level_metric}
   d^{(k)}(i,j) \;:=\; \lvert x^{(k)}_i - x^{(k)}_j \rvert / h_k ,
   \qquad i, j \in I^{(k)} .
@@ -225,7 +224,7 @@ the nesting and detail maps satisfy the cellularity condition
   \qquad
   D^{(k)}_{mj} = 0 \ \text{ unless } j^{(k)} = m^{(k)} .
 \end{equation}
-Shape regularity gives $n_k \simeq h_k^{-d}$, so the level counts obey
+Quasi-uniformity gives $n_k \simeq h_k^{-d}$, so the level counts obey
 $n_k \leq c_n H^{-dk}$.  Since $n_q = N$, the second
 estimate of~\eqref{eq:scale_bound} forces $q \lesssim\ln N$.
 
@@ -257,7 +256,7 @@ and the \emph{detail functions}
 form a basis of $\mathcal{W}^{(k)}$: they lie in $\mathcal{V}^{(k+1)}$ and
 $\mu^{(k)}_l(\chi^{(k)}_j) = \bigl(C^{(k)} D^{(k)\top}\bigr)_{lj} = 0$
 by~\eqref{eq:measurement_nesting} and~\eqref{eq:kernel_D}, each
-$\psi^{(k)}_i$ is $a$-orthogonal to the kernel of $\mu^{(k)}$ by
+$\psi^{(k)}_i$ is $a$-orthogonal to $\bigcap_{i=j}^{n_k}\ker \mu^{(k)}_j$ by
 first-order optimality in~\eqref{eq:psi_k_def}, and
 $\operatorname{rank} D^{(k)} = d_k = \dim \mathcal{W}^{(k)}$.
 The $n_q$ functions
@@ -293,8 +292,8 @@ with $C_B$ independent of $N$ and $k$, so
 is a restriction, one well-conditioned solve per block, and a
 prolongation.  The functions $\psi^{(k)}_i$ and $\chi^{(k)}_j$ are
 globally supported, so the factors in
-\eqref{eq:exact_inverse_formula} are dense and the factorization,
-although exact and blockwise well conditioned, cannot be formed for
+\eqref{eq:exact_inverse_formula} are generally dense and the factorization,
+although blockwise well conditioned, cannot be formed for
 large~$N$.  Section~\ref{subsec:loc} replaces the basis by one whose
 functions have bounded support, at a cost in energy exponentially small
 in the radius of that support.
@@ -438,7 +437,7 @@ $\varepsilon$~\cite[Thm.~16.36]{Owhadi_Scovel_2019}.
 \begin{figure}[t]
 \centering
 % [TODO: figure to be redesigned; placeholder keeps the reference live.]
-\includegraphics[width=0.9\textwidth]{figures/recursive_schematic.pdf}
+\includegraphics[width=0.1\textwidth]{figures/recursive_schematic.pdf}
 \caption{The recursive construction: the patch
 problem~\eqref{eq:recursive_patch} at level~$k$ is posed over the
 approximate functions of level $k+1$, and every approximate function
@@ -633,8 +632,7 @@ The radius condition has the form of the condition
 $\rho_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$ of
 \cite[Thm.~16.32]{Owhadi_Scovel_2019} with the term $\ln(1/\varepsilon)$
 removed: the target accuracy enters only through the factor
-$\ln(1/\varepsilon)$ of the iteration count, and the setup does not
-depend on it.
+$\ln(1/\varepsilon)$ of the iteration count.
 % [VERIFY: the relation between the constant alpha of Lemma 16.30 and
 % the decay length of the basis functions.  Both are lengths in level-k
 % mesh units set by the decay (Condition 16.22, item 1, and Lemma 16.27 of
@@ -657,14 +655,6 @@ $\kappa \leq (1+\beta)^4 \beta^{\,2q}/(\beta-1)^2$ with
 $\beta^{\,2q} \simeq N^{2\ln\beta/(d\ln(1/H))}$, which stays below the
 growth $N^{2/d}$ of the condition number of the unpreconditioned
 system~\cite{ErnGuermond2004} while $\beta < H^{-1}$.
-
-The constants $\alpha$, $\omega$, $C_1$ and $C_2$ are not computable from
-the conditions of Appendix~\ref{app:stability}.
-Theorem~\ref{prop:precond_conditioning} therefore fixes the form of the
-dependence of the bound on the radii, the tolerances and the depth, and
-the condition numbers and iteration counts of
-Section~\ref{sec:experiments} are the measured values.
-Remark~\ref{rem:inexact} treats thresholding.
 
 \begin{corollary}[Approximate detail solves in the apply]\label{cor:apply_factor}
 For each block $k$ let $S_k$ be a symmetric positive definite matrix, and
