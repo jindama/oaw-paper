@@ -1683,8 +1683,19 @@ iteration counts of the block solves grow at most as the bound of
 Corollary~\ref{thm:localized_block_conditioning} through $\beta$.  Reported: outer
 iterations against~$N$ for both problems; mean inner iterations per
 level.
-% [PLACEHOLDER: figure, outer iterations vs N; table, inner iterations per
-% level.]
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\caption{Outer PCG iterations against $N$ at fixed radii and patch tolerance, for diffusion and linear elasticity.}
+\label{fig:exp_scaling}
+\end{figure}
+
+\begin{table}[tbp]
+\centering
+\caption{Mean inner CG iterations per level of the block solves, against $N$.}
+\label{tab:exp_inner}
+\fbox{\parbox[c][0.12\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\end{table}
 
 \subsection{Cost}
 \label{sec:exp:cost}
@@ -1692,7 +1703,19 @@ Claim: build time, apply time and memory are linear in~$N$ and grow no
 faster than Proposition~\ref{prop:cost} in the radius.  Reported: build
 and apply time and stored and peak memory against~$N$ at fixed radii, and
 against the radius at fixed~$N$.
-% [PLACEHOLDER: figure, cost vs N; table, cost vs rho.]
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\caption{Build time, apply time, stored memory and peak memory against $N$ at fixed radii.}
+\label{fig:exp_cost_N}
+\end{figure}
+
+\begin{table}[tbp]
+\centering
+\caption{Build time, apply time, stored memory and peak memory against the radius at fixed $N$.}
+\label{tab:exp_cost_rho}
+\fbox{\parbox[c][0.12\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\end{table}
 
 \subsection{Memory of the construction}
 \label{sec:exp:memory}
@@ -1703,7 +1726,12 @@ implementation of the same algorithm with library sparse kernels does
 not.  Reported: peak memory and build time against~$N$ for the direct
 implementation (until it exhausts the device) and for the construction,
 with the stored hierarchy split into factors and blocks.
-% [PLACEHOLDER: two bar charts, peak memory and build time vs N, two arms.]
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\caption{Peak memory (left) and build time (right) against $N$, for the direct implementation with library sparse kernels and for the construction of Section~\ref{sec:implementation}; the stored hierarchy is split into factors and blocks.}
+\label{fig:exp_memory}
+\end{figure}
 
 \subsection{Build tolerance and detail policy}
 \label{sec:exp:policy}
@@ -1714,8 +1742,19 @@ iteration count (Corollary~\ref{cor:apply_factor}) for the memory of the
 detail blocks.  Reported: build time and outer iterations against the
 build tolerance; iterations, apply time and stored memory per detail
 policy.
-% [PLACEHOLDER: figure, build time and iterations vs tau_build; table,
-% detail policies.]
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\caption{Build time and outer PCG iterations against the build tolerance $\tau_{\mathrm{build}}$.}
+\label{fig:exp_tau}
+\end{figure}
+
+\begin{table}[tbp]
+\centering
+\caption{Outer iterations, apply time and stored memory for each detail policy.}
+\label{tab:exp_policy}
+\fbox{\parbox[c][0.12\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\end{table}
 
 \subsection{Robustness}
 \label{sec:exp:robustness}
@@ -1724,7 +1763,19 @@ and structure at fixed size (the contrast enters the bound of
 Theorem~\ref{prop:precond_conditioning} only through its constants).  Reported: outer iterations against the
 contrast and across coefficient fields, for both problems and both
 detail policies.
-% [PLACEHOLDER: figure, iterations vs contrast; table, fields.]
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\caption{Outer PCG iterations against the coefficient contrast at fixed $N$, for both problems and both detail policies.}
+\label{fig:exp_contrast}
+\end{figure}
+
+\begin{table}[tbp]
+\centering
+\caption{Outer PCG iterations across coefficient fields at fixed $N$.}
+\label{tab:exp_fields}
+\fbox{\parbox[c][0.12\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\end{table}
 
 \subsection{Comparison with multigrid}
 \label{sec:exp:baselines}
@@ -1733,7 +1784,19 @@ robustness as the contrast grows, while a strong classical AMG and the
 present preconditioner both converge; the AMG builds and solves faster
 by a constant factor.  Reported: iterations, build and solve time and
 device memory for each solver against~$N$ and against the contrast.
-% [PLACEHOLDER: table, baselines vs N; figure, baselines vs contrast.]
+\begin{table}[tbp]
+\centering
+\caption{Iterations, build time, solve time and device memory for each solver against $N$.}
+\label{tab:exp_baselines_N}
+\fbox{\parbox[c][0.12\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\caption{Iterations for each solver against the coefficient contrast.}
+\label{fig:exp_baselines_contrast}
+\end{figure}
 
 \subsection{Reuse across time steps}
 \label{sec:exp:timestep}
@@ -1741,7 +1804,13 @@ Claim: a hierarchy built once for one implicit time step preconditions
 every step within the bound~\eqref{eq:timestep_bound}.
 Reported: outer iterations per linear solve against the ratio of the
 step to the reference step, with the bound.
-% [PLACEHOLDER: figure, iterations vs step ratio with the envelope.]
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox[c][0.22\textheight][c]{0.8\textwidth}{\centering Placeholder}}
+\caption{Outer PCG iterations per linear solve against the ratio of the time step to the reference step, with the bound~\eqref{eq:timestep_bound}.}
+\label{fig:exp_timestep}
+\end{figure}
+
 \section{Conclusions}
 \label{sec:conclusions}
 % CLAIMS:
