@@ -195,7 +195,8 @@ encoded by matrices $C^{(k)} \in \mathbb{R}^{n_k \times n_{k+1}}$,
   \mu^{(k)}_i = \sum_{j=1}^{n_{k+1}} C^{(k)}_{ij}\,\mu^{(k+1)}_j,
   \qquad 1 \leq i \leq n_k,\ 1 \leq k < q,
 \end{equation}
-and fix matrices $D^{(k)} \in \mathbb{R}^{d_k \times n_{k+1}}$,
+and fix matrices $D^{(k)} \in \mathbb{R}^{d_k \times n_{k+1}}$, whose rows
+are indexed by the \emph{detail index set} $I^{(k)}_\chi := \{1, \ldots, d_k\}$,
 $d_k := n_{k+1} - n_k$, whose rows span the kernel of~$C^{(k)}$:
 \begin{equation}\label{eq:kernel_D}
   C^{(k)}\, D^{(k)\top} = 0,
@@ -205,7 +206,11 @@ Write $I^{(k)}$ for the index set of level~$k$,
 of cardinality~$n_k$. For each level $k$, assume a shape-regular mesh of
 width~$h_k$; the functional $\mu^{(k)}_j$ is attached to a node
 $x^{(k)}_j$ of that mesh and is supported on at most $c_\star$ of its
-cells about $x^{(k)}_j$, in the sense that $\mu^{(k)}_j(f) = 0$ for all functions $f$ vanishing outside that neighborhood.  We define the level-$k$ pseudometric
+cells about $x^{(k)}_j$, in the sense that $\mu^{(k)}_j(f) = 0$ for all functions $f$ vanishing outside that neighborhood.  When the
+unknown has $p$ components ($p = d$ for elasticity, $p = 1$ for a scalar
+problem) each node carries $p$ functionals and $p$ basis functions, and
+the matrices below consist of $p \times p$ blocks.  We define the
+level-$k$ pseudometric
 \begin{equation}\label{eq:level_metric}
   d^{(k)}(i,j) \;:=\; \lvert x^{(k)}_i - x^{(k)}_j \rvert / h_k ,
   \qquad i, j \in I^{(k)} .
@@ -217,7 +222,8 @@ The widths must satisfy
 \end{equation}
 for a fixed $H \in (0,1)$. Each
 level-$(k{+}1)$ index~$j$ is associated with a \emph{parent} $j^{(k)} \in I^{(k)}$
-with $\lvert x^{(k+1)}_j - x^{(k)}_{j^{(k)}} \rvert \leq c_\star h_k$, and
+with $\lvert x^{(k+1)}_j - x^{(k)}_{j^{(k)}} \rvert \leq c_\star h_k$, each
+detail index $m \in I^{(k)}_\chi$ with a parent $m^{(k)} \in I^{(k)}$, and
 the nesting and detail maps satisfy the cellularity condition
 \begin{equation}\label{eq:cellularity}
   C^{(k)}_{ij} = 0 \ \text{ unless } j^{(k)} = i,
@@ -466,7 +472,11 @@ satisfies the level-$k$ measurement constraints.}
 We postpone proofs to Section~\ref{sec:preconditioner}.  Let $\psi^{(k),\ast}_{\rho,i}$ be the exact minimizer
 of~\eqref{eq:recursive_patch} over the computed level-$(k{+}1)$
 functions, and $\psi^{(k)}_{\rho,i}$ the function computed from an
-approximate solution of the same patch system.  The \emph{patch
+approximate solution of the same patch system.  Section~\ref{subsec:loc}
+wrote $\psi^{(k)}_{\rho,i}$ for the exact minimizer; from here on that
+function is $\psi^{(k),\ast}_{\rho,i}$ and $\psi^{(k)}_{\rho,i}$ is the
+computed one.  Every statement of Section~\ref{subsec:loc} that holds for
+an arbitrary feasible $Z^{(k)}$ holds for both.  The \emph{patch
 tolerance} $\tau_k$ is the smallest number with
 \begin{equation}\label{eq:tau_def}
   \bigl\| \psi^{(k)}_{\rho,i} - \psi^{(k),\ast}_{\rho,i} \bigr\|_a
@@ -775,9 +785,9 @@ $\delta^{(k)}_i := \psi^{(k)}_{\rho,i} - \psi^{(k)}_i$ and
 \end{equation}
 the aggregate level-$k$ error of \cite[Eq.~(16.113)]{Owhadi_Scovel_2019}.
 We use the constants of Appendix~\ref{app:stability} in the following
-form: $\|D^{(k)}\|_2 \leq C_W$ and $\|A^{(k)}\|_2 \leq C_A H^{-2k}$ for
+form: $\|D^{(k)}\|_2 \leq C_W$ and $\|A^{(k)}_{\mathrm{ex}}\|_2 \leq C_A H^{-2k}$ for
 every~$k$ \cite[Lemma~16.25, items 2 and 6]{Owhadi_Scovel_2019}, where
-$A^{(k)}_{ij} := a(\psi^{(k)}_i, \psi^{(k)}_j)$ is the exact level-$k$
+$A^{(k)}_{\mathrm{ex},ij} := a(\psi^{(k)}_i, \psi^{(k)}_j)$ is the exact level-$k$
 stiffness matrix, with $C_W \geq 1$; $n_k \leq c_n H^{-dk}$
 (Section~\ref{sec:background}); and $C_B$ is the constant
 of~\eqref{eq:block_conditioning}; and $G_\rho := \Phi_\rho^\top K \Phi_\rho$.
@@ -962,8 +972,8 @@ $\epsilon_k \leq \epsilon^\ast_k + (\sum_i \|e_i\|_a^2)^{1/2}
 and again by Minkowski
 $(\sum_i \|\psi^{(k),\ast}_{\rho,i}\|_a^2)^{1/2}
  \leq (\sum_i \|\psi^{(k)}_i\|_a^2)^{1/2} + \epsilon^\ast_k
- = (\operatorname{tr} A^{(k)})^{1/2} + \epsilon^\ast_k$.  Finally
-$\operatorname{tr} A^{(k)} \leq n_k \|A^{(k)}\|_2
+ = (\operatorname{tr} A^{(k)}_{\mathrm{ex}})^{1/2} + \epsilon^\ast_k$.  Finally
+$\operatorname{tr} A^{(k)}_{\mathrm{ex}} \leq n_k \|A^{(k)}_{\mathrm{ex}}\|_2
  \leq c_n C_A H^{-(d+2)k}$.
 \end{proof}
 
@@ -1220,8 +1230,10 @@ of~\eqref{eq:R_structure} recursively from fine to coarse grids.
 Algorithm~\ref{alg:impl_apply} applies~\eqref{eq:preconditioner}.
 The recursion is that of Budninskiy et al.~\cite{budni2019}.
 
-Their cost is determined by the sparsity of the matrices the build
-produces, by the labelling of the index sets, and by the equivalence of
+Throughout this section $A^{(k)}$ is the computed coarse operator,
+$A^{(k)}_\rho$ of Section~\ref{subsec:loc} after the thresholding of
+step~4.  Their cost is determined by the sparsity of the matrices the
+build produces, by the labelling of the index sets, and by the equivalence of
 patch problems under the symmetries of the mesh and of the
 coefficient.  These are treated in that order.
 
@@ -1229,7 +1241,9 @@ coefficient.  These are treated in that order.
 \caption{Build}
 \label{alg:impl_build}
 \textbf{Input:} $K$ (by products), $\{C^{(k)}\}$, $\{D^{(k)}\}$, radii
-$\{\rho_k\}$, tolerance $\tau_{\mathrm{build}}$, detail policy per level.
+$\{\rho_k\}$, tolerance $\tau_{\mathrm{build}}$, and per level a
+\emph{detail policy}: solve the detail block by CG, or scale by its
+block diagonal (Corollary~\ref{cor:apply_factor}).
 Set $A^{(q)} := K$.\\[2pt]
 \textbf{for} $k = q-1, \ldots, 1$:
 \begin{enumerate}
@@ -1243,8 +1257,8 @@ Set $A^{(q)} := K$.\\[2pt]
   \item[4.] $A^{(k)} \gets R^{(k)} A^{(k+1)} R^{(k)\top}$, thresholded;
     release $A^{(k+1)}$.
 \end{enumerate}
-\textbf{Output:} $\{R^{(k)}\}$; $B^{(k)}_\rho$ or its diagonal blocks;
-$A^{(1)}$.
+\textbf{Output:} $\{R^{(k)}\}$; $B^{(k)}_\rho$, $2 \leq k \leq q$, or
+their diagonal blocks; $A^{(1)} = B^{(1)}_\rho$.
 \end{algorithm}
 
 \begin{algorithm}[t]
@@ -1399,9 +1413,8 @@ That the local problems of two consecutive levels then differ by a
 positive factor is an assumption on the discretization, used where
 stated.
 
-In coordinates these maps are permutations of the index sets.  Write
-$I^{(k)}_\chi := \{1, \ldots, d_k\}$ for the detail index set of
-level~$k$, which indexes the rows of $D^{(k)}$.  An \emph{admissible
+In coordinates these maps are permutations of the index sets.  An
+\emph{admissible
 transformation} is a family of bijections
 $g_k \colon I^{(k)} \to I^{(k)}$, $1 \leq k \leq q$, and
 $\gamma_k \colon I^{(k)}_\chi \to I^{(k)}_\chi$, $1 \leq k < q$, whose
