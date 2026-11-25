@@ -519,33 +519,34 @@ Then $\widetilde{K}_\rho^{-1}$ is symmetric positive definite and
   \;\leq\; (1+\beta)^4\,
   \Bigl( \frac{1 - \beta^{\,q}}{1 - \beta} \Bigr)^{\!2} ,
 \end{equation}
-the second factor standing for $\sum_{j=0}^{q-1} \beta^{\,j}$ and equal
-to $q^2$ at $\beta = 1$.  The bound
+where the quotient is the finite sum $\sum_{j=0}^{q-1} \beta^{\,j}$, so
+the bound holds for every $\beta \geq 0$.  The bound
 \begin{equation}\label{eq:kappa_arsinh}
   \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
   \;\leq\; \exp\Bigl( 2 \sum_{k=1}^{q-1} \operatorname{arsinh} b_k \Bigr)
 \end{equation}
-holds as well.  The block norms satisfy $b_k \leq X_k$ for
-$1 \leq k \leq q$, where $X_q := 0$ and
-\begin{equation}\label{eq:X_recursion}
-  X_k \;:=\; (1 + \tau_k)\Bigl[ \frac{\alpha}{H}\, X_{k+1}
-    + C_1\, \alpha\, \omega^{k+1} H^{k-1} e^{-\rho_k/\alpha} \Bigr]
-    + C_2\, H^{-1 - dk/2}\, \tau_k ,
-  \qquad k = q-1, \ldots, 1 ,
+holds as well.  If $\tau_k \leq 1$ for $1 \leq k < q$, then with
+$\rho_{\min} := \min_{k<q} \rho_k$ and $\tau_{\max} := \max_{k<q} \tau_k$,
+\begin{equation}\label{eq:beta_unrolled}
+  \beta \;\leq\; q^2 \Bigl[\, 2 C_1 \alpha\,(2\alpha\omega)^{q}\,
+    e^{-\rho_{\min}/\alpha}
+    \;+\; C_2 H^{-1} \bigl(2\alpha H^{-1-d/2}\bigr)^{q}\, \tau_{\max} \,\Bigr] .
 \end{equation}
-so that $\beta \leq \bigl( \sum_{k=1}^{q-1} X_k^2 \bigr)^{1/2}$.  The
-constants $\alpha, \omega \geq 1$ and $C_1, C_2$ depend only on the
+The constants $\alpha, \omega \geq 1$ and $C_1, C_2$ depend only on the
 constants of Appendix~\ref{app:stability}, $H$ and~$d$, and not on $N$,
 the radii, the tolerances or the depth.
 \end{theorem}
 
-At $\beta = 0$ both factors of~\eqref{eq:kappa_bound} equal one, so
-$\kappa = 1$: the block norms vanish only for $F_\rho = 0$, where the
-computed basis is the exact basis and~\eqref{eq:preconditioner}
-is~$K^{-1}$.  The number $X_k$ bounds the relative error of the computed
-level-$k$ functions, and the three terms of~\eqref{eq:X_recursion} are
-the error inherited from level $k+1$, the truncation to the patch, and
-the inexact solve.
+The first term in the bracket of~\eqref{eq:beta_unrolled} is the
+localization error: it decays exponentially in the smallest radius and
+grows geometrically in the depth.  The second is the error of the inexact
+patch solves: it is linear in the largest tolerance and grows
+geometrically in the depth.  Holding $\beta$ fixed as $N$ grows therefore
+requires $\rho_{\min}$ and $\ln(1/\tau_{\max})$ to grow linearly in $q$,
+and $q \lesssim \ln N$; Corollary~\ref{cor:asymptotic} states the
+conditions.  The proof bounds each $b_k$ through a recursion over the
+levels, in which the error of level $k+1$ is amplified by $\alpha/H$ on
+passing to level $k$.
 
 \begin{corollary}[Outer iteration count]\label{cor:iteration_count}
 Let $\varepsilon \in (0,1)$ and let $k(\varepsilon)$ be the number of
@@ -568,71 +569,53 @@ factor~$\varepsilon$.  Then
 Under the hypotheses of Theorem~\ref{prop:precond_conditioning}, for
 every block $1 \leq k \leq q$,
 \begin{equation}\label{eq:localized_block_conditioning}
-  B^{(k)} \;\preceq\; B^{(k)}_\rho \;\preceq\; (1 + X_k^2)\, B^{(k)},
+  B^{(k)} \;\preceq\; B^{(k)}_\rho \;\preceq\; (1 + b_k^2)\, B^{(k)},
   \qquad\text{hence}\qquad
   \kappa\bigl(B^{(k)}_\rho\bigr)
-  \;\leq\; (1+X_k^2)\, C_B^2\, H^{-2}.
+  \;\leq\; (1+\beta^2)\, C_B^2\, H^{-2}.
 \end{equation}
 The level-$k$ patch systems are principal submatrices of
-$B^{(k+1)}_\rho$ and satisfy the same bound with $X_{k+1}$.
+$B^{(k+1)}_\rho$ and satisfy the same bound.
 \end{corollary}
 
 \noindent A CG solve of a block or a patch system to relative energy
 error~$\tau$ therefore takes at most
-$\tfrac12 (1+X_k^2)^{1/2} C_B H^{-1} \ln(2/\tau)$ iterations.
+$\tfrac12 (1+\beta^2)^{1/2} C_B H^{-1} \ln(2/\tau)$ iterations.
 
-The recursion~\eqref{eq:X_recursion} unrolls into an explicit bound
-on~$\beta$, and from that bound into conditions on the radii and the
-tolerances that keep $\beta$ below any prescribed threshold
-$\beta_0 \in (0,1)$.
-
-\begin{corollary}[Radii and tolerances for a prescribed threshold]\label{cor:asymptotic}
+\begin{corollary}[Radii and tolerances for a prescribed condition number]\label{cor:asymptotic}
 Assume the hypotheses of Theorem~\ref{prop:precond_conditioning} and
-$\tau_k \leq 1$ for $1 \leq k < q$.  With $\rho := \min_{k<q} \rho_k$ and
-$\tau := \max_{k<q} \tau_k$,
-\begin{equation}\label{eq:beta_unrolled}
-  \beta \;\leq\; q^2 \Bigl[\, 2 C_1 \alpha\,(2\alpha\omega)^{q}\,
-    e^{-\rho/\alpha}
-    \;+\; C_2 H^{-1} \bigl(2\alpha H^{-1-d/2}\bigr)^{q}\, \tau \,\Bigr] .
-\end{equation}
-Let $\beta_0 \in (0,1)$.  If, for $1 \leq k < q$,
+$\tau_k \leq 1$ for $1 \leq k < q$.  Let $\kappa^\ast > 16$ and
+$L := \ln\bigl(2\sqrt{\kappa^\ast}/(\sqrt{\kappa^\ast}-4)\bigr)$.  If,
+for $1 \leq k < q$,
 \begin{equation}\label{eq:beta0_conditions}
   \begin{aligned}
   \rho_k &\;\geq\; \alpha\Bigl[\, q \ln(2\alpha\omega) + 2 \ln q
-    + \ln(2 C_1 \alpha) + \ln(2/\beta_0) \,\Bigr], \\
+    + \ln(2 C_1 \alpha) + L \,\Bigr], \\
   \ln(1/\tau_k) &\;\geq\; q \ln\bigl(2\alpha H^{-1-d/2}\bigr) + 2 \ln q
-    + \ln(C_2/H) + \ln(2/\beta_0) ,
+    + \ln(C_2/H) + L ,
   \end{aligned}
 \end{equation}
-then $\beta \leq \beta_0$ and, for every $\varepsilon \in (0,1)$,
+then, for every $\varepsilon \in (0,1)$,
 \begin{equation}\label{eq:kappa_beta0}
-  \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr)
-  \;\leq\; (1+\beta_0)^4
-    \Bigl( \frac{1 - \beta_0^{\,q}}{1 - \beta_0} \Bigr)^{\!2} ,
+  \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr) \;\leq\; \kappa^\ast ,
   \qquad
-  k(\varepsilon) \;\leq\; \tfrac12 (1+\beta_0)^2\,
-    \frac{1 - \beta_0^{\,q}}{1 - \beta_0}\,
+  k(\varepsilon) \;\leq\; \tfrac12 \sqrt{\kappa^\ast}\,
     \ln\!\left(\frac{2}{\varepsilon}\right) .
 \end{equation}
 \end{corollary}
 
-Since $q \lesssim \ln N$ and $\ln q \leq q$, the right-hand sides
-of~\eqref{eq:beta0_conditions} are at most $c_r \ln N$ and
-$c_\tau \ln N$ for $N \geq 3$, with $c_r$ and $c_\tau$ depending only on
-$\beta_0$, $\alpha$, $\omega$, $C_1$, $C_2$, $H$ and~$d$.  Radii
-proportional to $\ln N$ and patch tolerances $\tau_k \leq N^{-c_\tau}$
-therefore keep $\beta$ at or below $\beta_0$ for every~$N$.  The factor
-$(1 - \beta_0^{\,q})/(1 - \beta_0)$ of~\eqref{eq:kappa_beta0} increases
-with the depth and stays below $(1-\beta_0)^{-1}$, so this configuration
-bounds the condition number and the iteration count uniformly in~$N$.  By
-Corollary~\ref{thm:localized_block_conditioning} a patch system reaches
-the tolerance $N^{-c_\tau}$ in $\lesssim \ln N$ CG iterations.
-
-The radius condition has the form of the condition
-$\rho_k \geq \rho_{\mathrm{OS}}(k + \ln(1/\varepsilon))$ of
-\cite[Thm.~16.32]{Owhadi_Scovel_2019} with the term $\ln(1/\varepsilon)$
-removed: the target accuracy enters only through the factor
-$\ln(1/\varepsilon)$ of the iteration count.
+Since $q \lesssim \ln N$, the conditions~\eqref{eq:beta0_conditions} are
+met by radii $\rho_k \geq c_r \ln N$ and tolerances
+$\tau_k \leq N^{-c_\tau}$, with $c_r$ and $c_\tau$ depending on
+$\kappa^\ast$ and on the constants of
+Theorem~\ref{prop:precond_conditioning}.  A prescribed condition number
+is therefore attained at every $N$ by radii growing logarithmically
+in~$N$, and by Corollary~\ref{thm:localized_block_conditioning} each
+patch system reaches its tolerance in $\lesssim \ln N$ CG iterations.
+In the direct use of the factorization the radius must grow with
+$\ln(1/\varepsilon)$ as well \cite[Thm.~16.32]{Owhadi_Scovel_2019}; here
+the target accuracy enters only through the factor
+$\ln(2/\varepsilon)$ of the iteration count.
 % [VERIFY: the relation between the constant alpha of Lemma 16.30 and
 % the decay length of the basis functions.  Both are lengths in level-k
 % mesh units set by the decay (Condition 16.22, item 1, and Lemma 16.27 of
@@ -652,8 +635,8 @@ like $\tau$ in the tolerance.  Once $\beta$ exceeds one,
 $(1-\beta^{\,q})/(1-\beta) \leq \beta^{\,q}/(\beta-1)$
 and~\eqref{eq:kappa_bound} gives
 $\kappa \leq (1+\beta)^4 \beta^{\,2q}/(\beta-1)^2$ with
-$\beta^{\,2q} \simeq N^{2\ln\beta/(d\ln(1/H))}$, which stays below the
-growth $N^{2/d}$ of the condition number of the unpreconditioned
+$\beta^{\,2q} \simeq N^{2\ln\beta/(d\ln(1/H))}$, which grows more slowly
+than the condition number $N^{2/d}$ of the unpreconditioned
 system~\cite{ErnGuermond2004} while $\beta < H^{-1}$.
 
 \begin{corollary}[Approximate detail solves in the apply]\label{cor:apply_factor}
@@ -673,47 +656,40 @@ In particular:
 \begin{enumerate}
   \item[(i)] exact block solves, $S_k = (B^{(k)}_\rho)^{-1}$, give
     $\Gamma = 1$;
-  \item[(ii)] $s$ steps of the Chebyshev iteration on an interval
-    $[\lambda_-, \lambda_+]$ containing the spectrum of $B^{(k)}_\rho$,
-    with $\kappa_B := \lambda_+/\lambda_-$, give
+  \item[(ii)] $s$ steps of a fixed polynomial iteration on
+    $B^{(k)}_\rho$ --- the Chebyshev iteration on an interval
+    $[\lambda_-, \lambda_+]$ containing its spectrum, the linear
+    counterpart of $s$ steps of CG with the same error bound --- give
     $\Gamma \leq (1+\delta_s)/(1-\delta_s)$ with
-    $\delta_s := 2\bigl((\sqrt{\kappa_B}-1)/(\sqrt{\kappa_B}+1)\bigr)^{s}$,
-    whenever $\delta_s < 1$;
-  \item[(iii)] \emph{block-Jacobi scaling of the detail levels},
-    $S_k = \xi\, (S^{(k)}_\rho)^{-1}$ with a weight $\xi > 0$, where
-    $S^{(k)}_\rho$ is the block diagonal of $B^{(k)}_\rho$ (the nodal
-    $p \times p$ blocks; the diagonal when $p = 1$), gives, with $S^{(k)}$
-    the block diagonal of the exact block $B^{(k)}$ and for every~$\xi$,
+    $\delta_s := 2\bigl((\sqrt{\kappa_B}-1)/(\sqrt{\kappa_B}+1)\bigr)^{s}$
+    and $\kappa_B := \lambda_+/\lambda_-$, whenever $\delta_s < 1$;
+  \item[(iii)] \emph{block-Jacobi scaling}, $S_k = \xi\,(S^{(k)}_\rho)^{-1}$
+    with a weight $\xi > 0$, where $S^{(k)}_\rho$ is the block diagonal
+    of $B^{(k)}_\rho$ (the nodal $p \times p$ blocks; the diagonal when
+    $p = 1$), gives, for every $\xi$,
     \begin{equation}\label{eq:jacobi_factor}
-      \kappa\bigl(\widehat{M} K\bigr)
-      \;\leq\; (1+\beta)^2 (1+\beta^2)
-        \Bigl( \frac{1 - \beta^{\,q}}{1 - \beta} \Bigr)^{\!2}\, \Gamma_0,
+      \Gamma \;\leq\; (1+\beta^2)^2\, \Gamma_0 ,
       \qquad
-      \Gamma_0 := \max_k \kappa\bigl((S^{(k)})^{-1/2} B^{(k)} (S^{(k)})^{-1/2}\bigr)
-      \;\leq\; C_B^4 H^{-4} .
+      \Gamma_0 := \frac{\max_k \lambda_{\max}\bigl((S^{(k)})^{-1} B^{(k)}\bigr)}
+                       {\min_k \lambda_{\min}\bigl((S^{(k)})^{-1} B^{(k)}\bigr)}
+      \;\leq\; C_B^4 H^{-4} ,
     \end{equation}
-    % [VERIFY: direct bound through the similarity to (T K)^T (T K) with
-    % K = Q^{1/2} S_rho^{-1/2}, using S <= S_rho <= (1 + b_k^2) S and
-    % B <= B_rho <= (1 + b_k^2) B; derivation to be completed and the
-    % factor (1 + beta^2) confirmed.]
+    with $S^{(k)}$ the block diagonal of the exact block $B^{(k)}$.
 \end{enumerate}
 \end{corollary}
 
-The factor~$\Gamma$ enters once: the detail levels enter the
-preconditioner through the block-diagonal $\mathcal{B}_\rho^{-1}$,
-whereas an inexact patch solve in the build changes the next level's
-problem and propagates through~\eqref{eq:X_recursion}.  The scaling
-(iii) is one block-Jacobi step from a zero initial guess, uses only the
-diagonal blocks of $B^{(k)}_\rho$, and is an inexact subspace solver in
-the sense of parallel subspace correction~\cite{xu1992iterative}; the
-weight $\xi$ cancels in~$\Gamma$.  In~\eqref{eq:jacobi_factor} the
-dependence on the radii and the depth sits in $\beta$ alone; $\Gamma_0$
-is the block-Jacobi condition number of the exact detail blocks, bounded
-because the diagonal entries of $B^{(k)}$ lie between its extreme
-eigenvalues~\eqref{eq:block_conditioning}.
+In each case the bound is a factor times the condition number of
+Theorem~\ref{prop:precond_conditioning}, and in (iii) the dependence on
+the radii and the depth enters that factor through $\beta$ alone.  An
+inexact block solve in the apply enters once, through~$\Gamma$; an
+inexact patch solve in the build changes the next level's problem and
+enters~$\beta$.  The scaling (iii) is one block-Jacobi step from a zero
+initial guess and uses only the diagonal blocks of $B^{(k)}_\rho$;
+$\Gamma_0$ is bounded because the diagonal blocks of $B^{(k)}$ have
+their eigenvalues between the extreme eigenvalues
+of~\eqref{eq:block_conditioning}.
 
-A hierarchy built for one operator preconditions a spectrally equivalent
-one.  If $c_1\, a_0(v,v) \leq a_1(v,v) \leq c_2\, a_0(v,v)$ on
+If $c_1\, a_0(v,v) \leq a_1(v,v) \leq c_2\, a_0(v,v)$ on
 $\mathcal{V}^{(q)}$ and $M_0$ is a symmetric positive definite
 preconditioner built from the hierarchy of~$a_0$, then
 $\kappa(M_0 K_1) \leq (c_2/c_1)\, \kappa(M_0 K_0)$, since $M_0 K_1$ is
@@ -730,8 +706,8 @@ positive semidefinite, a hierarchy built for $A(\Delta t_0)$ gives
 \end{equation}
 because $A(\Delta t)$ lies between $A(\Delta t_0)$ and
 $(\Delta t/\Delta t_0) A(\Delta t_0)$ in the Loewner order; a change of
-$\Delta t$ by a factor of two costs at most $\sqrt{2}$ in the iteration
-bound of Corollary~\ref{cor:iteration_count}.
+$\Delta t$ by a factor of two costs at most $\sqrt{2}$ in the PCG
+iteration bound $\tfrac12\sqrt{\kappa}\,\ln(2/\varepsilon)$.
 
 \begin{remark}[Thresholding]\label{rem:inexact}
 The build drops an entry $A_{ij}$ of a coarsened matrix when
@@ -995,6 +971,12 @@ $\operatorname{tr} A^{(k)} \leq n_k \|A^{(k)}\|_2
 Positive definiteness of $\widetilde{K}_\rho^{-1}$ follows from the
 invertibility of $\Phi_\rho$ (Subsection~\ref{subsec:loc}) and of
 $\mathcal{B}_\rho$.  Set $C_1 := C_W C_B^{1/2}$ and $C_2 := C_1 (c_n C_A)^{1/2}$.
+Define $X_q := 0$ and, for $k = q-1, \ldots, 1$,
+\begin{equation}\label{eq:X_recursion}
+  X_k \;:=\; (1 + \tau_k)\Bigl[ \frac{\alpha}{H}\, X_{k+1}
+    + C_1\, \alpha\, \omega^{k+1} H^{k-1} e^{-\rho_k/\alpha} \Bigr]
+    + C_2\, H^{-1 - dk/2}\, \tau_k .
+\end{equation}
 We claim $b_k \leq C_1 H^{k-1} \epsilon_k \leq X_k$ for every $k$.  The
 first inequality is Lemma~\ref{lem:slot_error}; the second holds at
 $k = q$ since $\epsilon_q = 0$.  The exact patch minimizers over the
@@ -1015,6 +997,24 @@ If the claim holds at $k+1$, then by this and Lemma~\ref{lem:patch_error}
 by $C_1 H^k \epsilon_{k+1} \leq X_{k+1}$.  With $b_q = 0$ the definition
 of $\beta$ in~\eqref{eq:b_k_def} then gives
 $\beta \leq \bigl(\sum_{k<q} X_k^2\bigr)^{1/2}$.
+
+For~\eqref{eq:beta_unrolled}: since $\tau_k \leq 1$ we have
+$1 + \tau_k \leq 2$, and~\eqref{eq:X_recursion} unrolls to
+$X_k \leq \sum_{n=k}^{q-1} (2\alpha/H)^{n-k} g_n$ with
+$g_n := 2 C_1 \alpha\, \omega^{n+1} H^{n-1} e^{-\rho_n/\alpha}
+ + C_2 H^{-1-dn/2} \tau_n$.  For the first part of $g_n$,
+$(2\alpha/H)^{n-k} \omega^{n+1} H^{n-1} = (2\alpha)^{n-k} \omega^{n+1} H^{k-1}
+ \leq (2\alpha\omega)^q$; for the second,
+$(2\alpha/H)^{n-k} H^{-1-dn/2} \leq (2\alpha)^q H^{-1-(1+d/2)q}
+ = H^{-1}\bigl(2\alpha H^{-1-d/2}\bigr)^q$.  The double sum over
+$1 \leq k < q$ and $k \leq n < q$ has $q(q-1)/2 \leq q^2$ terms, so
+\[
+  \beta \;\leq\; \Bigl( \sum_{k<q} X_k^2 \Bigr)^{1/2}
+  \;\leq\; \sum_{k<q} X_k
+  \;\leq\; q^2 \Bigl[ 2 C_1 \alpha\, (2\alpha\omega)^q e^{-\rho_{\min}/\alpha}
+    + C_2 H^{-1} \bigl(2\alpha H^{-1-d/2}\bigr)^q\, \tau_{\max} \Bigr] ,
+\]
+which is~\eqref{eq:beta_unrolled}.
 
 For~\eqref{eq:kappa_bound}, let $\sigma_+$ and $\sigma_-$ be the largest
 and the smallest value of
@@ -1115,8 +1115,8 @@ by~\eqref{eq:slot_orthogonality}, and
   \;\in\; \bigl[\, 1,\; 1 + b_k^2 \,\bigr] \cdot c^\top B^{(k)} c .
 \]
 Hence $B^{(k)} \preceq B^{(k)}_\rho \preceq (1 + b_k^2) B^{(k)}$,
-$b_k \leq X_k$ by the proof of Theorem~\ref{prop:precond_conditioning},
-and \eqref{eq:block_conditioning} bounds $\kappa(B^{(k)})$.  The
+$b_k \leq \beta$ by~\eqref{eq:b_k_def}, and
+\eqref{eq:block_conditioning} bounds $\kappa(B^{(k)})$.  The
 level-$k$ patch system is the principal submatrix of $B^{(k+1)}_\rho$
 on the detail indices of the patch, and the eigenvalues of a principal
 submatrix of a symmetric matrix lie between the extreme eigenvalues of
@@ -1157,46 +1157,46 @@ $S_k B^{(k)}_\rho$ are the values $1 - r_s(\lambda)$ at the eigenvalues
 $\lambda$ of $B^{(k)}_\rho$, all in $[1 - \delta_s, 1 + \delta_s]$, and
 $S_k$ is positive definite when $\delta_s < 1$.  For (iii), the eigenvalues of
 $S_k B^{(k)}_\rho = \xi (S^{(k)}_\rho)^{-1} B^{(k)}_\rho$ are $\xi$ times
-those of $(S^{(k)}_\rho)^{-1/2} B^{(k)}_\rho (S^{(k)}_\rho)^{-1/2}$, and
-the factor $\xi$ cancels in~$\Gamma$.  The bound~\eqref{eq:jacobi_factor}
-rests on $S^{(k)} \preceq S^{(k)}_\rho \preceq (1 + b_k^2) S^{(k)}$ and
-$B^{(k)} \preceq B^{(k)}_\rho \preceq (1 + b_k^2) B^{(k)}$, both from
-Corollary~\ref{thm:localized_block_conditioning} (the first by
-restricting it to the diagonal blocks), and on the bound
-$\Gamma_0 \leq \kappa(B^{(k)})^2$, which holds because every diagonal
-block of $B^{(k)}$ has its eigenvalues between those of $B^{(k)}$.
-% [PROOF TO BE SUPPLIED: the direct bound through the similarity of the
-% preconditioned matrix to (T K)^T (T K) with K = Q^{1/2} S_rho^{-1/2}.]
+those of $(S^{(k)}_\rho)^{-1} B^{(k)}_\rho$, and $\xi$ cancels
+in~$\Gamma$.  By Corollary~\ref{thm:localized_block_conditioning},
+$B^{(k)} \preceq B^{(k)}_\rho \preceq (1 + b_k^2) B^{(k)}$, and
+restricting the two inequalities to the diagonal blocks,
+$S^{(k)} \preceq S^{(k)}_\rho \preceq (1 + b_k^2) S^{(k)}$.  For every
+$v \neq 0$ the Rayleigh quotient $v^\top B^{(k)}_\rho v / v^\top S^{(k)}_\rho v$
+therefore lies between $(1+b_k^2)^{-1}$ and $(1+b_k^2)$ times
+$v^\top B^{(k)} v / v^\top S^{(k)} v$, so
+$\lambda_{\max}\bigl((S^{(k)}_\rho)^{-1} B^{(k)}_\rho\bigr)
+ \leq (1+b_k^2)\, \lambda_{\max}\bigl((S^{(k)})^{-1} B^{(k)}\bigr)$ and
+$\lambda_{\min}\bigl((S^{(k)}_\rho)^{-1} B^{(k)}_\rho\bigr)
+ \geq (1+b_k^2)^{-1}\, \lambda_{\min}\bigl((S^{(k)})^{-1} B^{(k)}\bigr)$.
+With $b_k \leq \beta$, the ratio over all blocks is at most
+$(1+\beta^2)^2\, \Gamma_0$.  Finally, the eigenvalues of a diagonal
+block of $B^{(k)}$ lie between $\lambda_{\min}(B^{(k)})$ and
+$\lambda_{\max}(B^{(k)})$, so
+$\lambda_{\max}\bigl((S^{(k)})^{-1} B^{(k)}\bigr) \leq \kappa(B^{(k)})$
+and $\lambda_{\min}\bigl((S^{(k)})^{-1} B^{(k)}\bigr) \geq \kappa(B^{(k)})^{-1}$
+for every $k$, and \eqref{eq:block_conditioning} gives
+$\Gamma_0 \leq C_B^4 H^{-4}$.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\textup{\ref{cor:asymptotic}}]
-Since $\tau_k \leq 1$ we have $1 + \tau_k \leq 2$,
-and~\eqref{eq:X_recursion} unrolls to
-$X_k \leq \sum_{n=k}^{q-1} (2\alpha/H)^{n-k} g_n$ with
-$g_n := 2 C_1 \alpha\, \omega^{n+1} H^{n-1} e^{-\rho_n/\alpha}
- + C_2 H^{-1-dn/2} \tau_n$.  For the first part of $g_n$,
-$(2\alpha/H)^{n-k} \omega^{n+1} H^{n-1} = (2\alpha)^{n-k} \omega^{n+1} H^{k-1}
- \leq (2\alpha\omega)^q$; for the second,
-$(2\alpha/H)^{n-k} H^{-1-dn/2} \leq (2\alpha)^q H^{-1-(1+d/2)q}
- = H^{-1}\bigl(2\alpha H^{-1-d/2}\bigr)^q$.  The double sum over
-$1 \leq k < q$ and $k \leq n < q$ has $q(q-1)/2 \leq q^2$ terms, so
-\[
-  \beta \;\leq\; \Bigl( \sum_{k<q} X_k^2 \Bigr)^{1/2}
-  \;\leq\; \sum_{k<q} X_k
-  \;\leq\; q^2 \Bigl[ 2 C_1 \alpha\, (2\alpha\omega)^q e^{-\rho/\alpha}
-    + C_2 H^{-1} \bigl(2\alpha H^{-1-d/2}\bigr)^q\, \tau \Bigr] ,
-\]
-which is~\eqref{eq:beta_unrolled}.  The first condition
-of~\eqref{eq:beta0_conditions} reads
+Set $\beta_0 := 1 - 4/\sqrt{\kappa^\ast} \in (0,1)$, so that
+$L = \ln(2/\beta_0)$.  The first condition of~\eqref{eq:beta0_conditions}
+reads
 $e^{-\rho_k/\alpha} \leq \beta_0 \bigl[\, 4 C_1\alpha\, q^2 (2\alpha\omega)^q \,\bigr]^{-1}$,
-under which the first bracket term contributes at most $\beta_0/2$; the
-second reads
+under which the first term of~\eqref{eq:beta_unrolled} is at most
+$\beta_0/2$; the second reads
 $\tau_k \leq \beta_0 H \bigl[\, 2 C_2\, q^2 (2\alpha H^{-1-d/2})^q \,\bigr]^{-1}$,
-under which the second contributes at most $\beta_0/2$.  Hence
-$\beta \leq \beta_0$.  Both right-hand sides
-of~\eqref{eq:kappa_bound} and~\eqref{eq:cg_iter_bound} increase with
-$\beta$ on $[0,1)$, so substituting $\beta_0$
-gives~\eqref{eq:kappa_beta0}.
+under which the second term is at most $\beta_0/2$.  Hence
+$\beta \leq \beta_0$.  The right-hand sides of~\eqref{eq:kappa_bound}
+and~\eqref{eq:cg_iter_bound} increase with $\beta$ on $[0,1)$, and at
+$\beta_0$ they are bounded using $(1+\beta_0)^4 \leq 16$,
+$(1+\beta_0)^2 \leq 4$ and
+$(1 - \beta_0^{\,q})/(1-\beta_0) \leq (1-\beta_0)^{-1} = \sqrt{\kappa^\ast}/4$:
+the condition number by $16 \cdot \kappa^\ast/16 = \kappa^\ast$ and the
+iteration count by
+$\tfrac12 \cdot 4 \cdot (\sqrt{\kappa^\ast}/4) \ln(2/\varepsilon)$,
+which is~\eqref{eq:kappa_beta0}.
 \end{proof}
 
 \section{The construction}
@@ -1502,8 +1502,8 @@ $B^{(k+1)}_\rho$, so by Corollary~\ref{thm:localized_block_conditioning}
 CG from a zero initial guess reaches a relative residual
 $\tau_{\mathrm{build}}$ within
 $\tfrac12 \sqrt{\kappa_k} \ln(2\sqrt{\kappa_k}/\tau_{\mathrm{build}})$
-iterations, $\kappa_k := (1 + X_{k+1}^2)\, C_B^2 H^{-2}$; the count
-depends on the level, the radii and~$N$ only through $X_{k+1}$.  The
+iterations, $\kappa_k := (1 + \beta^2)\, C_B^2 H^{-2}$; the count
+depends on the radii, the tolerances and~$N$ only through $\beta$.  The
 build tolerance controls the patch tolerance $\tau_k$ of
 Theorem~\ref{prop:precond_conditioning}: the energy error of the computed
 correction is at most $\sqrt{\kappa_k}\, \tau_{\mathrm{build}}$ times the
@@ -1653,7 +1653,7 @@ counts the bounds of Section~\ref{sec:main_bounds} leave open.
 Claim: at fixed radii and tolerance the iteration count grows slowly with
 $N$, as~\eqref{eq:beta_unrolled} permits, and the inner
 iteration counts of the block solves grow at most as the bound of
-Corollary~\ref{thm:localized_block_conditioning} through $X_k$.  Reported: outer
+Corollary~\ref{thm:localized_block_conditioning} through $\beta$.  Reported: outer
 iterations against~$N$ for both problems; mean inner iterations per
 level.
 % [PLACEHOLDER: figure, outer iterations vs N; table, inner iterations per
