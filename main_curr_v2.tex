@@ -299,8 +299,8 @@ functions have bounded support, at a cost in energy exponentially small
 in the radius of that support.
 
 \subsection{Approximate hierarchies}\label{subsec:loc}
-Fix radii $\rho_k \geq 1$, measured in level-$k$ mesh widths.  The
-\emph{localized} level-$k$ basis function at the node $x^{(k)}_i$ is
+Fix radii $\rho_k \geq 1$, measured in level-$k$ mesh widths, and write
+$\rho := \max_k \rho_k$.  The \emph{localized} level-$k$ basis function at the node $x^{(k)}_i$ is
 \begin{equation}\label{eq:psi_loc_def}
   \psi^{(k)}_{\mathrm{loc},i} = \operatorname*{argmin}
     \bigl\{ \lVert v \rVert_a \;:\; v \in \mathcal{A}^{(k)}_i, \;
@@ -321,7 +321,7 @@ corresponding decay length at level~$k$ is $\ell h_k$.
 Posed over $\mathcal{V}^{(q)}$, the problem in \eqref{eq:psi_loc_def}
 has as many unknowns as the finest mesh has elements in that ball,
 namely $\simeq \rho_k^d H^{-d(q-k)}$; at level~$1$ this is
-$\simeq \rho_1^d N / n_1$, comparable to the original problem.  Since
+$\simeq \rho_1^d N / n_1$, a fixed fraction of~$N$.  Since
 $\mathcal{V}^{(k)} \subseteq \mathcal{V}^{(k+1)}$, there exist matrices
 $R^{(k)}_{\mathrm{ex}} \in \mathbb{R}^{n_k \times n_{k+1}}$ with
 \begin{equation}\label{eq:nesting_R}
@@ -329,13 +329,12 @@ $R^{(k)}_{\mathrm{ex}} \in \mathbb{R}^{n_k \times n_{k+1}}$ with
   \psi^{(k+1)}_j , \qquad 1 \leq i \leq n_k ,
 \end{equation}
 so the hierarchy is determined by the finest basis together with these
-coefficients.  Each level-$(k+1)$ function is attached to a node, so
-confining a level-$k$ function to a neighbourhood of its own node means
-posing its problem over the level-$(k+1)$ functions whose nodes lie in
-that neighbourhood; the entries of $R^{(k)}_{\mathrm{ex}}$ decay
-exponentially in the distance between the nodes they couple
-\cite[Lemma~16.27]{Owhadi_Scovel_2019}, the same locality seen in the
-coefficients rather than in the functions.  The \emph{patch} of a
+coefficients.  The entries of $R^{(k)}_{\mathrm{ex}}$ decay exponentially
+in the distance between the nodes they couple
+\cite[Lemma~16.27]{Owhadi_Scovel_2019}.  The construction below poses
+the level-$k$ problem over the level-$(k+1)$ functions whose nodes lie
+within $\rho_k$ of the node, which restricts the coefficient row to that
+set.  The \emph{patch} of a
 level-$k$ index~$i$,
 \begin{equation}\label{eq:patch_def}
   \mathcal{P}^{(k)}_i := \bigl\{\, j \in I^{(k+1)} :
@@ -364,8 +363,9 @@ Appendix~\ref{app:stability}.
 
 Cellularity~\eqref{eq:cellularity} makes the feasible set
 of~\eqref{eq:recursive_patch} easy to
-parametrize. Let $C^{(k)\dagger}$ be a right inverse of $C^{(k)}$ whose row~$i$ is
-supported in the indices of parent~$i$.  Row~$i$ of $C^{(k)\dagger}$
+parametrize. Let $C^{(k)\dagger} \in \mathbb{R}^{n_k \times n_{k+1}}$ satisfy
+$C^{(k)} C^{(k)\dagger\top} = I$, with row~$i$ supported in the indices
+with parent~$i$.  Row~$i$ of $C^{(k)\dagger}$
 satisfies the constraint $C^{(k)} x = e_i$, the rows of $D^{(k)}$ are a
 basis of the kernel of $C^{(k)}$ by~\eqref{eq:kernel_D}, and rows of
 $D^{(k)}$ with distinct parents have disjoint supports.  A vector $x$ is therefore feasible for
@@ -1236,8 +1236,8 @@ Set $A^{(q)} := K$.\\[2pt]
   \item[1.] $B^{(k+1)}_\rho \gets D^{(k)} A^{(k+1)} D^{(k)\top}$
     (its nodal diagonal blocks only, under the block-Jacobi policy).
   \item[2.] \textbf{for} each $i$, one per orbit:
-    $[B^{(k+1)}_\rho]_{\mathcal{P}^{(k)}_i}\, z_i =
-     -[D^{(k)} A^{(k+1)} C^{(k)\dagger\top} e_i]_{\mathcal{P}^{(k)}_i}$
+    $[B^{(k+1)}_\rho]_{J^{(k)}_i}\, z_i =
+     -[D^{(k)} A^{(k+1)} C^{(k)\dagger\top} e_i]_{J^{(k)}_i}$
     by CG to $\tau_{\mathrm{build}}$.
   \item[3.] $R^{(k)} \gets C^{(k)\dagger} + Z^{(k)} D^{(k)}$.
   \item[4.] $A^{(k)} \gets R^{(k)} A^{(k+1)} R^{(k)\top}$, thresholded;
@@ -1316,7 +1316,7 @@ The sparsity patterns of all matrices in Algorithm~\ref{alg:impl_build}
 are therefore fixed by the index sets, the radii and~$H$, with
 $\lesssim \rho^d$ entries per row at every level, and the factors are
 stored and applied in sequence (a column of $\Phi_\rho$ at level~$k$ has
-$\simeq \rho^d H^{-d(q-k)}$ entries).
+$\lesssim \rho^d H^{-d(q-k)}$ entries).
 
 A general sparse product cannot know the pattern of its result in
 advance; it either determines the pattern in a symbolic pass or bounds
@@ -1356,18 +1356,23 @@ block of the Gram matrix $A^{(k+1)}_\rho$ on that index set,
   \,\Bigr).
 \end{equation}
 
-The localized basis function at a node minimizes the energy among
-functions supported in that node's patch and matching the measurements
-of its level.  Let $T$ be a map of the domain that carries the mesh
-hierarchy to itself, carries the patch of one node onto the patch of
-another, and under which the measurements correspond; suppose the
-coefficient is carried to a positive multiple of itself.  Then
-$v \mapsto v \circ T^{-1}$ is a bijection between the two constraint
-sets under which the energy is multiplied by that positive factor, so
-it carries the minimizer of the first problem to the minimizer of the
-second.  A positive multiple of the energy has the same minimizer, so the factor
-does not enter, and one minimization determines the basis functions of
-the whole orbit.
+The level-$k$ patch problem~\eqref{eq:recursive_patch} minimizes the
+energy over combinations of the computed level-$(k{+}1)$ functions
+whose nodes lie in the patch of a node, subject to the measurements of
+level~$k$.  Let $T$ be an isometry of the domain that maps the nodes of
+each level onto the nodes of that level and commutes with the parent
+relation, carries the patch of $x^{(k)}_i$ onto the patch of
+$x^{(k)}_{i'}$, permutes the level-$k$ measurements,
+$\mu^{(k)}_{g(j)}(v \circ T^{-1}) = \mu^{(k)}_j(v)$ for a bijection $g$
+of $I^{(k)}$ with $g(i) = i'$ and all~$v$, carries the coefficient on
+the patch to a positive multiple of itself, and carries the computed
+level-$(k{+}1)$ functions to one another.  Then $v \mapsto v \circ T^{-1}$
+is a bijection between the feasible sets of the two patch problems, and
+since $T$ is an isometry the energy transforms only through the
+coefficient, by that positive factor.  A positive multiple of the energy
+has the same minimizer, so $T$ carries the minimizer at~$i$ to the
+minimizer at~$i'$, and one minimization determines the basis functions
+of the whole class.
 \[
   \begin{array}{ccc}
     \mathcal{A}^{(k)}_i & \xrightarrow{\;v \,\mapsto\, v \circ T^{-1}\;}
@@ -1378,18 +1383,21 @@ the whole orbit.
   \end{array}
 \]
 Functions are carried forward by composition with $T^{-1}$ and the
-measurements by the permutation $P_k$ that $T$ induces on the nodes;
-the constraint $\mu^{(k)}(\psi) = e_i$ is preserved because the two
-transform dually.
+measurements by the permutation matrix $P_k$ of~$g$; the constraint
+$\mu^{(k)}(\psi) = e_i$ is preserved because the two transform dually.
+The condition on the computed level-$(k{+}1)$ functions holds by
+induction from the finest level, where the functions are the exact ones.
 
-Within a level such maps are the symmetries of the mesh --- on a lattice
-the translations and the rotations and reflections about a node ---
-together with the positive scalings of the coefficient.  Between
-consecutive levels the corresponding map is the dilation by the
-refinement ratio, under which the energy and the measurement
-normalization each acquire a power of the scale.  That the local
-problems of two consecutive levels then differ by a positive factor is
-an assumption on the discretization, used where stated.
+The isometries of a lattice are the translations and the rotations and
+reflections about a node.  A positive scaling of the coefficient on a
+patch is not a map of the domain, but it acts on the patch problem in
+the same way, multiplying the energy by a constant, and the equivalence
+below includes it.  Between consecutive levels the natural map is the
+dilation by the refinement ratio, which is not an isometry: the energy
+and the measurement normalization each acquire a power of the scale.
+That the local problems of two consecutive levels then differ by a
+positive factor is an assumption on the discretization, used where
+stated.
 
 In coordinates these maps are permutations of the index sets.  Write
 $I^{(k)}_\chi := \{1, \ldots, d_k\}$ for the detail index set of
@@ -1465,26 +1473,31 @@ unchanged.
 
 Call $i, i' \in I^{(k)}$ equivalent when some admissible transformation
 carries $\mathcal{D}^{(k)}_i$ to a positive multiple
-of~$\mathcal{D}^{(k)}_{i'}$.  The relation is an equivalence and its
-classes are the orbits of the group of admissible transformations on
-$I^{(k)}$. By Proposition~\ref{prop:orbit_transport} the row at one index of an orbit is the row at another with its columns relabelled by the transformation between them, so the patch-solve work and the stored rows of $R^{(k)}$ are proportional to the number of orbits rather than to~$n_k$.
+of~$\mathcal{D}^{(k)}_{i'}$.  The relation is an equivalence.  Its
+classes are the orbits of the group of admissible transformations acting
+on the local data up to a positive factor; they refine the orbits of the
+group on $I^{(k)}$ itself, and are what "orbit" means below. By Proposition~\ref{prop:orbit_transport} the row at one index of an orbit is the row at another with its columns relabelled by the transformation between them, so the patch-solve work and the stored rows of $R^{(k)}$ are proportional to the number of orbits rather than to~$n_k$.
 
 The scaling map between consecutive levels identifies the level-$k$
 patch problem of an index with the level-$(k{+}1)$ problem at the
 corresponding position of the refined grid: the two have the same patch
 and the same constraint.  Where their local operators are positive
-multiples of one another,
-Proposition~\ref{prop:orbit_transport}(ii) makes the identification
-exact and the two problems share one solution.  That proportionality is
+multiples of one another, the argument of
+Proposition~\ref{prop:orbit_transport}(ii) applies to the pair and the
+two problems share one solution.  That proportionality is
 a hypothesis on the discretization rather than a consequence of the
 construction.  It holds at the finest pair, where the local operator is
 the element array scaled by a power of the mesh width, and for a
 coefficient constant on the patch it is a self-similarity property of
 the coarsened operators.
-When the mesh is obtained via uniform refinement of a (not necessarily
+When the mesh is obtained by uniform refinement of a (not necessarily
 structured) initial mesh, the admissible transformations are the
-symmetries of the initial mesh together with the translations inside one
-element.
+symmetries of the initial mesh.  A lattice translation inside one
+element is a symmetry of that element's lattice and not of the mesh;
+two indices whose patches lie inside the element and correspond under
+it have corresponding local data, and since the proof of
+Proposition~\ref{prop:orbit_transport} uses only the restriction of the
+transformation to the two patches, they share a solution as well.
 
 By Proposition~\ref{prop:stencil_width} the data of a level-$k$ patch
 problem depends on $K$ only through its entries in a ball about
@@ -1519,7 +1532,7 @@ systems from $A^{(k+1)}$, and no other part of the block is stored.
 With $\iota_k$ the CG iteration count of a level-$k$ patch solve,
 Algorithm~\ref{alg:impl_build} performs
 \begin{equation}\label{eq:build_cost}
-  \lesssim\; \sum_{k=1}^{q-1} n_k\, \rho_k^{2d}\, (1 + \iota_k)
+  \lesssim\; \sum_{k=1}^{q-1} n_k\, \rho^{2d}\, (1 + \iota_k)
 \end{equation}
 operations, the first term of each summand for the coarsening product
 and the second for the patch solves, and stores $\lesssim N\rho^d$ values
@@ -1533,9 +1546,13 @@ block-Jacobi scaling.
 \begin{proof}[Proof of Proposition~\textup{\ref{prop:cost}}]
 By Proposition~\ref{prop:stencil_width} a row of $A^{(k)}$, of
 $B^{(k+1)}_\rho$ and of $R^{(k)}$ carries $\lesssim \rho_k^d$ entries.
-Row~$i$ of $A^{(k)} = R^{(k)} A^{(k+1)} R^{(k)\top}$ is a sum over pairs
-drawn from two patches, $\lesssim \rho_k^{2d}$ products, and there are
-$n_k$ rows.  The level-$k$ patch system is a principal submatrix of
+Row~$i$ of $A^{(k)} = R^{(k)} A^{(k+1)} R^{(k)\top}$ is formed in two
+stages: the product $R^{(k)}_{i,\cdot} A^{(k+1)}$ costs
+$\lesssim \rho_k^d$ times the length of a row of $A^{(k+1)}$, which is
+$\lesssim \rho^d$ by Proposition~\ref{prop:stencil_width}, and the
+product of the result with $R^{(k)\top}$ costs $\lesssim \rho_k^d$ for
+each of the $\lesssim \rho^d$ entries of the output row.  Both are
+$\lesssim \rho^{2d}$, and there are $n_k$ rows.  The level-$k$ patch system is a principal submatrix of
 $B^{(k+1)}_\rho$ on $\lesssim \rho_k^d$ indices, so it holds
 $\lesssim \rho_k^{2d}$ nonzeros and one CG iteration on it costs that
 many operations; $n_k$ patches at $\iota_k$ iterations give
@@ -1555,7 +1572,7 @@ The storage count is the one the format of
 Remark~\ref{rem:realization} realizes: values only, in the order the
 labelling fixes, with no column indices, and one stored row per orbit.
 At the finest level the stencil of $K$ has width $\lesssim 1$ and a patch
-iteration costs $\lesssim r_{q-1}^d$ rather than $r_{q-1}^{2d}$.
+iteration costs $\lesssim \rho^d$.
 
 \begin{remark}[Realization]\label{rem:realization}
 Proposition~\ref{prop:stencil_width} permits the matrices of
@@ -1596,7 +1613,9 @@ Section~\ref{sec:experiments} use: the uniform hexahedral grid on a box
 with $H = \tfrac12$, first-order elements, point-value measurements, and
 the max-norm box of radius $\rho_k h_k$ about $x^{(k)}_i$ as the patch,
 which contains the ball of radius $\rho_k$ and is contained in the ball of
-radius $\sqrt{d}\, \rho_k$.  The initial mesh is one element, the local
+radius $\sqrt{d}\, \rho_k$; the statements above hold on this instance
+with $\rho_k$ where the patch enters as a lower bound and
+$\sqrt{d}\,\rho_k$ where it enters as an upper bound.  The initial mesh is one element, the local
 multi-index is the grid coordinate, the table of faces and orientations
 is empty, and the position of a value within a row reduces to the
 mixed-radix index
@@ -1624,8 +1643,8 @@ selections; the elasticity experiments use $p = d$.
 \caption{One row of a nine-point operator in the two storage formats.
 A compressed-row format keeps a column index next to every value; the
 stencil format stores the values only, in the order of the positions of
-the box about the row's node, and the column of a value follows from its
-position by~\eqref{eq:slot_map}, $\mathrm{slot}(x,y) = (y_1 - l_1)\, b_2 +
+the box about the row's node, and the position of a value follows from
+its column by~\eqref{eq:slot_map}, $\mathrm{slot}(x,y) = (y_1 - l_1)\, b_2 +
 (y_2 - l_2)$ in two dimensions.}
 \label{fig:stencil_vs_csr}
 \end{figure}
