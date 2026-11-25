@@ -371,7 +371,9 @@ Cellularity~\eqref{eq:cellularity} makes the feasible set
 of~\eqref{eq:recursive_patch} easy to
 parametrize. Let $C^{(k)\dagger} \in \mathbb{R}^{n_k \times n_{k+1}}$ satisfy
 $C^{(k)} C^{(k)\dagger\top} = I$, with row~$i$ supported in the indices
-with parent~$i$.  Row~$i$ of $C^{(k)\dagger}$
+with parent~$i$.  We assume $\|C^{(k)\dagger}\|_2 \leq C_C$ for every $k$;
+for point-value measurements the injection is a right inverse of this
+form and $C_C = 1$.  Row~$i$ of $C^{(k)\dagger}$
 satisfies the constraint $C^{(k)} x = e_i$, the rows of $D^{(k)}$ are a
 basis of the kernel of $C^{(k)}$ by~\eqref{eq:kernel_D}, and rows of
 $D^{(k)}$ with distinct parents have disjoint supports.  A vector $x$ is therefore feasible for
@@ -592,40 +594,33 @@ $B^{(k+1)}_\rho$ and satisfy the same bound.
 error~$\tau$ therefore takes at most
 $\tfrac12 (1+\beta^2)^{1/2} C_B H^{-1} \ln(2/\tau)$ iterations.
 
-\begin{corollary}[Radii and tolerances for a prescribed condition number]\label{cor:asymptotic}
-Assume the hypotheses of Theorem~\ref{prop:precond_conditioning} and
-$\tau_k \leq 1$ for $1 \leq k < q$.  Let $\kappa^\ast > 16$ and
-$L := \ln\bigl(2\sqrt{\kappa^\ast}/(\sqrt{\kappa^\ast}-4)\bigr)$.  If,
-for $1 \leq k < q$,
-\begin{equation}\label{eq:beta0_conditions}
-  \begin{aligned}
-  \rho_k &\;\geq\; \alpha\Bigl[\, q \ln(2\alpha\omega) + 2 \ln q
-    + \ln(2 C_1 \alpha) + L \,\Bigr], \\
-  \ln(1/\tau_k) &\;\geq\; q \ln\bigl(2\alpha H^{-1-d/2}\bigr) + 2 \ln q
-    + \ln(C_2/H) + L ,
-  \end{aligned}
-\end{equation}
-then, for every $\varepsilon \in (0,1)$,
-\begin{equation}\label{eq:kappa_beta0}
-  \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr) \;\leq\; \kappa^\ast ,
+\begin{corollary}[Radii and patch iterations for a prescribed condition number]\label{cor:asymptotic}
+Assume the hypotheses of Theorem~\ref{prop:precond_conditioning}, with
+each level-$k$ patch system solved by $m_k$ iterations of CG from a zero
+initial guess, and let $\kappa^\ast > 1$.  There are constants $c_r$
+and $c_m$, depending only on $\kappa^\ast$, $H$, $d$, $C_C$ and the
+constants of Theorem~\ref{prop:precond_conditioning}, such that if
+$\rho_k \geq c_r\, q$ and $m_k \geq c_m\, q$ for $1 \leq k < q$, then
+\[
+  \kappa\bigl(\widetilde{K}_\rho^{-1} K\bigr) \leq \kappa^\ast,
   \qquad
-  k(\varepsilon) \;\leq\; \tfrac12 \sqrt{\kappa^\ast}\,
-    \ln\!\left(\frac{2}{\varepsilon}\right) .
-\end{equation}
+  k(\varepsilon) \leq \tfrac12 \sqrt{\kappa^\ast}\, \ln(2/\varepsilon).
+\]
 \end{corollary}
 
-Since $q \lesssim \ln N$, the conditions~\eqref{eq:beta0_conditions} are
-met by radii $\rho_k \geq c_r \ln N$ and tolerances
-$\tau_k \leq N^{-c_\tau}$, with $c_r$ and $c_\tau$ depending on
-$\kappa^\ast$ and on the constants of
-Theorem~\ref{prop:precond_conditioning}.  A prescribed condition number
-is therefore attained at every $N$ by radii growing logarithmically
-in~$N$, and by Corollary~\ref{thm:localized_block_conditioning} each
-patch system reaches its tolerance in $\lesssim \ln N$ CG iterations.
-In the direct use of the factorization the radius must grow with
-$\ln(1/\varepsilon)$ as well \cite[Thm.~16.32]{Owhadi_Scovel_2019}; here
-the target accuracy enters only through the factor
-$\ln(2/\varepsilon)$ of the iteration count.
+Since $q \lesssim \ln N$, radii and numbers of patch CG iterations
+proportional to $\ln N$ bound the condition number independently of~$N$.
+The proof shows that level~$k$ needs radius and iterations proportional
+to~$k$ only, so the coarser levels can be built with smaller radii and
+fewer iterations.  The constants $c_r$ and $c_m$ grow like
+$\ln\bigl(1/(\kappa^\ast-1)\bigr)$ as $\kappa^\ast \to 1$.  Taking
+$\kappa^\ast - 1$ of the order of the target accuracy~$\varepsilon$ gives
+radii of order $\ln N + \ln(1/\varepsilon)$, the condition for the direct
+use of the factorization \cite[Thm.~16.32]{Owhadi_Scovel_2019}; holding
+$\kappa^\ast$ fixed gives radii of order $\ln N$, with the accuracy
+reached by outer iterations at $\tfrac12\sqrt{\kappa^\ast}\ln(2/\varepsilon)$.
+A moderate $\kappa^\ast$ therefore costs a fixed additive constant in the
+radius.
 % [VERIFY: the relation between the constant alpha of Lemma 16.30 and
 % the decay length of the basis functions.  Both are lengths in level-k
 % mesh units set by the decay (Condition 16.22, item 1, and Lemma 16.27 of
@@ -977,6 +972,46 @@ $\operatorname{tr} A^{(k)}_{\mathrm{ex}} \leq n_k \|A^{(k)}_{\mathrm{ex}}\|_2
  \leq c_n C_A H^{-(d+2)k}$.
 \end{proof}
 
+\begin{lemma}[Patch solves by CG]\label{lem:patch_cg}
+Let each level-$k$ patch system be solved by CG from a zero initial
+guess, reducing the error in the patch-system energy norm by the factor
+$\delta_k \leq \alpha H^{dk/2}/(C_C c_n^{1/2})$.  Then
+\[
+  \epsilon_k \;\leq\; \epsilon^\ast_k + \alpha\,\epsilon_{k+1}
+    + \delta_k\, C_C (c_n C_A)^{1/2} H^{-1-(1+d/2)k} .
+\]
+\end{lemma}
+
+\begin{proof}
+Write $\psi^{(k),\ast}_{\rho,i} = p_i + d^\ast_i$, where
+$p_i := \sum_j C^{(k)\dagger}_{ij} \psi^{(k+1)}_{\rho,j}$ and $d^\ast_i$ is the
+combination of approximate detail functions given by the exact patch
+solution; the computed function is $p_i + d_i$ with $d_i$ given by the CG
+iterate.  The energy norm of a combination of detail functions is the
+patch-system norm of its coefficients, so
+$e_i := \psi^{(k)}_{\rho,i} - \psi^{(k),\ast}_{\rho,i} = d_i - d^\ast_i$
+satisfies $\|e_i\|_a \leq \delta_k \|d^\ast_i\|_a$.  By first-order
+optimality $\psi^{(k),\ast}_{\rho,i}$ is $a$-orthogonal to $d^\ast_i$, so
+$\|p_i\|_a^2 = \|\psi^{(k),\ast}_{\rho,i}\|_a^2 + \|d^\ast_i\|_a^2 \geq \|d^\ast_i\|_a^2$.
+Hence
+\[
+  \Bigl(\sum_i \|e_i\|_a^2\Bigr)^{1/2}
+  \leq \delta_k \Bigl(\sum_i \|p_i\|_a^2\Bigr)^{1/2}
+  = \delta_k \bigl(\operatorname{tr} C^{(k)\dagger} A^{(k+1)}_\rho C^{(k)\dagger\top}\bigr)^{1/2}
+  \leq \delta_k\, C_C\, n_k^{1/2}\, \|A^{(k+1)}_\rho\|_2^{1/2},
+\]
+using $\operatorname{tr}(XAX^\top) \leq \|A\|_2 \|X\|_F^2$ and
+$\|X\|_F^2 \leq n_k \|X\|_2^2$.  By Cauchy--Schwarz,
+$\|\sum_j c_j \psi^{(k+1)}_{\rho,j}\|_a \leq
+ \|\sum_j c_j \psi^{(k+1)}_j\|_a + \epsilon_{k+1} \|c\|$, so
+$\|A^{(k+1)}_\rho\|_2^{1/2} \leq \|A^{(k+1)}_{\mathrm{ex}}\|_2^{1/2} + \epsilon_{k+1}
+ \leq C_A^{1/2} H^{-(k+1)} + \epsilon_{k+1}$.  With
+$n_k \leq c_n H^{-dk}$ and Minkowski's inequality,
+$\epsilon_k \leq \epsilon^\ast_k + \delta_k C_C c_n^{1/2} H^{-dk/2}
+ \bigl(C_A^{1/2} H^{-(k+1)} + \epsilon_{k+1}\bigr)$, and the hypothesis on
+$\delta_k$ bounds the coefficient of $\epsilon_{k+1}$ by~$\alpha$.
+\end{proof}
+
 \begin{proof}[Proof of Theorem~\textup{\ref{prop:precond_conditioning}}]
 Positive definiteness of $\widetilde{K}_\rho^{-1}$ follows from the
 invertibility of $\Phi_\rho$ (Subsection~\ref{subsec:loc}) and of
@@ -1190,23 +1225,38 @@ $\Gamma_0 \leq C_B^4 H^{-4}$.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\textup{\ref{cor:asymptotic}}]
-Set $\beta_0 := 1 - 4/\sqrt{\kappa^\ast} \in (0,1)$, so that
-$L = \ln(2/\beta_0)$.  The first condition of~\eqref{eq:beta0_conditions}
-reads
-$e^{-\rho_k/\alpha} \leq \beta_0 \bigl[\, 4 C_1\alpha\, q^2 (2\alpha\omega)^q \,\bigr]^{-1}$,
-under which the first term of~\eqref{eq:beta_unrolled} is at most
-$\beta_0/2$; the second reads
-$\tau_k \leq \beta_0 H \bigl[\, 2 C_2\, q^2 (2\alpha H^{-1-d/2})^q \,\bigr]^{-1}$,
-under which the second term is at most $\beta_0/2$.  Hence
-$\beta \leq \beta_0$.  The right-hand sides of~\eqref{eq:kappa_bound}
-and~\eqref{eq:cg_iter_bound} increase with $\beta$ on $[0,1)$, and at
-$\beta_0$ they are bounded using $(1+\beta_0)^4 \leq 16$,
-$(1+\beta_0)^2 \leq 4$ and
-$(1 - \beta_0^{\,q})/(1-\beta_0) \leq (1-\beta_0)^{-1} = \sqrt{\kappa^\ast}/4$:
-the condition number by $16 \cdot \kappa^\ast/16 = \kappa^\ast$ and the
-iteration count by
-$\tfrac12 \cdot 4 \cdot (\sqrt{\kappa^\ast}/4) \ln(2/\varepsilon)$,
-which is~\eqref{eq:kappa_beta0}.
+The proof of Theorem~\ref{prop:precond_conditioning} gives
+$\epsilon^\ast_k \leq \alpha\epsilon_{k+1} + \alpha\omega^{k+1}e^{-\rho_k/\alpha}$
+for any patch solutions, so by Lemma~\ref{lem:patch_cg} the quantities
+$C_1 H^{k-1}\epsilon_k$ satisfy~\eqref{eq:X_recursion} with $\tau_k$
+replaced by $C_C H^{-1}\delta_k$ in the last term and $1+\tau_k$ replaced
+by~$2$.  The unrolling then gives~\eqref{eq:beta_unrolled} with
+$\tau_{\max}$ replaced by $C_C H^{-1}\delta_{\max}$.  Let
+$\beta_0 \in (0,1)$ be the solution of
+$(1+\beta_0)^4 = \kappa^\ast (1-\beta_0)^2$; it exists and is unique
+because $(1+\beta)^4/(1-\beta)^2$ increases from $1$ to $\infty$ on
+$[0,1)$.  Then $\beta \leq \beta_0$ holds when
+$\rho_k \geq \alpha[\,q\ln(2\alpha\omega) + 2\ln q + \ln(2C_1\alpha) + \ln(2/\beta_0)\,]$
+and
+$\ln(1/\delta_k) \geq q\ln(2\alpha H^{-1-d/2}) + 2\ln q + \ln(C_2 C_C/H^2) + \ln(2/\beta_0)$,
+each condition bounding one term of~\eqref{eq:beta_unrolled} by
+$\beta_0/2$, and Lemma~\ref{lem:patch_cg} requires in addition
+$\ln(1/\delta_k) \geq \tfrac{dk}{2}\ln(1/H) + \ln(C_C c_n^{1/2}/\alpha)$.
+CG from a zero initial guess on a system of condition number $\kappa_k$
+gives $\delta_k \leq 2e^{-2m_k/\sqrt{\kappa_k}}$, and by
+Corollary~\ref{thm:localized_block_conditioning}
+$\kappa_k \leq (1+b_{k+1}^2) C_B^2 H^{-2}$.  The partial sums of the
+unrolled bound over the levels finer than $k$ are at most $\beta_0$ by
+induction from the finest level, so $b_{k+1} \leq \beta_0 < 1$ and
+$\sqrt{\kappa_k} \leq \sqrt{2}\, C_B H^{-1}$.  Every requirement on
+$\rho_k$ and on $\ln(1/\delta_k)$ above is at most a constant times~$q$,
+using $\ln q \leq q$ and $k < q$, which gives $c_r$ and~$c_m$.  Since
+$(1+\beta)^4/(1-\beta)^2$ increases with $\beta$ and
+$(1-\beta^{\,q})/(1-\beta) \leq (1-\beta)^{-1}$, $\beta \leq \beta_0$
+gives $\kappa\bigl(\widetilde{K}_\rho^{-1}K\bigr) \leq \kappa^\ast$
+in~\eqref{eq:kappa_bound} and
+$k(\varepsilon) \leq \tfrac12 \sqrt{\kappa^\ast} \ln(2/\varepsilon)$
+in~\eqref{eq:cg_iter_bound}.
 \end{proof}
 
 \section{The construction}
